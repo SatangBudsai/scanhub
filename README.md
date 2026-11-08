@@ -19,11 +19,28 @@
 
 ต้องมี Docker เท่านั้น ใช้ไฟล์ `docker-compose.yml` ไฟล์เดียว ไม่ต้อง clone โค้ดหรือ build เอง
 
+| ระบบ | ใช้ Docker | หมายเหตุ |
+| --- | --- | --- |
+| Windows 10 / 11 | [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) (WSL 2) | Windows แบบ Intel / AMD และ ARM |
+| macOS | [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/) | Mac Intel และ Apple Silicon (M1 ขึ้นไป) |
+| Linux server | Docker Engine + Compose plugin | x86_64 และ arm64 |
+
+image มีทั้ง amd64 และ arm64 Docker เลือกให้ตรงกับเครื่องเอง ใช้งานบน iPhone / iPad / Android ได้ผ่าน browser แต่ต้องติดตั้ง ScanHub บนเครื่องข้างบน
+
 1. ดาวน์โหลด `docker-compose.yml` มาไว้ในโฟลเดอร์ว่าง
+
+   **macOS / Linux** (Terminal)
 
    ```sh
    mkdir scanhub && cd scanhub
    curl -fsSLO https://raw.githubusercontent.com/SatangBudsai/scanhub/main/docker-compose.yml
+   ```
+
+   **Windows** (PowerShell)
+
+   ```powershell
+   mkdir scanhub; cd scanhub
+   Invoke-WebRequest https://raw.githubusercontent.com/SatangBudsai/scanhub/main/docker-compose.yml -OutFile docker-compose.yml
    ```
 
 2. เปิดไฟล์แล้วแก้ 3 บรรทัด
@@ -34,7 +51,7 @@
    SCANHUB_URL: https://scanhub.company.local     # URL ที่คนและ CI ใช้เข้า ScanHub
    ```
 
-3. สั่ง `docker compose up -d` ครั้งแรกจะดาวน์โหลด image ประมาณ 2 GB ที่มีเว็บ, PostgreSQL และ scanner ทุกตัวอยู่แล้ว
+3. สั่ง `docker compose up -d` ในโฟลเดอร์เดียวกัน (คำสั่งเดียวกันทั้ง Windows และ macOS) ครั้งแรกจะดาวน์โหลด image ประมาณ 2 GB ที่มีเว็บ, PostgreSQL และ scanner ทุกตัวอยู่แล้ว
 4. เปิด `SCANHUB_URL` แล้ว login ด้วย admin ครั้งแรกจะมีหน้าให้เลือก scanner และเวลาอัปเดตรายวัน
 
 ![ตั้งค่าครั้งแรก: เลือก scanner และเวลาอัปเดตอัตโนมัติ](docs/media/setup.gif)
@@ -44,7 +61,8 @@
 ### อัปเดตเวอร์ชัน
 
 ```sh
-docker compose pull && docker compose up -d
+docker compose pull
+docker compose up -d
 ```
 
 ข้อมูลใน volume `scanhub-data` อยู่ครบ ฐานข้อมูลอัปเดตโครงสร้างเองตอน start ถ้าต้องการล็อกเวอร์ชัน เปลี่ยน `:latest` ใน `docker-compose.yml` เป็นเลขเวอร์ชัน เช่น `:1.1.0` แล้วจะย้อนกลับเวอร์ชันก่อนก็ทำแบบเดียวกัน (ดูเวอร์ชันทั้งหมดได้ที่ [GitHub Packages](https://github.com/SatangBudsai/scanhub/pkgs/container/scanhub))
@@ -54,13 +72,15 @@ docker compose pull && docker compose up -d
 ย้าย image ด้วยไฟล์ แล้ว start ตามปกติ
 
 ```sh
-# เครื่องที่ต่ออินเทอร์เน็ตได้
+# เครื่องที่ต่ออินเทอร์เน็ตได้ (ใส่ --platform linux/arm64 ถ้า server ปลายทางเป็น arm64)
 docker pull ghcr.io/satangbudsai/scanhub:latest
-docker save ghcr.io/satangbudsai/scanhub:latest | gzip > scanhub-image.tar.gz
-# server ปลายทาง (copy scanhub-image.tar.gz และ docker-compose.yml ไปด้วย)
-docker load < scanhub-image.tar.gz
+docker save -o scanhub-image.tar ghcr.io/satangbudsai/scanhub:latest
+# server ปลายทาง: copy scanhub-image.tar และ docker-compose.yml ไปไว้โฟลเดอร์เดียวกัน
+docker load -i scanhub-image.tar
 docker compose up -d
 ```
+
+คำสั่งเหล่านี้ใช้ได้ทั้ง Windows PowerShell, macOS และ Linux
 
 scanner ต้องดาวน์โหลดฐานข้อมูลช่องโหว่จากอินเทอร์เน็ต ถ้า server ต่อไม่ได้เลย ผลของ Trivy, Grype และ Dependency-Check จะไม่อัปเดต
 
@@ -222,7 +242,7 @@ scanner ทุกตัวติดตั้งมากับ image แล้�
 
 container ต้องออกอินเทอร์เน็ตได้ (GitHub, PyPI, SonarSource, NVD) การสแกนครั้งแรกจะช้ากว่าปกติ 3–4 นาที เพราะ Trivy และ Grype ต้องโหลดฐานข้อมูลช่องโหว่
 
-ตัวโปรแกรม ScanHub เองอัปเดตด้วย `docker compose pull && docker compose up -d` ข้อมูลเดิมยังอยู่ และฐานข้อมูลจะ migrate ให้อัตโนมัติ
+ตัวโปรแกรม ScanHub เองอัปเดตด้วย `docker compose pull` แล้ว `docker compose up -d` ข้อมูลเดิมยังอยู่ และฐานข้อมูลจะ migrate ให้อัตโนมัติ
 
 ---
 

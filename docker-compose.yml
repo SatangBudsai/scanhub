@@ -1,9 +1,9 @@
 # ScanHub: this is the only file you need. Edit the 3 required values, then run:  docker compose up -d
 # Everything runs in one container: the web app, PostgreSQL and every scanner.
-# Update to the newest version:  docker compose pull && docker compose up -d
+# Update to the newest version:  docker compose pull  then  docker compose up -d
 #
 # ScanHub ใช้ไฟล์นี้ไฟล์เดียว แก้ 3 ค่าที่ต้องตั้ง แล้วสั่ง docker compose up -d
-# อัปเดตเวอร์ชัน: docker compose pull && docker compose up -d
+# อัปเดตเวอร์ชัน: docker compose pull แล้ว docker compose up -d (เหมือนกันทั้ง Windows และ macOS)
 #
 # Lines that start with # are optional. Remove the # to use them.
 # บรรทัดที่ขึ้นต้นด้วย # เป็นค่าเสริม ลบ # ออกเพื่อเปิดใช้
