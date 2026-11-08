@@ -112,14 +112,15 @@ All JSON. Errors: `{ "error": "Thai message" }` with 4xx/5xx. Session cookie `sh
   - `repoSummary` = `{id, name, lang, branch, gitUrl, schedule, lastScan: scanSummary | null, running: bool}`
 - `POST /api/projects` `{name}`; `PATCH /api/projects/:id` `{name}`; `DELETE /api/projects/:id` (409 if it still has repos)
 - `POST /api/repos` `{projectId, name, lang, branch, gitUrl?, tools?, schedule?}` -> `{repo, token}`. name `^[a-z0-9._-]{2,60}$`, unique.
-- `GET /api/repos/:id` -> `repo` = `{id, name, projectId, projectName, lang, branch, gitUrl, tools: [id] | null, schedule: "none"|"daily", tokenHint, createdAt}`. `tools=null` means all installed tools. `tokenHint` like `shr_…a1b2`.
-- `PATCH /api/repos/:id` partial of `{name, projectId, lang, branch, gitUrl, tools, schedule}`
+- `GET /api/repos/:id` -> `repo` = `{id, name, projectId, projectName, lang, branch, gitUrl, tools: [id] | null, schedule: "none"|"daily", tokenHint, createdAt, gate, scanRefs: {branches: [pattern], tags: [pattern], prs: bool}}`. `tools=null` means all installed tools. `tokenHint` like `shr_…a1b2`.
+- `PATCH /api/repos/:id` partial of `{name, projectId, lang, branch, gitUrl, tools, schedule, gate, scanRefs}`. `scanRefs` lists are arrays or comma separated text; `*` matches any text. Empty `branches` = only `branch`; empty `tags` = no tags.
 - `DELETE /api/repos/:id`
 - `POST /api/repos/:id/token` -> `{token}` (old token stops working). The full token is only returned here and on create; only a hash is stored.
-- `GET /api/repos/:id/scans` -> `[scanSummary]` newest first (max 100)
+- `GET /api/repos/:id/scans` -> `[scanSummary]` newest first (max 100). `?kind=branch|tag|pr&ref=` for one history line (ref = branch, PR source branch or tag pattern), `?of=<num>` for the line of that scan.
+- `GET /api/repos/:id/refs` -> `[{kind, ref, count, main, last: scanSummary}]` every history line, main branch first, then branches, PRs, tags.
 - `POST /api/repos/:id/scan` `{branch?}` -> `{scan: scanSummary}`. Needs `gitUrl`; 400 otherwise.
 
-`scanSummary` = `{id, num, status, trigger, branch, commit, startedAt, finishedAt, durationMs, counts, openCount, newCount, fixedCount, error}`. `status`: `queued | running | done | failed`. `trigger`: `ci | manual | schedule | upload`. `counts` = open findings per severity. `num` counts up per repo starting at 1.
+`scanSummary` = `{id, num, status, trigger, branch, commit, refType: branch|tag|pr, baseBranch, refGroup, startedAt, finishedAt, durationMs, counts, openCount, newCount, fixedCount, error}`. `status`: `queued | running | done | failed`. `trigger`: `ci | manual | schedule | upload`. `counts` = open findings per severity. `num` counts up per repo starting at 1.
 
 ### Scan detail
 - `GET /api/scans/:id` -> `{...scanSummary, repoId, prev: {id, num} | null, runs:[run], findings:[finding]}`
@@ -164,10 +165,12 @@ Each repo stores its gate, chosen when connecting CI and changeable later withou
 ### CI API (Bearer repo token)
 `Authorization: Bearer shr_...` identifies the repo. No session needed.
 
-- `POST /api/v1/scan?branch=&commit=&tools=a,b&wait=1&fail_on=critical,high` body = gzip tar of the source (`Content-Type: application/gzip`, streamed, size limit `MAX_UPLOAD_MB`). Creates a scan with `trigger=ci`, runs the repo's tools on the uploaded source.
+- `GET /api/v1/check?kind=branch|tag|pr&branch=<name>&base=<PR target>` -> whether the repo's `scanRefs` cover this ref. `Accept: text/plain`: first line `scan` or `skip` (then the reason). JSON: `{skipped, kind, ref, reason?}`. Generated pipelines call it before uploading.
+- `POST /api/v1/scan?kind=&branch=&base=&commit=&tools=a,b&wait=1&fail_on=critical,high` body = gzip tar of the source (`Content-Type: application/gzip`, streamed, size limit `MAX_UPLOAD_MB`). Creates a scan with `trigger=ci`, runs the repo's tools on the uploaded source. With `kind`, a ref the repo does not scan returns 200 `{skipped: true, reason}` (text: `skip ...`) without scanning. Without `kind` (pipelines made before branch rules) it always scans, as a branch.
+  - new / fixed compare with: a branch's previous scan of the same branch; a PR's latest scan of `base` (default the repo branch); a tag's previous tag in the same pattern (`ref_group`, e.g. `sit_v*`).
   - without `wait`: `202 {scanId, num, status, url}`
   - with `wait=1`: waits up to 30 minutes, returns `{scanId, num, status, url, counts, newCount, fixedCount, newBySeverity:{critical,...}, gate:{failed, reason}}`. If `fail_on` is set and the scan has new findings at those severities, the response status is **422** (so `curl --fail-with-body` fails the build). Scan failure -> 500.
-- `POST /api/v1/reports` JSON `{branch, commit, reports:[{tool, data}]}` -> same response as above (processed synchronously). `tool`: `trivy | semgrep | gitleaks | grype | checkov | dependency-check | sonarqube-issues | sarif`. Query `fail_on` works the same. For teams that already run scanners in CI.
+- `POST /api/v1/reports` JSON `{branch, commit, kind?, base?, reports:[{tool, data}]}` -> same response as above (processed synchronously). `tool`: `trivy | semgrep | gitleaks | grype | checkov | dependency-check | sonarqube-issues | sarif`. Query `fail_on` works the same. For teams that already run scanners in CI.
 - `GET /api/v1/scans/:id` -> scanSummary + `url`
 
 Example used in the UI snippets:

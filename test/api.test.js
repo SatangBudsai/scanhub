@@ -198,7 +198,7 @@ test('CI reports: merged findings, new / fixed and the gate', async () => {
   assert.equal(r2.data.newBySeverity.high, 1);
 
   const detail2 = await state.admin('GET', `/api/scans/${r2.data.scanId}`);
-  assert.deepEqual(detail2.data.prev, { id: r1.data.scanId, num: 1 });
+  assert.deepEqual(detail2.data.prev, { id: r1.data.scanId, num: 1, refType: 'branch', branch: 'main' });
   const fixed = detail2.data.findings.filter((f) => f.status === 'fixed');
   assert.equal(fixed.length, 1);
   assert.equal(fixed[0].rules[0].id, 'CVE-2023-44487');
@@ -406,6 +406,75 @@ test('CI gate: block / report, scope new / open, per-call overrides, text summar
   // JSON when asked for JSON
   const js = await post('', 'application/json');
   assert.equal(typeof (await js.json()).summaryText, 'string');
+});
+
+test('branches, tags and pull requests: what CI scans and what each scan is compared with', async () => {
+  const a = state.admin;
+  const made = await a('POST', '/api/repos', { projectId: state.projectId, name: 'ref-repo', gate: { mode: 'report' } });
+  const { token: tok } = made.data;
+  const rid = made.data.repo.id;
+  assert.deepEqual(made.data.repo.scanRefs, { branches: [], tags: [], prs: true });
+  const T = fx('trivy.json');
+  const T2 = fx('trivy.json');
+  T2.Results[0].Vulnerabilities.push({ VulnerabilityID: 'CVE-2099-0002', PkgName: 'example.com/extra', InstalledVersion: '1.0.0', Severity: 'CRITICAL', Title: 'extra' });
+  const send = (q, data) => ci(tok, `/api/v1/reports?${q}`, { reports: [{ tool: 'trivy', data }] });
+  const check = async (q) => (await fetch(`${base}/api/v1/check?${q}`, { headers: { Authorization: `Bearer ${tok}`, Accept: 'text/plain' } })).text();
+
+  // defaults: the main branch and every pull request, no tags
+  assert.equal(await check('kind=branch&branch=main'), 'scan\n');
+  assert.equal(await check('kind=pr&branch=feature/a&base=main'), 'scan\n');
+  assert.match(await check('kind=branch&branch=feature/a'), /^skip\n.*ไม่สแกน branch feature\/a/);
+  assert.match(await check('kind=tag&branch=v1.0'), /^skip\n.*ไม่ได้ตั้งให้สแกน tag/);
+
+  assert.equal((await a('PATCH', `/api/repos/${rid}`, { scanRefs: { tags: 'bad tag!' } })).status, 400);
+  const set = await a('PATCH', `/api/repos/${rid}`, { scanRefs: { branches: 'main, release/*', tags: ['sit_v*', 'uat_v*'] } });
+  assert.deepEqual(set.data.scanRefs, { branches: ['main', 'release/*'], tags: ['sit_v*', 'uat_v*'], prs: true });
+  assert.equal(await check('kind=branch&branch=release/1.0'), 'scan\n');
+  assert.equal(await check('kind=tag&branch=uat_v2.3'), 'scan\n');
+  assert.match(await check('kind=tag&branch=prod_v1'), /^skip/);
+
+  // each branch is compared with its own previous scan
+  const m1 = await send('kind=branch&branch=main', T);
+  const N = m1.data.newCount;
+  assert.ok(N > 0);
+  const r1 = await send('kind=branch&branch=release/1.0', T2);
+  assert.equal(r1.data.newCount, N + 1, 'first scan of release/1.0');
+  const m2 = await send('kind=branch&branch=main', T);
+  assert.deepEqual([m2.data.newCount, m2.data.fixedCount], [0, 0], 'main compares with main, not release/1.0');
+
+  // a pull request compares with its target branch: only what it adds is new
+  const pr = await send('kind=pr&branch=feature/a&base=main', T2);
+  assert.equal(pr.data.newCount, 1);
+  const prDetail = await a('GET', `/api/scans/${pr.data.scanId}`);
+  assert.deepEqual([prDetail.data.refType, prDetail.data.baseBranch, prDetail.data.prev.num, prDetail.data.prev.branch], ['pr', 'main', m2.data.num, 'main']);
+
+  // tags compare within their own pattern: sit_v1.1 with sit_v1.0, not with uat_v1.0
+  assert.equal((await send('kind=tag&branch=sit_v1.0', T)).data.newCount, N);
+  const uat = await send('kind=tag&branch=uat_v1.0', T2);
+  assert.equal(uat.data.newCount, N + 1);
+  assert.equal((await send('kind=tag&branch=sit_v1.1', T2)).data.newCount, 1);
+  const prod = await send('kind=tag&branch=prod_v1', T);
+  assert.equal(prod.data.skipped, true);
+
+  // pipelines made before branch rules (no kind) are always scanned, as a branch
+  const legacy = await send('branch=feature/old', T);
+  assert.equal(legacy.status, 200);
+  assert.equal((await a('GET', `/api/scans/${legacy.data.scanId}`)).data.refType, 'branch');
+
+  // history lines: main first, one line per tag pattern
+  const refs = (await a('GET', `/api/repos/${rid}/refs`)).data;
+  assert.deepEqual([refs[0].kind, refs[0].ref, refs[0].main, refs[0].count], ['branch', 'main', true, 2]);
+  const sit = refs.find((x) => x.kind === 'tag' && x.ref === 'sit_v*');
+  assert.deepEqual([sit.count, sit.last.branch], [2, 'sit_v1.1']);
+  assert.ok(refs.some((x) => x.kind === 'pr' && x.ref === 'feature/a'));
+  assert.equal((await a('GET', `/api/repos/${rid}/scans?kind=tag&ref=${encodeURIComponent('sit_v*')}`)).data.length, 2);
+  const ofUat = (await a('GET', `/api/repos/${rid}/scans?of=${uat.data.num}`)).data;
+  assert.deepEqual(ofUat.map((s) => s.branch), ['uat_v1.0']);
+  assert.equal((await a('GET', `/api/repos/${rid}/scans`)).data.length, 8, 'no filter: every scan');
+
+  // the project list shows the main branch's latest scan, not the newest tag
+  const listed = (await a('GET', '/api/projects')).data.flatMap((p) => p.repos).find((x) => x.id === rid);
+  assert.equal(listed.lastScan.num, m2.data.num);
 });
 
 test('CI source upload: size check and failed scan reporting', async () => {

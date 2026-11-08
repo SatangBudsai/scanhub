@@ -12,6 +12,7 @@ import { createScan, scanSummary } from '../scan/store.js';
 import { ah, bad, ensureDir, HttpError, json, notFound, rmrf, SEV } from '../util.js';
 import { DEFAULT_GATE, evaluateGate, summaryText } from '../gate.js';
 import { getServerUrl } from '../settings.js';
+import { parseKind, shouldScan } from '../scan/refs.js';
 
 const WAIT_MS = 30 * 60 * 1000;
 
@@ -66,14 +67,49 @@ export function ciRoutes({ db, queue, runner }) {
     const scan = await db.get('SELECT * FROM scans WHERE id = ?', scanId);
     const body = await result(req, scan);
     const status = scan.status === 'failed' ? 500 : scan.status !== 'done' ? 202 : body.gate.failed ? 422 : 200;
-    const wantsText = String(req.query.format || '').toLowerCase() === 'text'
-      || String(req.headers.accept || '').trim().toLowerCase().startsWith('text/plain');
-    if (wantsText) return res.status(status).type('text/plain; charset=utf-8').send(body.summaryText);
+    if (wantsText(req)) return res.status(status).type('text/plain; charset=utf-8').send(body.summaryText);
     res.status(status).json(body);
   }
 
+  const wantsText = (req) => String(req.query.format || '').toLowerCase() === 'text'
+    || String(req.headers.accept || '').trim().toLowerCase().startsWith('text/plain');
+
+  /**
+   * branch / kind (branch | tag | pr) / base from the query. A call without kind comes from a pipeline made before
+   * branch rules existed: it is scanned as a branch and never skipped.
+   */
+  function refFrom(req, body = {}) {
+    const name = String(body.branch || req.query.branch || '').trim() || req.repo.branch || 'main';
+    const kind = parseKind(body.kind || req.query.kind);
+    const base = String(body.base || req.query.base || '').trim();
+    if (!kind) return { name, kind: 'branch', base: '', decision: { scan: true, group: '' } };
+    return { name, kind, base, decision: shouldScan(req.repo, kind, name) };
+  }
+  const KIND_L = { branch: 'branch', tag: 'tag', pr: 'Pull Request' };
+  async function skip(req, res, ref) {
+    const settings = `${await getServerUrl(db)}/#connect/${req.repo.id}`;
+    if (wantsText(req)) {
+      return res.type('text/plain; charset=utf-8').send([
+        'skip',
+        `ScanHub · ${req.repo.name} · ไม่สแกน ${KIND_L[ref.kind]} ${ref.name}: ${ref.decision.reason}`,
+        `ตั้งค่า branch และ tag ที่สแกนได้ที่ ${settings}`,
+      ].join('\n') + '\n');
+    }
+    res.json({ skipped: true, kind: ref.kind, ref: ref.name, reason: ref.decision.reason, settingsUrl: settings });
+  }
+
+  // Asked by the pipeline before it uploads anything: "scan" or "skip" on the first line
+  r.get('/check', ah(async (req, res) => {
+    const ref = refFrom(req);
+    if (!ref.decision.scan) return skip(req, res, ref);
+    if (wantsText(req)) return res.type('text/plain; charset=utf-8').send('scan\n');
+    res.json({ skipped: false, kind: ref.kind, ref: ref.name });
+  }));
+
   // Source upload: gzip tar streamed to disk, then scanned on the server
   r.post('/scan', ah(async (req, res) => {
+    const ref = refFrom(req);
+    if (!ref.decision.scan) { req.resume(); return skip(req, res, ref); }
     const limit = config.maxUploadMb * 1024 * 1024;
     if (Number(req.headers['content-length'] || 0) > limit) throw new HttpError(413, `ไฟล์ใหญ่เกิน ${config.maxUploadMb} MB`);
     const tools = parseList(req.query.tools, TOOL_IDS);
@@ -93,7 +129,10 @@ export function ciRoutes({ db, queue, runner }) {
       throw e instanceof HttpError ? e : bad(`อัปโหลดไม่สำเร็จ: ${e.message}`);
     }
     if (size === 0) { rmrf(file); throw bad('ไม่ได้รับไฟล์ ส่ง tar.gz ของ source มาใน body'); }
-    const scan = await createScan(db, req.repo, { trigger: 'ci', branch: req.query.branch, commit: req.query.commit, tools: tools.length ? tools : null });
+    const scan = await createScan(db, req.repo, {
+      trigger: 'ci', branch: ref.name, commit: req.query.commit, tools: tools.length ? tools : null,
+      refType: ref.kind, base: ref.base, group: ref.decision.group,
+    });
     queue.add(scan, runner.fromUpload(file));
     if (!['1', 'true', 'yes'].includes(String(req.query.wait || '').toLowerCase())) {
       return res.status(202).json({ scanId: scan.id, num: scan.num, status: scan.status, url: await scanUrl(scan) });
@@ -111,7 +150,11 @@ export function ciRoutes({ db, queue, runner }) {
     if (!reports.length) throw bad('ต้องส่ง reports อย่างน้อย 1 รายการ');
     const unknown = reports.find((x) => !PARSERS[x?.tool]);
     if (unknown) throw bad(`ไม่รู้จักรูปแบบรายงาน: ${unknown?.tool}. ใช้ได้: ${Object.keys(PARSERS).join(', ')}`);
-    const scan = await createScan(db, req.repo, { trigger: 'upload', branch: b.branch || req.query.branch, commit: b.commit || req.query.commit });
+    const ref = refFrom(req, b);
+    if (!ref.decision.scan) return skip(req, res, ref);
+    const scan = await createScan(db, req.repo, {
+      trigger: 'upload', branch: ref.name, commit: b.commit || req.query.commit, refType: ref.kind, base: ref.base, group: ref.decision.group,
+    });
     await runner.ingestReports(scan.id, reports);
     await respond(req, res, scan.id);
   }));

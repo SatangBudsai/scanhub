@@ -191,6 +191,17 @@ code{font-family:var(--mono);font-size:12px;background:var(--raised);border:1px 
 .sb-main .ttl{font-weight:500}
 .sb-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;color:var(--t2)}
 .pop-hist{width:420px;max-width:calc(100vw - 32px)}
+.ref-btn,.ref-chip{max-width:260px}
+.ref-chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;background:var(--raised);color:var(--t2);font-size:13px}
+.ref-btn svg,.ref-chip svg{width:14px;height:14px;flex:none}
+.rs-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pop-refs{left:0;right:auto;width:460px;max-width:calc(100vw - 32px);max-height:420px;overflow:auto}
+.ref-row{display:grid;grid-template-columns:16px minmax(0,1fr) auto 72px;align-items:center;gap:10px;min-height:36px;padding:0 10px;border-radius:6px}
+.ref-row svg{width:14px;height:14px;color:var(--t3)}
+.ref-row:hover{background:var(--hover)}
+.ref-row.on{background:var(--raised)}
+.ref-row .hd{text-align:right}
+.rr-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hist-row{display:grid;grid-template-columns:44px 1fr auto 72px;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:6px}
 .hist-row:hover{background:var(--hover)}
 .hist-row.on{background:var(--raised)}
@@ -623,6 +634,14 @@ details.perm[open] summary svg{transform:rotate(90deg)}
 }
 /* CI gate */
 .gate-box{display:flex;flex-direction:column;gap:12px}
+.refs-box{display:flex;flex-direction:column;gap:12px;padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--sunk);max-width:820px}
+.refs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+.refs-grid .field{gap:6px}
+.refs-grid .hint{margin:0}
+.check-row{display:flex;align-items:flex-start;gap:10px;cursor:pointer;line-height:20px}
+.check-row input{margin:3px 0 0;width:16px;height:16px;accent-color:var(--acc);flex:none}
+.refs-foot{display:flex;align-items:center;justify-content:space-between;gap:12px}
+@media (max-width:640px){.refs-grid{grid-template-columns:1fr}.refs-foot{flex-direction:column;align-items:stretch}}
 .gate-pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .gate-opt{display:grid;grid-template-columns:18px minmax(0,1fr);gap:12px;align-items:start;padding:12px 14px;border:1px solid var(--line2);border-radius:10px;background:var(--card);text-align:left;transition:border-color .14s var(--ease),background-color .14s var(--ease)}
 .gate-opt:hover{border-color:var(--line3)}
@@ -1199,16 +1218,37 @@ function bindProjects() {
 
 /* ---------- repo ---------- */
 function resetFS(scanId) { S.fs = { scan: scanId, view: 'focus', q: '', sev: new Set(SEV), cat: '', tool: '', group: 'none', panel: false, open: new Set(), runs: false }; }
+// The page shows one history line: a branch, a PR source branch or a tag pattern. #repo/:id is the main branch,
+// #repo/:id/:num is that scan's line.
 async function loadRepo(id, num) {
   await ensureProjects();
-  const [repo, scans] = await Promise.all([api('GET', `/api/repos/${enc(id)}`), api('GET', `/api/repos/${enc(id)}/scans`)]);
-  let scan = null, missing = false;
-  if (num) { scan = scans.find(s => String(s.num) === String(num)) || null; missing = !scan; }
-  if (!scan) scan = scans.find(s => s.status === 'done') || scans[0] || null;
+  const [repo, refs] = await Promise.all([api('GET', `/api/repos/${enc(id)}`), api('GET', `/api/repos/${enc(id)}/refs`)]);
+  const lineUrl = r => `/api/repos/${enc(id)}/scans?kind=${enc(r.kind)}&ref=${enc(r.ref)}`;
+  let scansUrl = refs.length ? lineUrl(refs[0]) : null, scans = [], scan = null, missing = false;
+  if (num) {
+    try { scans = await api('GET', `/api/repos/${enc(id)}/scans?of=${enc(num)}`); scansUrl = `/api/repos/${enc(id)}/scans?of=${enc(num)}`; }
+    catch (e) { if (e.status !== 404) throw e; missing = true; }
+    scan = scans.find(s => String(s.num) === String(num)) || null;
+  }
+  if (!scan && scansUrl) { if (!scans.length) scans = await api('GET', scansUrl); scan = scans.find(s => s.status === 'done') || scans[0] || null; }
   if (scan && S.fs.scan !== scan.id) resetFS(scan.id);
   let detail = null;
   if (scan && (scan.status === 'done' || scan.status === 'failed')) detail = await api('GET', `/api/scans/${enc(scan.id)}`);
-  return { repo, scans, scan, detail, missing, explicit: !!num && !missing };
+  return { repo, refs, scans, scansUrl, scan, detail, missing, explicit: !!num && !missing };
+}
+const REF_ICON = { branch: 'git-branch', pr: 'git-pull-request', tag: 'tag' };
+const REF_KIND_L = { branch: 'Branch', pr: 'Pull Request', tag: 'Tag' };
+const scanLine = s => ({ kind: s.refType || 'branch', ref: s.refType === 'tag' && s.refGroup ? s.refGroup : s.branch });
+const sameLine = (a, b) => a.kind === b.kind && a.ref === b.ref;
+const scanStat = s => s.status === 'done' ? `+${s.newCount || 0} <span class="pos">−${s.fixedCount || 0}</span>` : s.status === 'failed' ? '<span class="neg">ล้มเหลว</span>' : '<span class="t3">กำลังสแกน</span>';
+// Branch / PR / tag picker: every line with its latest scan. Picking one opens that line's latest scan.
+function refSwitch(repo, refs, scan) {
+  const cur = scanLine(scan);
+  const btn = `<i data-lucide="${REF_ICON[cur.kind]}"></i><span class="mono rs-name">${esc(cur.ref)}</span>`;
+  if ((refs || []).length <= 1) return `<span class="ref-chip" title="${REF_KIND_L[cur.kind]}">${btn}</span>`;
+  const groups = ['branch', 'pr', 'tag'].map(k => [k, refs.filter(r => r.kind === k)]).filter(g => g[1].length);
+  return `<div class="pop-wrap"><button class="btn btn-sm ref-btn" data-pop="refPop" aria-haspopup="true" aria-expanded="false" aria-label="${REF_KIND_L[cur.kind]} ${esc(cur.ref)} · เลือก branch หรือ tag">${btn}<i data-lucide="chevron-down" class="ub-chev"></i></button>
+    <div class="pop pop-refs" id="refPop" hidden>${groups.map(([k, l]) => `<div class="pop-label">${REF_KIND_L[k]}</div>${l.map(r => `<a class="ref-row ${sameLine(r, cur) ? 'on' : ''}" href="#repo/${enc(repo.id)}${r.main ? '' : '/' + r.last.num}"><i data-lucide="${REF_ICON[r.kind]}"></i><span class="rr-name"><span class="mono">${esc(r.ref)}</span>${r.main ? ' <span class="small t3">หลัก</span>' : ''}</span><span class="small t3">${r.count} สแกน · ${rel(r.last.finishedAt || r.last.startedAt)}</span><span class="mono small hd">${scanStat(r.last)}</span></a>`).join('')}`).join('')}</div></div>`;
 }
 function repoHead(repo, scans, sub, reportScan) {
   const last = scans && scans[0];
@@ -1240,14 +1280,18 @@ function focusLine(nw, open) {
   const nCH = nw.filter(f => f.severity === 'critical' || f.severity === 'high').length;
   return `ควรแก้ก่อน Critical + High ${ch} รายการ${nCH ? ` · เป็นของใหม่ ${nCH}` : ''}`;
 }
-function scanbar(repo, scans, scan) {
+function scanbar(repo, scans, scan, refs) {
   const latestDone = scans.find(s => s.status === 'done');
   const isLatest = scan === scans[0] || scan === latestDone;
+  const line = scanLine(scan);
+  // the scan bar names what the line name does not: the PR target or the exact tag
+  const refInfo = scan.refType === 'pr' ? ` <span class="sep">·</span> <span class="mono">${esc(scan.branch)} → ${esc(scan.baseBranch || repo.branch)}</span>`
+    : scan.refType === 'tag' && scan.branch !== line.ref ? ` <span class="sep">·</span> <span class="mono">${esc(scan.branch)}</span>` : '';
   return `<div class="card scanbar">
-      <div class="sb-main"><span class="ttl">สแกน #${scan.num}</span>${isLatest ? '<span class="small t3">ล่าสุด</span>' : `<a class="small linkacc" href="#repo/${enc(repo.id)}">ไปที่สแกนล่าสุด</a>`}
-        <span class="sb-meta small">${fmt(scan.finishedAt || scan.startedAt)}${scan.commit ? ` <span class="kc" title="${esc(scan.commit)}">${esc(sha7(scan.commit))}</span>` : ''} ${esc(trigL(scan.trigger))}${scan.branch ? ` <span class="sep">·</span> <span class="mono">${esc(scan.branch)}</span>` : ''}${scan.durationMs != null ? ` <span class="sep">·</span> ${dur(scan.durationMs)}` : ''}</span></div>
+      <div class="sb-main">${refSwitch(repo, refs, scan)}<span class="ttl">สแกน #${scan.num}</span>${isLatest ? '<span class="small t3">ล่าสุด</span>' : `<a class="small linkacc" href="#repo/${enc(repo.id)}/${(latestDone || scans[0]).num}">ไปที่สแกนล่าสุด</a>`}
+        <span class="sb-meta small">${fmt(scan.finishedAt || scan.startedAt)}${scan.commit ? ` <span class="kc" title="${esc(scan.commit)}">${esc(sha7(scan.commit))}</span>` : ''} ${esc(trigL(scan.trigger))}${refInfo}${scan.durationMs != null ? ` <span class="sep">·</span> ${dur(scan.durationMs)}` : ''}</span></div>
       <div class="pop-wrap"><button class="btn btn-sm" data-pop="histPop" aria-haspopup="true" aria-expanded="false"><i data-lucide="history"></i>ประวัติ <span class="mono t3">${scans.length}</span></button>
-        <div class="pop pop-r pop-hist" id="histPop" hidden><div class="pop-label">ประวัติการสแกน</div>${scans.map(s => `<a class="hist-row ${s.id === scan.id ? 'on' : ''}" href="#repo/${enc(repo.id)}/${s.num}"><span class="mono small t3">#${s.num}</span><span>${rel(s.finishedAt || s.startedAt)}</span><span>${s.commit ? `<span class="kc">${esc(sha7(s.commit))}</span>` : ''}</span><span class="mono small hd">${s.status === 'done' ? `+${s.newCount || 0} <span class="pos">−${s.fixedCount || 0}</span>` : s.status === 'failed' ? '<span class="neg">ล้มเหลว</span>' : '<span class="t3">กำลังสแกน</span>'}</span></a>`).join('')}</div></div>
+        <div class="pop pop-r pop-hist" id="histPop" hidden><div class="pop-label">ประวัติของ <span class="mono">${esc(line.ref)}</span></div>${scans.map(s => `<a class="hist-row ${s.id === scan.id ? 'on' : ''}" href="#repo/${enc(repo.id)}/${s.num}"><span class="mono small t3">#${s.num}</span><span class="hr-when">${rel(s.finishedAt || s.startedAt)}${line.kind === 'tag' && s.branch !== line.ref ? ` <span class="mono small t3">${esc(s.branch)}</span>` : ''}</span><span>${s.commit ? `<span class="kc">${esc(sha7(s.commit))}</span>` : ''}</span><span class="mono small hd">${scanStat(s)}</span></a>`).join('')}</div></div>
     </div>`;
 }
 function runLine(runs) {
@@ -1262,24 +1306,28 @@ function viewRepo(ctx) {
   const active = scans.find(isActive);
   const banner = active && active !== scan ? `<div class="card banner"><i data-lucide="loader" class="spin"></i><span>${active.status === 'queued' ? 'รอคิวสแกน' : 'กำลังสแกน'} #${active.num} · ${esc(trigL(active.trigger))}${active.startedAt ? ' · เริ่ม ' + rel(active.startedAt) : ''}</span><span class="small t3" style="margin-left:auto">หน้านี้จะอัปเดตเองเมื่อเสร็จ</span></div>` : '';
   if (!scan) return shell(head + `<div class="card empty-big"><i data-lucide="scan-line"></i><h2>ยังไม่มีผลสแกน</h2><p class="t2">เชื่อม repo นี้กับ CI แล้วทุก push จะสแกนและส่งผลมาที่นี่${repo.gitUrl && has('scan') ? ' หรือกดสแกนตอนนี้' : ''}</p><div class="actions" style="justify-content:center"><a class="btn btn-primary" href="#connect/${enc(repo.id)}"><i data-lucide="plug"></i>เชื่อมต่อ CI</a></div></div>`);
-  if (isActive(scan)) return shell(head + banner + scanbar(repo, scans, scan) + `<div class="card empty-big"><i data-lucide="loader" class="spin"></i><h2>${scan.status === 'queued' ? 'รอคิวสแกน' : 'กำลังสแกน'} #${scan.num}</h2><p class="t2">ผลจะแสดงที่นี่เมื่อทุก scanner ทำงานเสร็จ หน้านี้อัปเดตเอง</p></div>`);
-  if (scan.status === 'failed') return shell(head + banner + scanbar(repo, scans, scan) + `<section class="card sum"><div class="failhead"><i data-lucide="circle-alert" class="neg"></i><div><div style="font-weight:500">สแกน #${scan.num} ไม่สำเร็จ</div><div class="t2" style="margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(scan.error || (detail && detail.error) || 'ไม่ทราบสาเหตุ')}</div></div></div>${detail && detail.runs && detail.runs.length ? runLine(detail.runs) : ''}</section>`);
+  if (isActive(scan)) return shell(head + banner + scanbar(repo, scans, scan, ctx.refs) + `<div class="card empty-big"><i data-lucide="loader" class="spin"></i><h2>${scan.status === 'queued' ? 'รอคิวสแกน' : 'กำลังสแกน'} #${scan.num}</h2><p class="t2">ผลจะแสดงที่นี่เมื่อทุก scanner ทำงานเสร็จ หน้านี้อัปเดตเอง</p></div>`);
+  if (scan.status === 'failed') return shell(head + banner + scanbar(repo, scans, scan, ctx.refs) + `<section class="card sum"><div class="failhead"><i data-lucide="circle-alert" class="neg"></i><div><div style="font-weight:500">สแกน #${scan.num} ไม่สำเร็จ</div><div class="t2" style="margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(scan.error || (detail && detail.error) || 'ไม่ทราบสาเหตุ')}</div></div></div>${detail && detail.runs && detail.runs.length ? runLine(detail.runs) : ''}</section>`);
   const findings = (detail && detail.findings) || [];
   const open = findings.filter(f => f.status !== 'fixed'), nw = findings.filter(f => f.status === 'new');
   const prevId = detail && detail.prev && detail.prev.id;
   const prevS = prevId != null ? scans.find(s => s.id === prevId) : null;
   const prevNum = detail && detail.prev ? detail.prev.num : null;
+  // a PR compares with its target branch: name it, e.g. "ไม่พบใน main #12"
+  const pv = detail && detail.prev, otherLine = pv && (pv.refType !== (scan.refType || 'branch') || pv.branch !== scan.branch) && scan.refType !== 'tag';
+  const prevLbl = pv ? (otherLine ? ` ${pv.branch} #${pv.num}` : `สแกน #${pv.num}`) : '';
+  const lineName = scanLine(scan).ref, firstLbl = scan.refType === 'branch' && scan.branch === repo.branch ? 'สแกนแรกของ repo' : `สแกนแรกของ ${lineName}`;
   const openN = scan.openCount != null ? scan.openCount : open.length;
   const openPrev = prevS ? (prevS.openCount != null ? prevS.openCount : sum(prevS.counts)) : null;
   const doneScans = scans.filter(s => s.status === 'done').slice(0, 30).reverse();
   const okRuns = ((detail && detail.runs) || []).filter(r => r.status === 'ok').length;
-  return shell(`${repoHead(repo, scans, null, scan)}${banner}${scanbar(repo, scans, scan)}
+  return shell(`${repoHead(repo, scans, null, scan)}${banner}${scanbar(repo, scans, scan, ctx.refs)}
     <section class="card sum">
       <div class="sum-top">
       <div class="nums">
-        <div><div class="k">ยังเปิดอยู่</div><div class="v">${openN}</div><div class="d">${prevNum == null ? 'สแกนแรกของ repo' : openPrev == null ? `เทียบกับ #${prevNum}` : `${openPrev > openN ? 'ลดลง ' + (openPrev - openN) : openPrev < openN ? 'เพิ่มขึ้น ' + (openN - openPrev) : 'เท่าเดิม'} เทียบกับ #${prevNum}`}</div></div>
-        <div><div class="k">ใหม่</div><div class="v ${scan.newCount ? 'new' : ''}">${scan.newCount ? '+' + scan.newCount : 0}</div><div class="d">${prevNum != null ? 'ไม่พบในสแกน #' + prevNum : '—'}</div></div>
-        <div><div class="k">แก้แล้ว</div><div class="v ${scan.fixedCount ? 'pos' : ''}">${scan.fixedCount || 0}</div><div class="d">${prevNum != null ? 'มีในสแกน #' + prevNum + ' แต่ไม่พบแล้ว' : '—'}</div></div>
+        <div><div class="k">ยังเปิดอยู่</div><div class="v">${openN}</div><div class="d">${prevNum == null ? esc(firstLbl) : openPrev == null ? `เทียบกับ${esc(prevLbl)}` : `${openPrev > openN ? 'ลดลง ' + (openPrev - openN) : openPrev < openN ? 'เพิ่มขึ้น ' + (openN - openPrev) : 'เท่าเดิม'} เทียบกับ${esc(prevLbl)}`}</div></div>
+        <div><div class="k">ใหม่</div><div class="v ${scan.newCount ? 'new' : ''}">${scan.newCount ? '+' + scan.newCount : 0}</div><div class="d">${prevNum != null ? 'ไม่พบใน' + esc(prevLbl) : '—'}</div></div>
+        <div><div class="k">แก้แล้ว</div><div class="v ${scan.fixedCount ? 'pos' : ''}">${scan.fixedCount || 0}</div><div class="d">${prevNum != null ? 'มีใน' + esc(prevLbl) + ' แต่ไม่พบแล้ว' : '—'}</div></div>
       </div>
       <div class="spark">
         <div class="spark-head"><span>แนวโน้ม ${doneScans.length} สแกน</span><span class="legend"><span><i style="background:var(--acc)"></i>Critical + High</span><span><i style="background:var(--t3)"></i>ทั้งหมด</span></span></div>
@@ -1426,7 +1474,7 @@ function bindRepo(ctx, id) {
   const active = scans.find(isActive);
   if (active) {
     const tick = async () => {
-      const list = await api('GET', `/api/repos/${enc(repo.id)}/scans`);
+      const list = await api('GET', ctx.scansUrl);
       if (!location.hash.startsWith('#repo/' + enc(repo.id))) return;
       const a = list.find(s => s.id === active.id);
       if (!a || !isActive(a) || list.length !== scans.length) { S.projects = null; return render(); }
@@ -1791,7 +1839,7 @@ function gatePicker(g) {
       <div class="field"><span class="lbl">หยุดเมื่อเจอ</span><div class="seg">${GATE_SEV_L.map((l, i) => `<button type="button" data-gsev="${i}" class="${si === i ? 'on' : ''}" ${dis}>${l}</button>`).join('')}</div></div>
       <div class="field"><span class="lbl">นับจาก</span><div class="seg"><button type="button" data-gscope="new" class="${g.scope !== 'open' ? 'on' : ''}" ${dis}>เฉพาะปัญหาใหม่ (แนะนำ)</button><button type="button" data-gscope="open" class="${g.scope === 'open' ? 'on' : ''}" ${dis}>ทุกปัญหาที่ยังเปิดอยู่</button></div></div>
     </div>` : ''}
-    <p class="hint" style="margin:0">${has('manage') ? 'เปลี่ยนได้ทุกเมื่อที่หน้านี้ ไม่ต้องแก้ pipeline' : 'ADMIN หรือ SA เปลี่ยนได้ที่หน้านี้ ไม่ต้องแก้ pipeline'}</p>
+    <p class="hint" style="margin:0">${has('manage') ? 'เปลี่ยนได้ทุกเมื่อที่หน้านี้ ไม่ต้องแก้ pipeline' : 'ผู้ดูแลระบบหรือผู้ดูแลโปรเจกต์เปลี่ยนได้ที่หน้านี้ ไม่ต้องแก้ pipeline'}</p>
   </div>`;
 }
 // every picker on the page edits the same repo.gate and saves right away
@@ -1806,6 +1854,37 @@ function bindGatePickers(repo) {
   $$('[data-gmode]').forEach(b => b.onclick = () => { const g = normGate(repo.gate); if (g.mode !== b.dataset.gmode) save({ ...g, mode: b.dataset.gmode }); });
   $$('[data-gsev]').forEach(b => b.onclick = () => save({ ...normGate(repo.gate), severities: GATE_SEV[+b.dataset.gsev] }));
   $$('[data-gscope]').forEach(b => b.onclick = () => save({ ...normGate(repo.gate), scope: b.dataset.gscope }));
+}
+
+/* ---------- branches, tags and pull requests that CI scans ---------- */
+const REFS_DEF = { branches: [], tags: [], prs: true };
+const normRefs = r => ({ ...REFS_DEF, ...(r || {}) });
+function refsLabel(repo) {
+  const r = normRefs(repo.scanRefs);
+  const parts = [(r.branches.length ? r.branches : [repo.branch || 'main']).join(', ')];
+  if (r.tags.length) parts.push('tag ' + r.tags.join(', '));
+  if (r.prs) parts.push('ทุก PR');
+  return parts.join(' · ');
+}
+function refsPicker(repo) {
+  const r = normRefs(repo.scanRefs), m = has('manage'), ro = m ? '' : 'readonly';
+  return `<div class="refs-box">
+    <div class="refs-grid">
+      <div class="field"><label for="rfB">Branch</label><input class="input mono" id="rfB" value="${esc(r.branches.join(', '))}" placeholder="${esc(repo.branch || 'main')}" autocomplete="off" ${ro}><span class="hint">เว้นว่าง = ${esc(repo.branch || 'main')} อย่างเดียว · ใส่หลายค่าคั่นด้วย , และใช้ * ได้ เช่น <code>develop, release/*</code></span></div>
+      <div class="field"><label for="rfT">Tag</label><input class="input mono" id="rfT" value="${esc(r.tags.join(', '))}" placeholder="เช่น v*, sit_v*, uat_v*" autocomplete="off" ${ro}><span class="hint">เว้นว่าง = ไม่สแกน tag · แต่ละ pattern มีประวัติของตัวเอง เช่น sit_v1.2 เทียบกับ sit_v1.1</span></div>
+    </div>
+    <label class="check-row"><input type="checkbox" id="rfP" ${r.prs ? 'checked' : ''} ${m ? '' : 'disabled'}><span>สแกนทุก Pull Request / Merge Request <span class="t3">เทียบกับ branch ปลายทาง ปัญหาใหม่คือสิ่งที่ PR นั้นเพิ่มเข้ามา</span></span></label>
+    <div class="refs-foot"><p class="hint" style="margin:0">${m ? 'เปลี่ยนได้ทุกเมื่อ ไม่ต้องแก้ pipeline' : 'ผู้ดูแลระบบหรือผู้ดูแลโปรเจกต์เปลี่ยนได้ที่หน้านี้'} · branch อื่นที่ไม่ตรงจะถูกข้ามโดยไม่อัปโหลดโค้ด</p>${m ? '<button type="button" class="btn btn-sm" id="rfSave">บันทึก</button>' : ''}</div>
+  </div>`;
+}
+function bindRefsPicker(repo) {
+  const b = $('#rfSave'); if (!b) return;
+  b.onclick = async () => {
+    b.disabled = true;
+    const body = { branches: $('#rfB').value, tags: $('#rfT').value, prs: $('#rfP').checked };
+    try { const r = await api('PATCH', `/api/repos/${enc(repo.id)}`, { scanRefs: body }); S.projects = null; toast('บันทึกแล้ว · สแกน ' + refsLabel(r)); render(); }
+    catch (e) { toastErr(e); b.disabled = false; }
+  };
 }
 
 /* ---------- connect ---------- */
@@ -1825,30 +1904,57 @@ const CI_SECRET = {
   bitbucket: 'Repository settings › Repository variables (เลือก Secured)',
   cli: 'export ในเครื่อง หรือเก็บใน password manager'
 };
-function ciQuery(br, sha) {
-  let q = `branch=${br}&commit=${sha}&wait=1`;
-  if (S.ci.tools) q += `&tools=${[...S.ci.tools].join(',')}`;
-  return q;
-}
-// tar the checkout, stream it to ScanHub and wait. The repo gate in ScanHub decides pass or fail (422).
+const ciTools = () => (S.ci.tools ? `&tools=${[...S.ci.tools].join(',')}` : '');
+// Each CI sets KIND (branch | tag | pr), REF and BASE (target branch of a PR).
+const DETECT = {
+  github: [
+    'if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then KIND=pr; REF="$GITHUB_HEAD_REF"; BASE="$GITHUB_BASE_REF"',
+    'else KIND="$GITHUB_REF_TYPE"; REF="$GITHUB_REF_NAME"; BASE=""; fi'],
+  gitlab: [
+    'if [ -n "$CI_MERGE_REQUEST_IID" ]; then KIND=pr; REF="$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME"; BASE="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"',
+    'elif [ -n "$CI_COMMIT_TAG" ]; then KIND=tag; REF="$CI_COMMIT_TAG"; BASE=""',
+    'else KIND=branch; REF="$CI_COMMIT_REF_NAME"; BASE=""; fi'],
+  jenkins: [
+    'if [ -n "$CHANGE_ID" ]; then KIND=pr; REF="$CHANGE_BRANCH"; BASE="$CHANGE_TARGET"',
+    'elif [ -n "$TAG_NAME" ]; then KIND=tag; REF="$TAG_NAME"; BASE=""',
+    'else KIND=branch; REF="$BRANCH_NAME"; BASE=""; fi'],
+  azure: [
+    'if [ "$BUILD_REASON" = "PullRequest" ]; then KIND=pr; REF="${SYSTEM_PULLREQUEST_SOURCEBRANCH#refs/heads/}"; BASE="${SYSTEM_PULLREQUEST_TARGETBRANCH#refs/heads/}"',
+    'elif [ "${BUILD_SOURCEBRANCH#refs/tags/}" != "$BUILD_SOURCEBRANCH" ]; then KIND=tag; REF="${BUILD_SOURCEBRANCH#refs/tags/}"; BASE=""',
+    'else KIND=branch; REF="${BUILD_SOURCEBRANCH#refs/heads/}"; BASE=""; fi'],
+  bitbucket: [
+    'if [ -n "$BITBUCKET_PR_ID" ]; then KIND=pr; REF="$BITBUCKET_BRANCH"; BASE="$BITBUCKET_PR_DESTINATION_BRANCH"',
+    'elif [ -n "$BITBUCKET_TAG" ]; then KIND=tag; REF="$BITBUCKET_TAG"; BASE=""',
+    'else KIND=branch; REF="$BITBUCKET_BRANCH"; BASE=""; fi'],
+  cli: ['KIND=branch; REF=$(git rev-parse --abbrev-ref HEAD); BASE=""']
+};
+// Ask ScanHub first: which branches and tags get scanned is set on this page, so changing it never needs a pipeline change.
+// Then tar the checkout, stream it to ScanHub and wait. The repo gate in ScanHub decides pass or fail (422).
 // The result is always printed to the log and the exit code is kept; `|| rc=$?` keeps set -e shells going.
-const curlCmd = (ind, auth, url, br, sha) => [
+const curlCmd = (ind, kind, sha) => [
+  ...DETECT[kind],
+  '# ถาม ScanHub ก่อนว่า branch / tag นี้ต้องสแกนไหม (ตั้งค่าที่หน้าเชื่อมต่อ CI ของ ScanHub)',
+  `Q=$(printf 'kind=%s&branch=%s&base=%s' "$KIND" "$REF" "$BASE" | sed 's/+/%2B/g')`,
+  'D=$(curl -sS -H "Authorization: Bearer $SCANHUB_TOKEN" -H "Accept: text/plain" "$SCANHUB_URL/api/v1/check?$Q" || echo scan)',
+  'case "$D" in skip*) echo "$D"; exit 0;; esac',
   '# ผลสรุปแสดงใน log เสมอ ผ่านหรือหยุดตามที่ตั้งไว้ใน ScanHub',
   'rc=0',
   `tar --exclude=.git -czf - . | curl --fail-with-body -sS -X POST -T - \\`,
-  `  -H "Authorization: Bearer ${auth}" \\`,
+  `  -H "Authorization: Bearer $SCANHUB_TOKEN" \\`,
   `  -H "Content-Type: application/gzip" -H "Accept: text/plain" \\`,
-  `  -o scanhub.txt "${url}/api/v1/scan?${ciQuery(br, sha)}" || rc=$?`,
+  `  -o scanhub.txt "$SCANHUB_URL/api/v1/scan?$Q&commit=${sha}&wait=1${ciTools()}" || rc=$?`,
   'cat scanhub.txt 2>/dev/null || true',
   'exit $rc'
 ].map(l => ind + l).join('\n');
 function snippet(kind, repo) {
   const url = (S.serverUrl || location.origin).replace(/\/+$/, '');
-  const D = '$', br = repo.branch || 'main';
+  const D = '$';
   if (kind === 'github') return `name: ScanHub
+# รันทุก branch, tag และ Pull Request แล้ว ScanHub เลือกว่าจะสแกนอะไรตามที่ตั้งไว้
 on:
   push:
-    branches: [${br}]
+    branches: ['**']
+    tags: ['**']
   pull_request:
 
 jobs:
@@ -1861,7 +1967,7 @@ jobs:
           SCANHUB_URL: ${url}
           SCANHUB_TOKEN: ${D}{{ secrets.SCANHUB_TOKEN }}
         run: |
-${curlCmd('          ', '$SCANHUB_TOKEN', '$SCANHUB_URL', `${D}{{ github.head_ref || github.ref_name }}`, `${D}{{ github.sha }}`)}`;
+${curlCmd('          ', 'github', '$GITHUB_SHA')}`;
   if (kind === 'gitlab') return `scanhub:
   stage: .pre  # มีในทุก pipeline ของ GitLab และรันก่อน stage อื่น
   image: alpine:3.20
@@ -1872,10 +1978,12 @@ ${curlCmd('          ', '$SCANHUB_TOKEN', '$SCANHUB_URL', `${D}{{ github.head_re
     - apk add --no-cache curl tar
   script:
     - |
-${curlCmd('      ', '$SCANHUB_TOKEN', '$SCANHUB_URL', '$CI_COMMIT_REF_NAME', '$CI_COMMIT_SHA')}
+${curlCmd('      ', 'gitlab', '$CI_COMMIT_SHA')}
+  # รันทุก branch, tag และ Merge Request แล้ว ScanHub เลือกว่าจะสแกนอะไรตามที่ตั้งไว้
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "${br}"`;
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG`;
   if (kind === 'jenkins') return `pipeline {
   agent any
   environment {
@@ -1886,15 +1994,18 @@ ${curlCmd('      ', '$SCANHUB_TOKEN', '$SCANHUB_URL', '$CI_COMMIT_REF_NAME', '$C
     stage('ScanHub') {
       steps {
         sh '''
-${curlCmd('          ', '$SCANHUB_TOKEN', '$SCANHUB_URL', '$BRANCH_NAME', '$GIT_COMMIT').replace(/\\$/gm, '\\\\')}
+${curlCmd('          ', 'jenkins', '$GIT_COMMIT').replace(/\\$/gm, '\\\\')}
         '''
       }
     }
   }
 }`;
-  if (kind === 'azure') return `trigger:
+  if (kind === 'azure') return `# รันทุก branch, tag และ Pull Request แล้ว ScanHub เลือกว่าจะสแกนอะไรตามที่ตั้งไว้
+trigger:
   branches:
-    include: [${br}]
+    include: ['*']
+  tags:
+    include: ['*']
 pr:
   branches:
     include: ['*']
@@ -1905,7 +2016,7 @@ pool:
 steps:
   - checkout: self
   - script: |
-${curlCmd('      ', '$SCANHUB_TOKEN', '$SCANHUB_URL', '$(Build.SourceBranchName)', '$(Build.SourceVersion)')}
+${curlCmd('      ', 'azure', '$BUILD_SOURCEVERSION')}
     displayName: Scan with ScanHub
     env:
       SCANHUB_URL: ${url}
@@ -1920,11 +2031,15 @@ definitions:
           # ตั้ง SCANHUB_TOKEN เป็น secured variable ของ repo
           - export SCANHUB_URL=${url}
           - |
-${curlCmd('            ', '$SCANHUB_TOKEN', '$SCANHUB_URL', '$BITBUCKET_BRANCH', '$BITBUCKET_COMMIT')}
+${curlCmd('            ', 'bitbucket', '$BITBUCKET_COMMIT')}
 
+# รันทุก branch, tag และ Pull Request แล้ว ScanHub เลือกว่าจะสแกนอะไรตามที่ตั้งไว้
 pipelines:
   branches:
-    ${br}:
+    '**':
+      - step: *scanhub
+  tags:
+    '**':
       - step: *scanhub
   pull-requests:
     '**':
@@ -1933,7 +2048,7 @@ pipelines:
 export SCANHUB_URL=${url}
 export SCANHUB_TOKEN=<token ของ repo นี้>
 
-${curlCmd('', '$SCANHUB_TOKEN', '$SCANHUB_URL', '$(git rev-parse --abbrev-ref HEAD)', '$(git rev-parse HEAD)')}`;
+${curlCmd('', 'cli', '$(git rev-parse HEAD)')}`;
 }
 function reportsSnippet() {
   const url = (S.serverUrl || location.origin).replace(/\/+$/, '');
@@ -1978,7 +2093,7 @@ function viewConnect(ctx) {
     ? `<div class="tokrow"><input class="input mono" readonly value="${esc(fresh)}" aria-label="Repo token" id="tokVal"><button class="btn btn-primary" id="tokCopy"><i data-lucide="copy"></i>คัดลอก</button></div>
        <div class="note tok-once" style="margin-top:8px"><i data-lucide="triangle-alert"></i><div>คัดลอกเก็บไว้ จะแสดงครั้งเดียว ScanHub เก็บแค่ค่า hash ถ้าทำหายต้องสร้าง token ใหม่</div></div>`
     : `<div class="tokrow"><input class="input mono" readonly value="${esc(repo.tokenHint || 'shr_…')}" aria-label="Repo token (ซ่อนอยู่)">${m ? '<button class="btn" id="tokNew"><i data-lucide="refresh-cw"></i>สร้าง token ใหม่</button>' : ''}</div>
-       <p class="hint" style="margin:8px 0 0;max-width:720px">token แสดงเต็มได้ครั้งเดียวตอนสร้าง${m ? ' ถ้าไม่มีเก็บไว้ให้สร้างใหม่ token เดิมจะใช้ไม่ได้ทันที' : ' ขอ token จาก admin หรือ SA'}</p>`;
+       <p class="hint" style="margin:8px 0 0;max-width:720px">token แสดงเต็มได้ครั้งเดียวตอนสร้าง${m ? ' ถ้าไม่มีเก็บไว้ให้สร้างใหม่ token เดิมจะใช้ไม่ได้ทันที' : ' ขอ token จากผู้ดูแลระบบหรือผู้ดูแลโปรเจกต์'}</p>`;
   const toolsLine = defTools
     ? `<p class="small t3" style="margin:12px 0 0">สแกนด้วย ${S.ci.tools ? (S.ci.tools.size ? esc([...S.ci.tools].map(toolShort).join(', ')) : '<span class="neg">ยังไม่ได้เลือก scanner</span>') : `scanner ที่ตั้งไว้ของ repo${defTools.length ? ' (' + esc(defTools.map(toolShort).join(', ')) + ')' : ''}`} · <button class="linkbtn" id="toolsTog">${S.ci.toolsOpen ? 'ซ่อน' : 'เลือกเฉพาะบางตัว'}</button>${S.ci.tools ? ' · <button class="linkbtn" id="toolsReset">ใช้ค่าของ repo</button>' : ''}</p>
        <div class="toolchips" ${S.ci.toolsOpen ? '' : 'hidden'}>${defTools.map(t => { const on = S.ci.tools ? S.ci.tools.has(t) : true; return `<button class="tchip ${on ? 'is-on' : ''}" data-ct="${esc(t)}" aria-pressed="${on}"><span class="check"><i data-lucide="check"></i></span>${esc(toolName(t))}</button>`; }).join('')}</div>`
@@ -1990,6 +2105,7 @@ function viewConnect(ctx) {
       ${step(1, 'เลือก CI ที่ใช้', `<div class="ci-grid" role="radiogroup" aria-label="CI">${CI.map(c => `<button class="ci ${S.ci.tab === c[0] ? 'on' : ''}" data-ci="${c[0]}" role="radio" aria-checked="${S.ci.tab === c[0]}"><i data-lucide="${c[3]}"></i><span>${c[1]}</span></button>`).join('')}</div>`)}
       ${step(2, 'เพิ่ม token เป็น secret', `${tokBox}<p class="hint" style="margin:8px 0 0;max-width:720px">${S.ci.tab === 'cli' ? 'ตั้งเป็น environment variable' : 'เพิ่ม secret'} ชื่อ <code>SCANHUB_TOKEN</code> ที่ ${CI_SECRET[S.ci.tab]} · token นี้ส่งผลได้เฉพาะ repo นี้</p>`)}
       ${step(3, S.ci.tab === 'cli' ? 'รันคำสั่งนี้' : 'วางโค้ดนี้ใน pipeline', `
+        <div class="field" style="margin-bottom:16px"><span class="lbl">Branch และ tag ที่สแกน</span>${refsPicker(repo)}</div>
         <div class="field" style="margin-bottom:16px"><span class="lbl">ผลต่อ pipeline</span>${gatePicker(repo.gate)}</div>
         <div class="code"><div class="code-bar"><span>${esc(cur[2])}</span><button class="btn btn-sm btn-ghost" id="copySnip"><i data-lucide="copy"></i>คัดลอก</button></div><pre id="snip">${hlCode(snippet(S.ci.tab, repo))}</pre></div>
         ${toolsLine}`)}
@@ -2015,6 +2131,7 @@ function bindConnect(ctx) {
   const { repo } = ctx;
   bindAuto(ctx);
   bindGatePickers(repo);
+  bindRefsPicker(repo);
   const reSnip = () => { $('#snip').innerHTML = hlCode(snippet(S.ci.tab, repo)); };
   $$('[data-ci]').forEach(b => b.onclick = () => { S.ci.tab = b.dataset.ci; store.set('ciTab', S.ci.tab); render(); });
   const tc = $('#tokCopy'); if (tc) tc.onclick = () => copy(S.newToken.token);

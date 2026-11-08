@@ -5,6 +5,7 @@ import { ah, bad, HttpError, json, notFound } from '../util.js';
 import { createScan, rowToFinding, scanSummary } from '../scan/store.js';
 import { assertProject, visibleProjectIds } from '../access.js';
 import { DEFAULT_GATE, validGate } from '../gate.js';
+import { baselineScan, LINE_SQL, lineOf, refsOf, REF_KINDS, validRefs } from '../scan/refs.js';
 
 const REPO_RE = /^[a-z0-9._-]{2,60}$/;
 const GIT_RE = /^(https?:\/\/|ssh:\/\/|git@)\S+$/;
@@ -16,6 +17,7 @@ export function repoView(r) {
     id: r.id, name: r.name, projectId: r.project_id, projectName: r.project_name || '', lang: r.lang, branch: r.branch,
     gitUrl: r.git_url || '', tools: json(r.tools, null), schedule: r.schedule, tokenHint: r.token_hint, createdAt: r.created_at,
     gate: { ...DEFAULT_GATE, ...json(r.gate, {}) },
+    scanRefs: (({ branches, tags, prs }) => ({ branches, tags, prs }))(refsOf(r)),
     remote: r.remote_integration_id ? { integrationId: r.remote_integration_id, fullName: r.remote_full_name, webUrl: r.remote_web_url || null } : null,
   };
 }
@@ -25,11 +27,12 @@ export async function loadScanDetail(db, id, user) {
   const s = intId(id) && await db.get('SELECT s.*, r.project_id FROM scans s JOIN repos r ON r.id = s.repo_id WHERE s.id = ?', intId(id));
   if (!s) throw notFound('ไม่พบผลสแกน');
   if (user) await assertProject(db, user, s.project_id, 'ไม่พบผลสแกน');
-  const prev = await db.get(`SELECT id, num FROM scans WHERE repo_id = ? AND status = 'done' AND num < ? ORDER BY num DESC LIMIT 1`, s.repo_id, s.num);
+  const repo = await db.get('SELECT branch FROM repos WHERE id = ?', s.repo_id);
+  const prev = await baselineScan(db, s, repo || {});
   const findings = (await db.all('SELECT * FROM findings WHERE scan_id = ?', s.id)).map(rowToFinding)
     .sort((a, b) => (a.status === 'fixed') - (b.status === 'fixed') || SEV_ORDER[a.severity] - SEV_ORDER[b.severity] || a.location.localeCompare(b.location))
     .map(({ fingerprint, ...f }) => f);
-  return { ...scanSummary(s), repoId: s.repo_id, prev: prev ? { id: prev.id, num: prev.num } : null, runs: json(s.runs, []), findings };
+  return { ...scanSummary(s), repoId: s.repo_id, prev: prev ? { id: prev.id, num: prev.num, refType: prev.ref_type, branch: prev.branch } : null, runs: json(s.runs, []), findings };
 }
 
 export function projectRoutes({ db, queue, runner }) {
@@ -87,9 +90,10 @@ export function projectRoutes({ db, queue, runner }) {
     const repos = await db.all('SELECT * FROM repos ORDER BY name');
     // latest finished scan per repo (done or failed, so a failed scan shows on the list), else the queued / running one.
     // While a scan runs the list keeps showing the previous result, with `running` set.
+    // Prefer scans of the main branch, so pull request and tag scans do not change what the list shows
     const last = await db.all(`
-      SELECT DISTINCT ON (repo_id) * FROM scans
-      ORDER BY repo_id, (status IN ('done', 'failed')) DESC, num DESC`);
+      SELECT DISTINCT ON (s.repo_id) s.* FROM scans s JOIN repos r ON r.id = s.repo_id
+      ORDER BY s.repo_id, (s.ref_type = 'branch' AND s.branch = r.branch) DESC, (s.status IN ('done', 'failed')) DESC, s.num DESC`);
     const lastBy = new Map(last.map((s) => [s.repo_id, s]));
     const running = new Set((await db.all(`SELECT DISTINCT repo_id FROM scans WHERE status IN ('queued', 'running')`)).map((x) => x.repo_id));
     res.json(projects.map((p) => ({
@@ -159,8 +163,11 @@ export function projectRoutes({ db, queue, runner }) {
     if (b.tools !== undefined) sets.push(['tools', validTools(b.tools)]);
     if (b.schedule !== undefined) sets.push(['schedule', validSchedule(b.schedule)]);
     if (b.gate !== undefined) sets.push(['gate', gateJson(b.gate, json(repo.gate, {}))]);
+    if (b.scanRefs !== undefined) {
+      try { sets.push(['scan_refs', JSON.stringify(validRefs(b.scanRefs, refsOf(repo)))]); } catch (e) { throw bad(e.message); }
+    }
     for (const [col, v] of sets) {
-      await db.run(`UPDATE repos SET ${col} = ?${col === 'tools' || col === 'gate' ? '::jsonb' : ''} WHERE id = ?`, v, repo.id);
+      await db.run(`UPDATE repos SET ${col} = ?${['tools', 'gate', 'scan_refs'].includes(col) ? '::jsonb' : ''} WHERE id = ?`, v, repo.id);
     }
     res.json(repoView(await loadRepo(req, repo.id)));
   }));
@@ -179,9 +186,42 @@ export function projectRoutes({ db, queue, runner }) {
     res.json({ token: tok.token });
   }));
 
+  /**
+   * Scans, newest first. Filter to one history line with kind + ref (ref = branch, PR source branch or tag pattern),
+   * or with of=<scan num> for the line that scan belongs to.
+   */
   r.get('/repos/:id/scans', ah(async (req, res) => {
     const repo = await loadRepo(req, req.params.id);
-    res.json((await db.all('SELECT * FROM scans WHERE repo_id = ? ORDER BY num DESC LIMIT 100', repo.id)).map(scanSummary));
+    let line = null;
+    if (req.query.of !== undefined) {
+      const s = await db.get('SELECT * FROM scans WHERE repo_id = ? AND num = ?', repo.id, intId(req.query.of) || 0);
+      if (!s) throw notFound('ไม่พบผลสแกน');
+      line = lineOf(s);
+    } else if (req.query.kind !== undefined) {
+      if (!REF_KINDS.includes(req.query.kind)) throw bad('kind ต้องเป็น branch, tag หรือ pr');
+      line = { kind: req.query.kind, name: String(req.query.ref || '') };
+    }
+    const rows = line
+      ? await db.all(`SELECT * FROM scans WHERE repo_id = ? AND ref_type = ? AND ${LINE_SQL} = ? ORDER BY num DESC LIMIT 100`, repo.id, line.kind, line.name)
+      : await db.all('SELECT * FROM scans WHERE repo_id = ? ORDER BY num DESC LIMIT 100', repo.id);
+    res.json(rows.map(scanSummary));
+  }));
+
+  // Every history line with its scan count and latest scan. The main branch comes first.
+  r.get('/repos/:id/refs', ah(async (req, res) => {
+    const repo = await loadRepo(req, req.params.id);
+    const rows = await db.all(`
+      SELECT DISTINCT ON (ref_type, ${LINE_SQL}) *, ${LINE_SQL} AS line_name,
+        COUNT(*) OVER (PARTITION BY ref_type, ${LINE_SQL}) AS line_count
+      FROM scans WHERE repo_id = ?
+      ORDER BY ref_type, ${LINE_SQL}, num DESC`, repo.id);
+    const order = { branch: 0, pr: 1, tag: 2 };
+    const out = rows.map((s) => ({
+      kind: s.ref_type, ref: s.line_name, count: Number(s.line_count), main: s.ref_type === 'branch' && s.line_name === repo.branch,
+      last: scanSummary(s),
+    }));
+    out.sort((a, b) => b.main - a.main || order[a.kind] - order[b.kind] || b.last.num - a.last.num);
+    res.json(out);
   }));
 
   r.post('/repos/:id/scan', requireRole('ADMIN', 'MAINTAINER', 'ANALYST'), ah(async (req, res) => {

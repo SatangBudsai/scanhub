@@ -82,14 +82,35 @@ token ที่ใช้ต้องมีสิทธิ์ดังนี้
 
 ![อัปโหลดโค้ดแบบ CI: โหมด block ได้ 422 โหมดแจ้งผลได้ 200](docs/media/ci-gate.gif)
 
+### Branch, tag และ Pull Request ที่สแกน
+
+pipeline ที่ ScanHub สร้างให้รันทุก branch, tag และ PR แล้วถาม ScanHub ก่อนว่าต้องสแกนไหม ตั้งค่าที่หน้า **เชื่อมต่อ CI** ของแต่ละ repo เปลี่ยนได้ทุกเมื่อโดยไม่ต้องแก้ pipeline ตัวที่ไม่ตรงจะจบทันทีโดยไม่อัปโหลดโค้ด
+
+| ตั้งค่า | ตัวอย่าง | ค่าเริ่มต้น |
+| --- | --- | --- |
+| Branch | `main, develop, release/*` | branch หลักของ repo อย่างเดียว |
+| Tag | `v*` หรือ `sit_v*, uat_v*` | ไม่สแกน tag |
+| Pull Request / Merge Request | เปิด / ปิด | เปิด |
+
+`*` ใช้ได้ทุกตำแหน่ง แต่ละสแกนเทียบผล "ใหม่ / แก้แล้ว" กับสแกนที่เหมาะสม
+
+- **branch** เทียบกับสแกนก่อนหน้าของ branch เดียวกัน
+- **PR** เทียบกับ branch ปลายทาง ปัญหาใหม่คือสิ่งที่ PR นั้นเพิ่มเข้ามา ใช้กับ block แบบ "เฉพาะปัญหาใหม่" ได้ตรง
+- **tag** เทียบกับ tag ก่อนหน้าใน pattern เดียวกัน เช่น `sit_v1.2` เทียบกับ `sit_v1.1` ไม่ใช่ `uat_v1.1`
+
+หน้า repo มีตัวเลือก branch / PR / tag และประวัติแสดงแยกตามที่เลือก pipeline ที่ตั้งไว้ก่อนมีฟีเจอร์นี้ยังใช้ได้ (สแกนทุกครั้งเหมือนเดิม) ตั้งค่าอัตโนมัติอีกครั้งหรือ copy โค้ดใหม่เพื่อใช้การเลือก branch และ tag
+
 ### ตั้งค่าเอง
 
 copy โค้ดสำหรับ GitHub Actions, GitLab CI, Jenkins, Azure Pipelines, Bitbucket หรือ CLI แล้วเพิ่ม secret `SCANHUB_TOKEN` CI แค่ส่ง source code มา ScanHub สแกนด้วย scanner ของตัวเอง ฝั่ง CI จึงไม่ต้องติดตั้งอะไรเลย
 
 ```sh
+# KIND = branch | tag | pr, BASE = branch ปลายทางของ PR
+Q="kind=$KIND&branch=$REF&base=$BASE"
+case "$(curl -sS -H "Authorization: Bearer $SCANHUB_TOKEN" -H "Accept: text/plain" "$SCANHUB_URL/api/v1/check?$Q")" in skip*) exit 0;; esac
 tar --exclude=.git -czf - . | curl --fail-with-body -sS -X POST -T - \
   -H "Authorization: Bearer $SCANHUB_TOKEN" -H "Content-Type: application/gzip" -H "Accept: text/plain" \
-  "$SCANHUB_URL/api/v1/scan?branch=$BRANCH&commit=$COMMIT&wait=1"
+  "$SCANHUB_URL/api/v1/scan?$Q&commit=$COMMIT&wait=1"
 ```
 
 ถ้ารัน scanner ใน CI อยู่แล้ว ส่งไฟล์ผล JSON/SARIF ไปที่ `/api/v1/reports` ได้เช่นกัน
@@ -107,7 +128,7 @@ CI runner ต้องเข้าถึง `SCANHUB_URL` ได้ ถ้า Sc
 
 ![ค้นหา ตัวกรอง จัดกลุ่ม และรายละเอียดของปัญหาที่หลาย scanner เจอ](docs/media/findings-filter.gif)
 
-ทุกครั้งที่สแกนเก็บเป็นประวัติ สลับดูสแกนเก่าได้ และดาวน์โหลด CSV ได้
+ทุกครั้งที่สแกนเก็บเป็นประวัติ แยกตาม branch / PR / tag สลับดูสแกนเก่าได้ และดาวน์โหลด CSV ได้
 
 ![ประวัติการสแกน สลับสแกน และดาวน์โหลด CSV](docs/media/history.gif)
 

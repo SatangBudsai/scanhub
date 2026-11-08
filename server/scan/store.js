@@ -1,9 +1,11 @@
 import { json, nowIso } from '../util.js';
 import { diffFindings, summarize } from './merge.js';
+import { baselineScan } from './refs.js';
 
 export function scanSummary(s) {
   return {
     id: s.id, num: s.num, status: s.status, trigger: s.trigger, branch: s.branch || '', commit: s.commit_sha || '',
+    refType: s.ref_type || 'branch', baseBranch: s.base_branch || '', refGroup: s.ref_group || '',
     startedAt: s.started_at || null, finishedAt: s.finished_at || null, durationMs: s.duration_ms ?? null,
     counts: json(s.counts, [0, 0, 0, 0, 0]), openCount: s.open_count, newCount: s.new_count, fixedCount: s.fixed_count,
     error: s.error || null,
@@ -19,20 +21,24 @@ export function rowToFinding(f) {
   };
 }
 
-export async function createScan(db, repo, { trigger, branch, commit, tools }) {
+/** refType: branch | tag | pr. base: target branch of a PR. group: the tag pattern the tag matched. */
+export async function createScan(db, repo, { trigger, branch, commit, tools, refType = 'branch', base = '', group = '' }) {
   return db.tx(async (q) => {
     // Lock the repo row so concurrent scans get distinct numbers
     await q.get('SELECT id FROM repos WHERE id = ? FOR UPDATE', repo.id);
     const num = ((await q.get('SELECT MAX(num) AS n FROM scans WHERE repo_id = ?', repo.id))?.n || 0) + 1;
     return q.get(
-      'INSERT INTO scans (repo_id, num, status, trigger, branch, commit_sha, tools_req) VALUES (?, ?, ?, ?, ?, ?, ?::jsonb) RETURNING *',
-      repo.id, num, 'queued', trigger, branch || repo.branch || '', commit || '', tools ? JSON.stringify(tools) : null,
+      'INSERT INTO scans (repo_id, num, status, trigger, branch, commit_sha, tools_req, ref_type, base_branch, ref_group) VALUES (?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?) RETURNING *',
+      repo.id, num, 'queued', trigger, String(branch || repo.branch || '').slice(0, 200), commit || '', tools ? JSON.stringify(tools) : null,
+      refType, refType === 'pr' ? String(base || repo.branch || '').slice(0, 200) : '', refType === 'tag' ? group : '',
     );
   });
 }
 
-export function previousDoneScan(q, scan) {
-  return q.get(`SELECT * FROM scans WHERE repo_id = ? AND status = 'done' AND num < ? ORDER BY num DESC LIMIT 1`, scan.repo_id, scan.num);
+/** The earlier scan this one is diffed against: same branch, PR target branch, or previous tag in the same pattern */
+export async function previousDoneScan(q, scan) {
+  const repo = await q.get('SELECT branch FROM repos WHERE id = ?', scan.repo_id);
+  return baselineScan(q, scan, repo || {});
 }
 
 /** Diff merged findings against the previous scan and save everything in one transaction. */

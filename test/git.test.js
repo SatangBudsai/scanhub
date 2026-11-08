@@ -63,7 +63,10 @@ test('github: PR flow sets the secret, variable, workflow on scanhub/setup and o
   assert.ok(wf.includes('-H "Accept: text/plain"'));
   assert.ok(!wf.includes('fail_on'), 'block / report comes from the repo gate');
   assert.match(wf, /rc=\$\?\n\s+cat scanhub-result\.txt[^\n]*\n\s+exit \$rc/, 'prints the summary and keeps the exit code');
-  assert.match(wf, /branches: \["main"\]/);
+  // runs on every branch, tag and PR; ScanHub decides what to scan before any upload
+  assert.match(wf, /branches: \['\*\*'\]\n\s+tags: \['\*\*'\]/);
+  assert.ok(wf.includes('/api/v1/check?$Q'), 'asks ScanHub first');
+  assert.ok(wf.indexOf('/api/v1/check?$Q') < wf.indexOf('/api/v1/scan?$Q'), 'asks before uploading');
   assert.ok(!wf.includes('shr_abc123'), 'the token is never written into the repo');
   const pr = fake.state.gh.pulls[0];
   assert.deepEqual([pr.title, pr.head, pr.base], [PR_TITLE, SETUP_BRANCH, 'main']);
@@ -116,7 +119,8 @@ test('gitlab: test, search, masked variables, job file, include merged once, MR'
   assert.deepEqual([fake.state.gl.variables.SCANHUB_TOKEN.masked, fake.state.gl.variables.SCANHUB_TOKEN.value], [true, 'shr_glToken_123']);
   assert.equal(fake.state.gl.variables.SCANHUB_URL.masked, false);
   const files = fake.state.gl.files[SETUP_BRANCH];
-  assert.match(files['.gitlab/scanhub.yml'], /\$SCANHUB_URL\/api\/v1\/scan\?branch=\$CI_COMMIT_REF_NAME&commit=\$CI_COMMIT_SHA&wait=1"/);
+  assert.match(files['.gitlab/scanhub.yml'], /\$SCANHUB_URL\/api\/v1\/scan\?\$Q&commit=\$CI_COMMIT_SHA&wait=1"/);
+  assert.match(files['.gitlab/scanhub.yml'], /elif \[ -n "\$CI_COMMIT_TAG" \]; then KIND=tag/, 'tags are sent as tags');
   assert.ok(files['.gitlab/scanhub.yml'].includes('-H "Accept: text/plain"'));
   assert.match(files['.gitlab/scanhub.yml'], /rc=\$\?\n\s+cat scanhub-result\.txt[^\n]*\n\s+exit \$rc/);
   assert.match(files['.gitlab-ci.yml'], /^include:\n {2}- local: \.gitlab\/scanhub\.yml\n/);

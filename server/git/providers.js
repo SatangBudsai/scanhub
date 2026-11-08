@@ -41,20 +41,46 @@ const encPath = (p) => p.split('/').map(enc).join('/');
  * Query string the CI job sends to ScanHub. Block or report-only comes from the repo's gate in ScanHub,
  * so changing it never needs a pipeline change. The job sends Accept: text/plain to get a readable summary for the CI log.
  */
-function scanQuery({ tools }, branchVar, commitVar) {
-  let q = `branch=${branchVar}&commit=${commitVar}&wait=1`;
-  if (tools && tools.length) q += `&tools=${tools.join(',')}`;
-  return q;
+function toolsQuery({ tools }) {
+  return tools && tools.length ? `&tools=${tools.join(',')}` : '';
 }
 
+/**
+ * Shell lines run by every generated pipeline. `detect` sets KIND (branch | tag | pr), REF and BASE.
+ * The job asks ScanHub first, so which branches and tags get scanned is set on the repo page, not in the pipeline.
+ */
+function scanScript(opts, detect, commitVar) {
+  return [
+    'set +e',
+    ...detect,
+    '# ScanHub decides what to scan from the repo settings (branches, tags, pull requests)',
+    'Q=$(printf \'kind=%s&branch=%s&base=%s\' "$KIND" "$REF" "$BASE" | sed \'s/+/%2B/g\')',
+    'D=$(curl -sS -H "Authorization: Bearer $SCANHUB_TOKEN" -H "Accept: text/plain" "$SCANHUB_URL/api/v1/check?$Q" || echo scan)',
+    'case "$D" in skip*) echo "$D"; exit 0;; esac',
+    'tar --exclude=.git -czf - . | curl --fail-with-body -sS -X POST -T - -o scanhub-result.txt \\',
+    '  -H "Authorization: Bearer $SCANHUB_TOKEN" -H "Content-Type: application/gzip" -H "Accept: text/plain" \\',
+    `  "$SCANHUB_URL/api/v1/scan?$Q&commit=${commitVar}&wait=1${toolsQuery(opts)}"`,
+    'rc=$?',
+    'cat scanhub-result.txt 2>/dev/null; echo',
+    'exit $rc',
+  ];
+}
+const indent = (lines, pad) => lines.map((l) => pad + l).join('\n');
+
 export function githubWorkflow(opts) {
+  const detect = [
+    'if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then KIND=pr; REF="$GITHUB_HEAD_REF"; BASE="$GITHUB_BASE_REF"',
+    'else KIND="$GITHUB_REF_TYPE"; REF="$GITHUB_REF_NAME"; BASE=""; fi',
+  ];
   return `# Added by ScanHub: sends the source to ScanHub, which runs every enabled scanner and keeps the results.
 # SCANHUB_URL (variable) and SCANHUB_TOKEN (secret) are set in the repo's Actions settings.
+# Runs on every branch, tag and pull request; the branches and tags that get scanned are set in ScanHub.
 name: ScanHub
 
 on:
   push:
-    branches: [${JSON.stringify(opts.defaultBranch)}]
+    branches: ['**']
+    tags: ['**']
   pull_request:
   workflow_dispatch:
 
@@ -68,30 +94,25 @@ jobs:
           SCANHUB_URL: \${{ vars.SCANHUB_URL }}
           SCANHUB_TOKEN: \${{ secrets.SCANHUB_TOKEN }}
         run: |
-          set +e
-          BRANCH="\${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
-          tar --exclude=.git -czf - . | curl --fail-with-body -sS -X POST -T - -o scanhub-result.txt \\
-            -H "Authorization: Bearer $SCANHUB_TOKEN" -H "Content-Type: application/gzip" -H "Accept: text/plain" \\
-            "$SCANHUB_URL/api/v1/scan?${scanQuery(opts, '$BRANCH', '$GITHUB_SHA')}"
-          rc=$?
-          cat scanhub-result.txt 2>/dev/null; echo
-          exit $rc
+${indent(scanScript(opts, detect, '$GITHUB_SHA'), '          ')}
 `;
 }
 
 export function gitlabJob(opts) {
+  const detect = [
+    'if [ -n "$CI_MERGE_REQUEST_IID" ]; then KIND=pr; REF="$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME"; BASE="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"',
+    'elif [ -n "$CI_COMMIT_TAG" ]; then KIND=tag; REF="$CI_COMMIT_TAG"; BASE=""',
+    'else KIND=branch; REF="$CI_COMMIT_REF_NAME"; BASE=""; fi',
+  ];
   return `# Added by ScanHub: sends the source to ScanHub, which runs every enabled scanner and keeps the results.
 # SCANHUB_URL and SCANHUB_TOKEN (masked) are set in Settings > CI/CD > Variables.
+# Runs in every pipeline; the branches and tags that get scanned are set in ScanHub.
 scanhub:
   stage: .pre  # มีในทุก pipeline ของ GitLab และรันก่อน stage อื่น
   image: curlimages/curl:latest
   script:
     - |
-      set +e
-      tar --exclude=.git -czf - . | curl --fail-with-body -sS -X POST -T - -o scanhub-result.txt -H "Authorization: Bearer $SCANHUB_TOKEN" -H "Content-Type: application/gzip" -H "Accept: text/plain" "$SCANHUB_URL/api/v1/scan?${scanQuery(opts, '$CI_COMMIT_REF_NAME', '$CI_COMMIT_SHA')}"
-      rc=$?
-      cat scanhub-result.txt 2>/dev/null; echo
-      exit $rc
+${indent(scanScript(opts, detect, '$CI_COMMIT_SHA'), '      ')}
 `;
 }
 
