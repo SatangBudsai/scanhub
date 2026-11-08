@@ -1,8 +1,10 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 const env = process.env;
 
-export const VERSION = '1.0.0';
+// One version for the app, the image tag and /api/health: package.json
+export const VERSION = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 
 export const config = {
   adminUser: (env.SCANHUB_ADMIN_USER || 'admin').trim().toLowerCase(),

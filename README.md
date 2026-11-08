@@ -17,9 +17,16 @@
 
 ## 1. ติดตั้ง
 
-ต้องมี Docker เท่านั้น
+ต้องมี Docker เท่านั้น ใช้ไฟล์ `docker-compose.yml` ไฟล์เดียว ไม่ต้อง clone โค้ดหรือ build เอง
 
-1. เปิด `docker-compose.yml` แล้วแก้ 3 บรรทัด
+1. ดาวน์โหลด `docker-compose.yml` มาไว้ในโฟลเดอร์ว่าง
+
+   ```sh
+   mkdir scanhub && cd scanhub
+   curl -fsSLO https://raw.githubusercontent.com/SatangBudsai/scanhub/main/docker-compose.yml
+   ```
+
+2. เปิดไฟล์แล้วแก้ 3 บรรทัด
 
    ```yaml
    SCANHUB_ADMIN_USER: admin
@@ -27,12 +34,35 @@
    SCANHUB_URL: https://scanhub.company.local     # URL ที่คนและ CI ใช้เข้า ScanHub
    ```
 
-2. สั่ง `docker compose up -d --build`
-3. เปิด `SCANHUB_URL` แล้ว login ด้วย admin ครั้งแรกจะมีหน้าให้เลือก scanner และเวลาอัปเดตรายวัน
+3. สั่ง `docker compose up -d` ครั้งแรกจะดาวน์โหลด image ประมาณ 2 GB ที่มีเว็บ, PostgreSQL และ scanner ทุกตัวอยู่แล้ว
+4. เปิด `SCANHUB_URL` แล้ว login ด้วย admin ครั้งแรกจะมีหน้าให้เลือก scanner และเวลาอัปเดตรายวัน
 
 ![ตั้งค่าครั้งแรก: เลือก scanner และเวลาอัปเดตอัตโนมัติ](docs/media/setup.gif)
 
 ถ้ายังไม่เปลี่ยนรหัส admin ตัวอย่าง ระบบจะไม่ยอม start ข้อมูลทั้งหมดเก็บใน volume `scanhub-data`
+
+### อัปเดตเวอร์ชัน
+
+```sh
+docker compose pull && docker compose up -d
+```
+
+ข้อมูลใน volume `scanhub-data` อยู่ครบ ฐานข้อมูลอัปเดตโครงสร้างเองตอน start ถ้าต้องการล็อกเวอร์ชัน เปลี่ยน `:latest` ใน `docker-compose.yml` เป็นเลขเวอร์ชัน เช่น `:1.1.0` แล้วจะย้อนกลับเวอร์ชันก่อนก็ทำแบบเดียวกัน (ดูเวอร์ชันทั้งหมดได้ที่ [GitHub Packages](https://github.com/SatangBudsai/scanhub/pkgs/container/scanhub))
+
+### Server ที่ต่ออินเทอร์เน็ตไม่ได้
+
+ย้าย image ด้วยไฟล์ แล้ว start ตามปกติ
+
+```sh
+# เครื่องที่ต่ออินเทอร์เน็ตได้
+docker pull ghcr.io/satangbudsai/scanhub:latest
+docker save ghcr.io/satangbudsai/scanhub:latest | gzip > scanhub-image.tar.gz
+# server ปลายทาง (copy scanhub-image.tar.gz และ docker-compose.yml ไปด้วย)
+docker load < scanhub-image.tar.gz
+docker compose up -d
+```
+
+scanner ต้องดาวน์โหลดฐานข้อมูลช่องโหว่จากอินเทอร์เน็ต ถ้า server ต่อไม่ได้เลย ผลของ Trivy, Grype และ Dependency-Check จะไม่อัปเดต
 
 ### ค่าเสริม
 
@@ -192,7 +222,7 @@ scanner ทุกตัวติดตั้งมากับ image แล้�
 
 container ต้องออกอินเทอร์เน็ตได้ (GitHub, PyPI, SonarSource, NVD) การสแกนครั้งแรกจะช้ากว่าปกติ 3–4 นาที เพราะ Trivy และ Grype ต้องโหลดฐานข้อมูลช่องโหว่
 
-ตัวโปรแกรม ScanHub เองอัปเดตด้วยการ pull โค้ดใหม่แล้วสั่ง `docker compose up -d --build` ข้อมูลเดิมยังอยู่ และฐานข้อมูลจะ migrate ให้อัตโนมัติ
+ตัวโปรแกรม ScanHub เองอัปเดตด้วย `docker compose pull && docker compose up -d` ข้อมูลเดิมยังอยู่ และฐานข้อมูลจะ migrate ให้อัตโนมัติ
 
 ---
 
@@ -208,10 +238,15 @@ container ต้องออกอินเทอร์เน็ตได้ (Gi
 
 ```sh
 npm install
-npm test          # unit + API tests 36 รายการ (ใช้ PostgreSQL ชั่วคราวใน Docker)
+npm test          # unit + API tests 37 รายการ (ใช้ PostgreSQL ชั่วคราวใน Docker)
 npm run e2e       # Playwright E2E 35 รายการ บันทึก GIF ทุก test
 npm run e2e:report
+
+# build image จากโค้ดในเครื่องแทนการ pull (E2E ใช้ image นี้)
+docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 ```
+
+ทุก push และ Pull Request จะรัน test ใน GitHub Actions (`.github/workflows/image.yml`) push เข้า `main` จะ build image ทั้ง amd64 และ arm64 แล้วเก็บที่ `ghcr.io/satangbudsai/scanhub:latest` ส่วน tag `v1.2.3` จะได้ image `:1.2.3` เวอร์ชันของแอปอยู่ใน `package.json` ที่เดียว
 
 ผล E2E อยู่ที่ `e2e/results/index.html` แต่ละ test มีขั้นตอน ผลผ่าน/ไม่ผ่าน และ GIF ภาพทั้งหมดใน README นี้มาจากการรัน E2E จริง
 

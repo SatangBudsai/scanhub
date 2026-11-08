@@ -1,6 +1,6 @@
 {
   "name": "scanhub",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Run SonarQube, Trivy, Semgrep, Gitleaks and more on every repo and keep all results in one place",
   "type": "module",
