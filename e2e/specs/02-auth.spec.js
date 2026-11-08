@@ -16,7 +16,7 @@ test.describe('เข้าสู่ระบบ', () => {
     await step(page, 'เมนูบัญชีแสดง ADMIN และตั้งค่าจาก env', async () => {
       await page.getByRole('button', { name: `บัญชีของ ${ADMIN.username}` }).click();
       const menu = page.getByRole('menu', { name: 'บัญชี' });
-      await expect(menu.locator('.role-tag')).toHaveText('ADMIN');
+      await expect(menu.locator('.role-tag')).toHaveText('ผู้ดูแลระบบ');
       await expect(menu.getByText('ตั้งค่าจาก env')).toBeVisible();
       // the env admin cannot change the password from the web
       await expect(menu.getByRole('menuitem', { name: 'เปลี่ยนรหัสผ่าน' })).toHaveCount(0);
@@ -43,7 +43,7 @@ test.describe('เข้าสู่ระบบ', () => {
 
   test('ผู้ใช้ใหม่ต้องตั้งรหัสผ่านใหม่ก่อนใช้งาน', async ({ page, step, admin }) => {
     const username = uid('newbie');
-    await admin.post('/api/users', { username, password: 'temp-pass-123', role: 'QA' });
+    await admin.post('/api/users', { username, password: 'temp-pass-123', role: 'ANALYST' });
 
     await step(page, 'login ด้วยรหัสชั่วคราวจาก admin', async () => {
       await page.goto('/#login');

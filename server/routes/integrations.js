@@ -46,7 +46,7 @@ export async function integrationClient(db, id) {
 export function integrationRoutes({ db }) {
   const r = express.Router();
   const admin = requireRole('ADMIN');
-  const manage = requireRole('ADMIN', 'SA');
+  const manage = requireRole('ADMIN', 'MAINTAINER');
 
   const load = async (id) => {
     const i = Number.isInteger(Number(id)) ? await db.get('SELECT * FROM integrations WHERE id = ?', Number(id)) : null;

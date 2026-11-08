@@ -43,7 +43,7 @@ test.describe.serial('ผลสแกนรวมทุก scanner', () => {
     await step(page, 'ตัวเลขยังเปิดอยู่ ใหม่ และแก้แล้ว ตรงกับ server', async () => {
       const v = page.locator('.nums .v');
       await expect(v.nth(0)).toHaveText(String(detail.openCount));
-      await expect(v.nth(1)).toHaveText(String(detail.newCount));
+      await expect(v.nth(1)).toHaveText(detail.newCount ? `+${detail.newCount}` : '0');
       await expect(v.nth(2)).toHaveText(String(detail.fixedCount));
       expect(detail.newCount).toBeGreaterThan(0);
       expect(detail.fixedCount).toBeGreaterThan(0);

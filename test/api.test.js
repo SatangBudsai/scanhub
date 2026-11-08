@@ -311,8 +311,8 @@ test('share links: internal, password, expiry, revoke, rate limit', async () => 
   for (let i = 0; i < 5; i++) assert.equal((await other('POST', `/api/share/${tPw2}/unlock`, { password: `nope-${i}-xxxx` })).status, 401);
   assert.equal((await other('POST', `/api/share/${tPw2}/unlock`, { password: 'customer-pass-2' })).status, 429);
 
-  // internal links need project access; DEVELOPER can view the report but not create links
-  const dev = await a('POST', '/api/users', { username: 'dev.viewer', password: 'temp-pass-9', role: 'DEVELOPER' });
+  // internal links need project access; VIEWER can view the report but not create links
+  const dev = await a('POST', '/api/users', { username: 'dev.viewer', password: 'temp-pass-9', role: 'VIEWER' });
   const devc = client();
   await devc('POST', '/api/auth/login', { username: 'dev.viewer', password: 'temp-pass-9' });
   await devc('POST', '/api/auth/change-password', { current: 'temp-pass-9', newPassword: 'dev-pass-123' });
@@ -436,11 +436,15 @@ test('token regeneration revokes the old token', async () => {
 
 test('users: temp password gate, roles, disable and reset', async () => {
   const a = state.admin;
-  assert.equal((await a('POST', '/api/users', { username: 'anupat.p', password: 'short', role: 'QA' })).status, 400);
-  const u = await a('POST', '/api/users', { username: 'anupat.p', password: 'temp-pass-1', role: 'QA' });
+  assert.equal((await a('POST', '/api/users', { username: 'anupat.p', password: 'short', role: 'ANALYST' })).status, 400);
+  const u = await a('POST', '/api/users', { username: 'anupat.p', password: 'temp-pass-1', role: 'ANALYST' });
   assert.equal(u.status, 201);
   assert.equal(u.data.mustChange, true);
-  assert.equal((await a('POST', '/api/users', { username: 'anupat.p', password: 'temp-pass-1', role: 'QA' })).status, 409);
+  assert.equal((await a('POST', '/api/users', { username: 'anupat.p', password: 'temp-pass-1', role: 'ANALYST' })).status, 409);
+  // old role names still work; no role means the least access
+  assert.equal((await a('POST', '/api/users', { username: 'legacy.qa', password: 'temp-pass-1', role: 'QA' })).data.role, 'ANALYST');
+  assert.equal((await a('POST', '/api/users', { username: 'no.role', password: 'temp-pass-1' })).data.role, 'VIEWER');
+  assert.equal((await a('POST', '/api/users', { username: 'bad.role', password: 'temp-pass-1', role: 'OWNER' })).status, 400);
 
   const qa = client();
   const login = await qa('POST', '/api/auth/login', { username: 'anupat.p', password: 'temp-pass-1' });
@@ -452,17 +456,17 @@ test('users: temp password gate, roles, disable and reset', async () => {
   assert.equal((await qa('POST', '/api/auth/change-password', { current: 'temp-pass-1', newPassword: 'new-pass-123' })).data.user.mustChange, false);
   await a('PATCH', `/api/users/${u.data.id}`, { allProjects: true });
 
-  // QA: view and trigger, not manage
+  // ANALYST: view and trigger, not manage
   assert.equal((await qa('GET', '/api/projects')).status, 200);
   assert.equal((await qa('POST', '/api/projects', { name: 'Nope' })).status, 403);
   assert.equal((await qa('GET', '/api/users')).status, 403);
   assert.equal((await qa('GET', '/api/settings')).status, 403);
   assert.equal((await qa('POST', `/api/repos/${state.repoId}/scan`, {})).status, 400, 'allowed, but repo has no git url');
 
-  // DEVELOPER cannot trigger scans; SA can manage repos but not settings
-  await a('PATCH', `/api/users/${u.data.id}`, { role: 'DEVELOPER' });
+  // VIEWER cannot trigger scans; MAINTAINER can manage repos but not settings
+  await a('PATCH', `/api/users/${u.data.id}`, { role: 'VIEWER' });
   assert.equal((await qa('POST', `/api/repos/${state.repoId}/scan`, {})).status, 403);
-  await a('PATCH', `/api/users/${u.data.id}`, { role: 'SA' });
+  await a('PATCH', `/api/users/${u.data.id}`, { role: 'MAINTAINER' });
   assert.equal((await qa('GET', '/api/settings')).status, 200);
   assert.equal((await qa('PUT', '/api/settings', { retentionDays: 1 })).status, 403);
   assert.equal((await qa('POST', '/api/projects', { name: 'Mobile Banking' })).status, 201);
@@ -482,7 +486,7 @@ test('users: temp password gate, roles, disable and reset', async () => {
   const users = (await a('GET', '/api/users')).data;
   const envAdmin = users.find((x) => x.fromEnv);
   assert.equal(envAdmin.username, 'admin');
-  assert.equal((await a('PATCH', `/api/users/${envAdmin.id}`, { role: 'QA' })).status, 400);
+  assert.equal((await a('PATCH', `/api/users/${envAdmin.id}`, { role: 'ANALYST' })).status, 400);
   assert.equal((await a('POST', '/api/auth/change-password', { current: ADMIN_PW, newPassword: 'whatever-1' })).status, 400);
 });
 
@@ -494,7 +498,7 @@ test('project access: grants, groups, all projects, creator grant, 404 for hidde
   const scan = await ci(repo.data.token, '/api/v1/reports?gate=report', { reports: [{ tool: 'gitleaks', data: fx('gitleaks.json') }] });
   assert.equal(scan.status, 200);
 
-  const u = await a('POST', '/api/users', { username: 'qa.limited', password: 'temp-pass-5', role: 'QA' });
+  const u = await a('POST', '/api/users', { username: 'qa.limited', password: 'temp-pass-5', role: 'ANALYST' });
   assert.deepEqual([u.data.allProjects, u.data.projectIds, u.data.groupIds], [false, [], []]);
   const qa = client();
   await qa('POST', '/api/auth/login', { username: 'qa.limited', password: 'temp-pass-5' });
@@ -552,7 +556,7 @@ test('project access: grants, groups, all projects, creator grant, 404 for hidde
   assert.deepEqual(await names(), []);
 
   // the creator of a project gets a direct grant
-  const sa = await a('POST', '/api/users', { username: 'sa.creator', password: 'temp-pass-6', role: 'SA' });
+  const sa = await a('POST', '/api/users', { username: 'sa.creator', password: 'temp-pass-6', role: 'MAINTAINER' });
   const sac = client();
   await sac('POST', '/api/auth/login', { username: 'sa.creator', password: 'temp-pass-6' });
   await sac('POST', '/api/auth/change-password', { current: 'temp-pass-6', newPassword: 'sa-creator-1' });
@@ -618,11 +622,11 @@ test('git connections: CRUD, encrypted token, test, repo search, one-click setup
     assert.match(bad.data.steps[1].message, /404/);
     assert.equal((await a('POST', `/api/repos/${r.data.repo.id}/auto-setup`, { integrationId: created.data.id, remoteRepo: 'not a repo' })).status, 400);
 
-    // roles: integrations are ADMIN only, repo search + setup also SA, nothing for QA
+    // roles: integrations are ADMIN only, repo search + setup also MAINTAINER, nothing for ANALYST
     const qa = client();
     await qa('POST', '/api/auth/login', { username: 'qa.limited', password: 'qa-limited-1' });
     assert.equal((await qa('GET', '/api/integrations')).status, 403);
-    // SA can list connections (never with tokens) but not change them
+    // MAINTAINER can list connections (never with tokens) but not change them
     const sa = client();
     await sa('POST', '/api/auth/login', { username: 'sa.creator', password: 'sa-creator-1' });
     const saList = await sa('GET', '/api/integrations');

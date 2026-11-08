@@ -29,8 +29,8 @@ export function setupRoutes({ db, tools }) {
 
 export function toolRoutes({ tools }) {
   const r = express.Router();
-  r.get('/', requireRole('ADMIN', 'SA'), ah(async (req, res) => res.json(await tools.list())));
-  r.get('/log', requireRole('ADMIN', 'SA'), ah(async (req, res) => res.json(await tools.logs())));
+  r.get('/', requireRole('ADMIN', 'MAINTAINER'), ah(async (req, res) => res.json(await tools.list())));
+  r.get('/log', requireRole('ADMIN', 'MAINTAINER'), ah(async (req, res) => res.json(await tools.logs())));
   r.post('/update-all', requireRole('ADMIN'), (req, res) => {
     tools.updateAll();
     res.json({ ok: true });
@@ -57,7 +57,7 @@ async function setSecret(db, key, v) {
 
 export function settingsRoutes({ db }) {
   const r = express.Router();
-  r.get('/', requireRole('ADMIN', 'SA'), ah(async (req, res) => res.json(await readSettings(db))));
+  r.get('/', requireRole('ADMIN', 'MAINTAINER'), ah(async (req, res) => res.json(await readSettings(db))));
   r.put('/', requireRole('ADMIN'), ah(async (req, res) => {
     const b = req.body || {};
     // Validate everything first, then save

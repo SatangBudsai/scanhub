@@ -2,7 +2,11 @@ import crypto from 'node:crypto';
 import { promisify } from 'node:util';
 import { HttpError, nowIso } from './util.js';
 
-export const ROLES = ['ADMIN', 'SA', 'QA', 'DEVELOPER'];
+// ADMIN: everything. MAINTAINER: projects, repos, CI. ANALYST: scan and share. VIEWER: read only.
+export const ROLES = ['ADMIN', 'MAINTAINER', 'ANALYST', 'VIEWER'];
+// Role names before 1.1, still accepted by the API
+const LEGACY_ROLES = { SA: 'MAINTAINER', QA: 'ANALYST', DEVELOPER: 'VIEWER' };
+export const normalizeRole = (r) => { const s = String(r ?? '').trim().toUpperCase(); return LEGACY_ROLES[s] || s; };
 const SESSION_DAYS = 7;
 export const COOKIE = 'sh_session';
 const scrypt = promisify(crypto.scrypt);

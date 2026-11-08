@@ -77,7 +77,7 @@ test.describe('เมนูบัญชี', () => {
   });
 
   test('เปลี่ยนรหัสผ่านมีเฉพาะผู้ใช้ที่ไม่ได้ตั้งค่าจาก env', async ({ page, step, browser, admin }) => {
-    const user = await makeUser(admin, { role: 'QA' });
+    const user = await makeUser(admin, { role: 'ANALYST' });
     await step(page, 'admin จาก env ไม่มีเมนูเปลี่ยนรหัสผ่าน', async () => {
       await page.goto('/#login');
       await login(page);
@@ -90,7 +90,7 @@ test.describe('เมนูบัญชี', () => {
     await step(u.page, 'ผู้ใช้ทั่วไปเห็นเมนูเปลี่ยนรหัสผ่าน', async () => {
       await u.page.getByRole('button', { name: `บัญชีของ ${user.username}` }).click();
       const m = u.page.getByRole('menu', { name: 'บัญชี' });
-      await expect(m.locator('.role-tag')).toHaveText('QA');
+      await expect(m.locator('.role-tag')).toHaveText('ผู้ตรวจสอบ');
       await expect(m.getByText('ตั้งค่าจาก env')).toHaveCount(0);
       await m.getByRole('menuitem', { name: 'เปลี่ยนรหัสผ่าน' }).click();
       await expect(u.page.getByRole('heading', { name: 'เปลี่ยนรหัสผ่าน' })).toBeVisible();

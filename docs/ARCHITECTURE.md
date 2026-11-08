@@ -64,7 +64,7 @@ The creator of a project gets a direct grant automatically. Repos, scans, findin
 
 ## Roles
 
-| Permission | ADMIN | SA | QA | DEVELOPER |
+| Permission | ADMIN | MAINTAINER | ANALYST | VIEWER |
 | --- | --- | --- | --- | --- |
 | View projects, repos, scans | yes | yes | yes | yes |
 | Trigger a scan | yes | yes | yes | no |

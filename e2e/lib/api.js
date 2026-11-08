@@ -55,7 +55,7 @@ export async function projectWithRepo(api, extra = {}) {
 }
 
 /** A user who already changed the temporary password, ready to log in */
-export async function makeUser(api, { role = 'QA', allProjects = false, projectIds = [], groupIds = [], prefix } = {}) {
+export async function makeUser(api, { role = 'ANALYST', allProjects = false, projectIds = [], groupIds = [], prefix } = {}) {
   const username = uid(prefix || role.toLowerCase()).toLowerCase().slice(0, 40);
   const temp = 'temp-pass-123';
   const password = 'user-pass-456';

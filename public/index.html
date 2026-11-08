@@ -87,9 +87,9 @@ code{font-family:var(--mono);font-size:12px;background:var(--raised);border:1px 
 .nav-a{height:32px;display:inline-flex;align-items:center;padding:0 10px;border-radius:8px;color:var(--t2);transition:background-color .14s var(--ease),color .14s var(--ease)}
 .nav-a:hover{color:var(--t1);background:var(--hover)}
 .nav-a.on{color:var(--t1);background:var(--raised)}
-.userbtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 6px 0 2px;border-radius:18px;color:var(--t2)}
+.userbtn{display:inline-flex;align-items:center;gap:10px;height:40px;padding:0 8px 0 4px;border-radius:10px;color:var(--t2);text-align:left}
 .userbtn:hover{color:var(--t1)}
-.avatar{width:32px;height:32px;border-radius:50%;background:var(--acc-soft);color:var(--acc-text);display:grid;place-items:center;font-size:12px;font-weight:500;flex:none;border:1px solid var(--acc-line)}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;font-size:12px;font-weight:600;flex:none}
 .pop-wrap{position:relative}
 .pop{position:absolute;top:calc(100% + 8px);left:0;z-index:40;min-width:240px;max-height:min(70vh,520px);overflow:auto;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:6px;box-shadow:var(--shadow);animation:pop .18s var(--ease)}
 .pop-r{left:auto;right:0}
@@ -225,6 +225,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--raised);border:1px 
 .nums .k{font-size:13px;color:var(--t2)}
 .nums .v{font-size:28px;line-height:36px;font-weight:500;margin-top:4px;font-variant-numeric:tabular-nums}
 .nums .d{font-size:12px;color:var(--t3);margin-top:2px}
+.nums .v.new{color:var(--acc-text)}
 .runline{display:flex;align-items:center;gap:8px;margin-top:12px;width:100%;text-align:left;color:var(--t2);font-size:13px}
 .runline:hover{color:var(--t1)}
 .runline .chev{transition:transform .16s var(--ease);color:var(--t3)}
@@ -646,17 +647,20 @@ details.perm[open] summary svg{transform:rotate(90deg)}
 }
 
 /* account menu */
-.userbtn{border:1px solid transparent;transition:background-color .14s var(--ease),border-color .14s var(--ease)}
-.userbtn:hover,.userbtn[aria-expanded=true]{background:var(--hover);border-color:var(--line)}
+.userbtn{transition:background-color .14s var(--ease)}
+.userbtn:hover,.userbtn[aria-expanded=true]{background:var(--hover)}
 .ub-chev{color:var(--t3);transition:transform .16s var(--ease)}
 .userbtn[aria-expanded=true] .ub-chev{transform:rotate(180deg)}
-.ub-name{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ub-id{display:flex;flex-direction:column;min-width:0}
+@media (max-width:860px){.ub-id.hide-sm{display:none}}
+.ub-name{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;line-height:16px;font-weight:500;color:var(--t1)}
+.ub-role{font-size:12px;line-height:16px;color:var(--t3)}
 .acct{width:296px;padding:6px}
 .acct-h{display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;align-items:center;padding:10px 10px 14px}
 .avatar-lg{width:40px;height:40px;font-size:14px}
 .acct-name{font-size:15px;line-height:22px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .acct-tags{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:4px}
-.role-tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;border:1px solid var(--line2);font:500 11px/1 var(--mono);color:var(--t2);letter-spacing:.02em}
+.role-tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;border:1px solid var(--line2);font-size:12px;line-height:1;font-weight:500;color:var(--t2)}
 .acct .lock{height:22px}
 .acct-sec{padding:12px 10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:4px}
 .acct-lbl{font-size:12px;line-height:16px;color:var(--t3);margin-bottom:8px}
@@ -729,8 +733,11 @@ const CATS = ['Vulnerability', 'Secret', 'Bug', 'Security hotspot', 'Misconfigur
 const TOOLNAME = { sonarqube: 'SonarQube', trivy: 'Trivy', semgrep: 'Semgrep', gitleaks: 'Gitleaks', 'dependency-check': 'OWASP Dependency-Check', checkov: 'Checkov', grype: 'Grype' };
 const toolName = id => TOOLNAME[id] || String(id);
 const toolShort = id => toolName(id).replace('OWASP ', '');
-const ROLES = ['ADMIN', 'SA', 'QA', 'DEVELOPER'];
-const CAN = { scan: ['ADMIN', 'SA', 'QA'], manage: ['ADMIN', 'SA'], viewSettings: ['ADMIN', 'SA'], editSettings: ['ADMIN'], users: ['ADMIN'] };
+const ROLES = ['ADMIN', 'MAINTAINER', 'ANALYST', 'VIEWER'];
+const ROLE_L = { ADMIN: 'ผู้ดูแลระบบ', MAINTAINER: 'ผู้ดูแลโปรเจกต์', ANALYST: 'ผู้ตรวจสอบ', VIEWER: 'ผู้ดูผล' };
+const ROLE_D = { ADMIN: 'ทำได้ทุกอย่าง รวมถึงตั้งค่าระบบและจัดการผู้ใช้', MAINTAINER: 'จัดการโปรเจกต์ repo และเชื่อมต่อ CI', ANALYST: 'สั่งสแกนและส่งรายงานให้ลูกค้า', VIEWER: 'ดูผลสแกนอย่างเดียว' };
+const roleL = r => ROLE_L[r] || r || '';
+const CAN = { scan: ['ADMIN', 'MAINTAINER', 'ANALYST'], manage: ['ADMIN', 'MAINTAINER'], viewSettings: ['ADMIN', 'MAINTAINER'], editSettings: ['ADMIN'], users: ['ADMIN'] };
 const has = k => !!S.me && CAN[k].includes(S.me.role);
 const TRIG = { ci: ['git-pull-request', 'CI'], manual: ['play', 'สั่งเอง'], schedule: ['calendar-clock', 'ตามเวลา'], upload: ['upload', 'ส่งผลจาก CI'] };
 const trigL = t => (TRIG[t] || ['circle', t || '—'])[1];
@@ -822,9 +829,9 @@ function shell(body) {
     <nav class="nav">${navA('#projects', 'โปรเจกต์', /^#(projects|repo|connect)/.test(h) || h === '#')}${has('viewSettings') ? navA('#settings', 'ตั้งค่า', h.startsWith('#settings')) : ''}${has('users') ? navA('#users', 'ผู้ใช้', h.startsWith('#users')) : ''}</nav>
     <div class="pop-wrap nav-m"><button class="btn btn-icon btn-ghost" data-pop="navPop" aria-haspopup="true" aria-expanded="false" aria-label="เมนู"><i data-lucide="menu"></i></button>
       <div class="pop" id="navPop" hidden><a class="pop-row" href="#projects"><span>โปรเจกต์</span></a>${(S.projects || []).some(p => (p.repos || []).length) ? '<div class="pop-label">Repo</div>' + allRepos().map(r => `<a class="pop-row" href="#repo/${enc(r.id)}"><span>${esc(r.name)}</span>${statusDot(r)}</a>`).join('') + '<hr>' : ''}${has('viewSettings') ? '<a class="pop-row" href="#settings"><span>ตั้งค่า</span></a>' : ''}${has('users') ? '<a class="pop-row" href="#users"><span>ผู้ใช้</span></a>' : ''}</div></div>
-    <div class="pop-wrap"><button class="userbtn" data-pop="mePop" aria-haspopup="menu" aria-expanded="false" aria-controls="mePop" aria-label="บัญชีของ ${esc(u)}"><span class="avatar">${esc(u.slice(0, 2).toUpperCase())}</span><span class="hide-sm ub-name">${esc(u)}</span><i data-lucide="chevron-down" class="ub-chev"></i></button>
+    <div class="pop-wrap"><button class="userbtn" data-pop="mePop" aria-haspopup="menu" aria-expanded="false" aria-controls="mePop" aria-label="บัญชีของ ${esc(u)}"><span class="avatar">${esc(u.slice(0, 2).toUpperCase())}</span><span class="hide-sm ub-id"><span class="ub-name">${esc(u)}</span><span class="ub-role">${esc(roleL(S.me && S.me.role))}</span></span><i data-lucide="chevron-down" class="ub-chev"></i></button>
       <div class="pop pop-r acct" id="mePop" role="menu" aria-label="บัญชี" hidden>
-        <div class="acct-h"><span class="avatar avatar-lg">${esc(u.slice(0, 2).toUpperCase())}</span><div class="acct-id"><div class="acct-name">${esc(u)}</div><div class="acct-tags"><span class="role-tag">${esc(S.me ? S.me.role : '')}</span>${S.me && S.me.fromEnv ? '<span class="lock"><i data-lucide="lock"></i>ตั้งค่าจาก env</span>' : ''}</div></div></div>
+        <div class="acct-h"><span class="avatar avatar-lg">${esc(u.slice(0, 2).toUpperCase())}</span><div class="acct-id"><div class="acct-name">${esc(u)}</div><div class="acct-tags"><span class="role-tag">${esc(roleL(S.me && S.me.role))}</span>${S.me && S.me.fromEnv ? '<span class="lock"><i data-lucide="lock"></i>ตั้งค่าจาก env</span>' : ''}</div></div></div>
         <div class="acct-sec"><div class="acct-lbl" id="themeLbl">ธีม</div>
           <div class="seg acct-theme" role="radiogroup" aria-labelledby="themeLbl">${[['light', 'สว่าง', 'sun'], ['dark', 'มืด', 'moon'], ['system', 'ตามระบบ', 'monitor']].map(([k, l, ic]) => `<button role="menuitemradio" aria-checked="${THEME.get() === k}" data-theme-set="${k}" class="${THEME.get() === k ? 'on' : ''}"><i data-lucide="${ic}"></i>${l}</button>`).join('')}</div></div>
         ${S.me && !S.me.fromEnv ? '<a class="pop-row" role="menuitem" href="#password"><span>เปลี่ยนรหัสผ่าน</span><i data-lucide="key-round"></i></a>' : ''}
@@ -931,8 +938,8 @@ function viewLogin() {
   return authWrap(`<h1>เข้าสู่ระบบ</h1>
     <p class="t2" style="margin:0 0 24px">ผลสแกนจาก SonarQube, Trivy, Semgrep และ scanner อื่นของทุก repo ในที่เดียว</p>
     <form id="loginForm" novalidate>
-      <div class="field"><label for="lu">ชื่อผู้ใช้</label><input class="input" id="lu" autocomplete="username" placeholder="เช่น somchai.s"></div>
-      <div class="field" style="margin-top:16px"><label for="lp">รหัสผ่าน</label><input class="input" id="lp" type="password" autocomplete="current-password"></div>
+      <div class="field"><label for="lu">ชื่อผู้ใช้</label><input class="input" id="lu" autocomplete="username" placeholder="ชื่อผู้ใช้ที่ได้รับจากผู้ดูแลระบบ"></div>
+      <div class="field" style="margin-top:16px"><label for="lp">รหัสผ่าน</label><input class="input" id="lp" type="password" autocomplete="current-password" placeholder="รหัสผ่าน"></div>
       <div class="err" id="lerr" style="margin-top:8px"></div>
       <button class="btn btn-primary" style="width:100%;height:40px;margin-top:8px" type="submit" id="lbtn">เข้าสู่ระบบ</button>
     </form>
@@ -1271,7 +1278,7 @@ function viewRepo(ctx) {
       <div class="sum-top">
       <div class="nums">
         <div><div class="k">ยังเปิดอยู่</div><div class="v">${openN}</div><div class="d">${prevNum == null ? 'สแกนแรกของ repo' : openPrev == null ? `เทียบกับ #${prevNum}` : `${openPrev > openN ? 'ลดลง ' + (openPrev - openN) : openPrev < openN ? 'เพิ่มขึ้น ' + (openN - openPrev) : 'เท่าเดิม'} เทียบกับ #${prevNum}`}</div></div>
-        <div><div class="k">ใหม่</div><div class="v">${scan.newCount || 0}</div><div class="d">${prevNum != null ? 'ไม่พบในสแกน #' + prevNum : '—'}</div></div>
+        <div><div class="k">ใหม่</div><div class="v ${scan.newCount ? 'new' : ''}">${scan.newCount ? '+' + scan.newCount : 0}</div><div class="d">${prevNum != null ? 'ไม่พบในสแกน #' + prevNum : '—'}</div></div>
         <div><div class="k">แก้แล้ว</div><div class="v ${scan.fixedCount ? 'pos' : ''}">${scan.fixedCount || 0}</div><div class="d">${prevNum != null ? 'มีในสแกน #' + prevNum + ' แต่ไม่พบแล้ว' : '—'}</div></div>
       </div>
       <div class="spark">
@@ -2247,14 +2254,14 @@ function viewUsers(ctx, tab) {
 function viewUserList(ctx) {
   const me = S.me;
   return shell(`
-    <div class="page-head"><div><h1>ผู้ใช้</h1><p>ไม่มีการสมัครเอง — ADMIN เพิ่มสมาชิกที่นี่ ผู้ใช้ใหม่ต้องเปลี่ยนรหัสผ่านชั่วคราวตอน login ครั้งแรก การปิดใช้งานไม่ลบประวัติ และมีผลทันที</p></div></div>
+    <div class="page-head"><div><h1>ผู้ใช้</h1><p>ไม่มีการสมัครเอง ผู้ดูแลระบบเพิ่มสมาชิกที่นี่ ผู้ใช้ใหม่ต้องเปลี่ยนรหัสผ่านชั่วคราวตอน login ครั้งแรก การปิดใช้งานไม่ลบประวัติ และมีผลทันที</p></div></div>
     ${usersTabs(ctx, 'users')}
     <section class="card card-pad">
       <h2 style="margin-bottom:16px"><i data-lucide="user-plus" style="color:var(--t3)"></i>เพิ่มผู้ใช้</h2>
       <form class="users-form" id="uform" novalidate>
-        <div class="field"><label for="nu">ชื่อผู้ใช้</label><input class="input" id="nu" placeholder="เช่น somchai.s" autocomplete="off"></div>
+        <div class="field"><label for="nu">ชื่อผู้ใช้</label><input class="input" id="nu" placeholder="เช่น somchai.s (a-z 0-9 . _ -)" autocomplete="off"></div>
         <div class="field"><label for="np">รหัสผ่านชั่วคราว</label><input class="input" id="np" type="text" placeholder="อย่างน้อย 8 ตัวอักษร" autocomplete="off"></div>
-        <div class="field"><label for="nr">Role</label><select class="select" id="nr">${ROLES.map(r => `<option ${r === 'SA' ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
+        <div class="field"><label for="nr">Role</label><select class="select" id="nr">${ROLES.map(r => `<option value="${r}" ${r === 'VIEWER' ? 'selected' : ''}>${roleL(r)}</option>`).join('')}</select></div>
         <button class="btn btn-primary" style="height:40px" type="submit" id="ubtn"><i data-lucide="user-plus"></i>เพิ่มผู้ใช้</button>
       </form>
       <div class="err" id="uerr" style="margin-top:8px"></div>
@@ -2264,17 +2271,17 @@ function viewUserList(ctx) {
         ${ctx.users.map(u => { const locked = u.fromEnv, self = me && sameId(u.id, me.id), adminRole = u.role === 'ADMIN'; return `<tr>
           <td><div class="uname"><span class="avatar">${esc(String(u.username).slice(0, 2).toUpperCase())}</span><div><div>${esc(u.username)}${self ? ' <span class="t3 small">(คุณ)</span>' : ''}${locked ? ' <span class="lock"><i data-lucide="lock"></i>ตั้งค่าจาก env</span>' : ''}</div>${u.mustChange && !locked ? '<div class="cell-sub">รอเปลี่ยนรหัสผ่านชั่วคราว</div>' : ''}</div></div></td>
           <td class="c-st">${u.active ? '<span class="pill pill-ok">ใช้งาน</span>' : '<span class="pill pill-off">ปิดใช้งาน</span>'}</td>
-          <td class="c-role"><select class="select select-sm" style="width:144px" data-role="${esc(u.id)}" ${locked || self ? 'disabled' : ''} aria-label="Role ของ ${esc(u.username)}">${ROLES.map(r => `<option ${u.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select></td>
-          <td class="c-acc">${locked || adminRole ? `<span class="t2">ทุกโปรเจกต์ (ADMIN)</span>` : `<button class="access-btn" data-acc="${esc(u.id)}" title="แก้สิทธิ์โปรเจกต์ของ ${esc(u.username)}"><span>${accessText(u, ctx.groups)}</span><i data-lucide="pencil"></i></button>`}</td>
+          <td class="c-role"><select class="select select-sm" style="width:168px" data-role="${esc(u.id)}" ${locked || self ? 'disabled' : ''} aria-label="Role ของ ${esc(u.username)}">${ROLES.map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${roleL(r)}</option>`).join('')}</select></td>
+          <td class="c-acc">${locked || adminRole ? `<span class="t2">ทุกโปรเจกต์ (ผู้ดูแลระบบ)</span>` : `<button class="access-btn" data-acc="${esc(u.id)}" title="แก้สิทธิ์โปรเจกต์ของ ${esc(u.username)}"><span>${accessText(u, ctx.groups)}</span><i data-lucide="pencil"></i></button>`}</td>
           <td class="hide-sm t2 num">${u.lastLoginAt ? rel(u.lastLoginAt) : 'ยังไม่เคย'}</td>
           <td class="r c-act" style="white-space:nowrap">${locked || self ? '' : `<button class="link-act" data-reset="${esc(u.id)}"><i data-lucide="key-round"></i>รีเซ็ตรหัสผ่าน</button> <button class="btn ${u.active ? 'btn-danger' : ''} btn-sm" data-act="${esc(u.id)}"><i data-lucide="power"></i>${u.active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}</button>`}</td></tr>`; }).join('')}
         </tbody></table>
       </div>
       <details class="perm" style="margin-top:16px"><summary><i data-lucide="chevron-right"></i>สิทธิ์ของแต่ละ role</summary>
-        <div class="table-wrap" style="border-top:1px solid var(--line)"><table class="table"><thead><tr><th>สิทธิ์</th>${ROLES.map(r => `<th style="text-align:center">${r}</th>`).join('')}</tr></thead><tbody>
+        <div class="table-wrap" style="border-top:1px solid var(--line)"><table class="table"><thead><tr><th>สิทธิ์</th>${ROLES.map(r => `<th style="text-align:center" title="${esc(ROLE_D[r])}">${roleL(r)}</th>`).join('')}</tr></thead><tbody>
         ${PERMS.map(([n, v]) => `<tr><td>${n}</td>${v.map(x => `<td style="text-align:center">${x ? '<i data-lucide="check" class="yes"></i>' : '<span class="no">—</span>'}</td>`).join('')}</tr>`).join('')}
         </tbody></table></div>
-        <p class="hint" style="margin:0;padding:12px 16px;border-top:1px solid var(--line)">Role กำหนดว่าทำอะไรได้ สิทธิ์โปรเจกต์กำหนดว่าเห็นโปรเจกต์ไหน ADMIN เห็นทุกโปรเจกต์เสมอ</p></details>
+        <p class="hint" style="margin:0;padding:12px 16px;border-top:1px solid var(--line)">Role กำหนดว่าทำอะไรได้ สิทธิ์โปรเจกต์กำหนดว่าเห็นโปรเจกต์ไหน ผู้ดูแลระบบเห็นทุกโปรเจกต์เสมอ</p></details>
     </section>`);
 }
 // checklist of projects; `inherited(pid)` returns group names that already grant it
@@ -2329,7 +2336,7 @@ function bindUsers(ctx, tab) {
   $$('[data-acc]').forEach(b => b.onclick = () => accessModal(byId(b.dataset.acc), ctx));
   $$('[data-role]').forEach(s => s.onchange = async () => {
     const u = byId(s.dataset.role), old = u.role;
-    try { await api('PATCH', `/api/users/${enc(u.id)}`, { role: s.value }); toast(`เปลี่ยน role ของ ${u.username} เป็น ${s.value} แล้ว`); render(); }
+    try { await api('PATCH', `/api/users/${enc(u.id)}`, { role: s.value }); toast(`เปลี่ยน role ของ ${u.username} เป็น${roleL(s.value)}แล้ว`); render(); }
     catch (e) { s.value = old; toastErr(e); }
   });
   $$('[data-act]').forEach(b => b.onclick = async () => {
@@ -2375,7 +2382,7 @@ function groupModal(g, ctx) {
     const el = $('#grpBody'); if (!el) return;
     const name = $('#gName') ? $('#gName').value : (g ? g.name : '');
     el.innerHTML = `
-      <div class="field"><label for="gName">ชื่อกลุ่ม</label><input class="input" id="gName" value="${esc(name)}" maxlength="60" placeholder="เช่น ทีม QA Payment" autocomplete="off"></div>
+      <div class="field"><label for="gName">ชื่อกลุ่ม</label><input class="input" id="gName" value="${esc(name)}" maxlength="60" placeholder="เช่น ทีม Payment" autocomplete="off"></div>
       <div class="row-line" style="padding-top:0"><div><div class="lbl2">เห็นทุกโปรเจกต์</div><div class="small t3">สมาชิกเห็นทุกโปรเจกต์ รวมโปรเจกต์ที่สร้างในอนาคต</div></div><button type="button" class="switch" id="gAll" role="switch" aria-checked="${all}" aria-label="เห็นทุกโปรเจกต์"></button></div>
       <div class="field"><span class="lbl">สมาชิก <span class="t3">${mset.size} คน</span></span>${members.length ? `<div class="toolchips" style="margin-top:0">${members.map(u => `<button type="button" class="tchip ${mset.has(String(u.id)) ? 'is-on' : ''}" data-mc="${esc(u.id)}" aria-pressed="${mset.has(String(u.id))}"><span class="check"><i data-lucide="check"></i></span>${esc(u.username)} <span class="t3 small">${esc(u.role)}</span></button>`).join('')}</div>` : '<span class="small t3">ยังไม่มีผู้ใช้</span>'}</div>
       <div class="field"><span class="lbl">โปรเจกต์</span>${all ? '<div class="small t3">เห็นทุกโปรเจกต์</div>' : projectChecklist(pset)}</div>`;
@@ -2406,7 +2413,7 @@ function bindGroups(ctx) {
 async function projectAccessModal(p) {
   let a;
   try { a = await api('GET', `/api/projects/${enc(p.id)}/access`); } catch (e) { return toastErr(e); }
-  const viaL = v => v === 'direct' ? 'ให้สิทธิ์โดยตรง' : v === 'all' ? 'เห็นทุกโปรเจกต์' : v === 'admin' ? 'ADMIN' : String(v).startsWith('group:') ? 'กลุ่ม ' + String(v).slice(6) : String(v);
+  const viaL = v => v === 'direct' ? 'ให้สิทธิ์โดยตรง' : v === 'all' ? 'เห็นทุกโปรเจกต์' : v === 'admin' ? 'ผู้ดูแลระบบ' : String(v).startsWith('group:') ? 'กลุ่ม ' + String(v).slice(6) : String(v);
   const users = a.users || [], groups = a.groups || [];
   modal(`ใครเห็น ${p.name}`, `
     <p class="small t3" style="margin:0">ADMIN เห็นทุกโปรเจกต์เสมอ รายชื่อด้านล่างคือผู้ใช้คนอื่นที่เห็นโปรเจกต์นี้</p>

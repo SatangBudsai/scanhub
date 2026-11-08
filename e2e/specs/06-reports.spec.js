@@ -86,8 +86,8 @@ test.describe.serial('รายงานและลิงก์แชร์', (
 
   test('ลิงก์แชร์เฉพาะผู้ใช้ในระบบ: ต้อง login และต้องมีสิทธิ์ในโปรเจกต์', async ({ page, step, browser, admin }) => {
     let url;
-    const outsider = await makeUser(admin, { role: 'QA', prefix: 'outsider' });
-    const member = await makeUser(admin, { role: 'QA', prefix: 'member', projectIds: [project.id] });
+    const outsider = await makeUser(admin, { role: 'ANALYST', prefix: 'outsider' });
+    const member = await makeUser(admin, { role: 'ANALYST', prefix: 'member', projectIds: [project.id] });
 
     await step(page, 'สร้างลิงก์แบบเฉพาะผู้ใช้ในระบบจากหน้าต่างรายงาน', async () => {
       await page.goto('/#login');

@@ -21,7 +21,7 @@ test.describe.serial('ผู้ใช้ กลุ่ม และสิทธ�
   });
 
   test('admin เพิ่มผู้ใช้ทุก role จากหน้าผู้ใช้ และแถว admin จาก env ถูกล็อก', async ({ page, step, admin }) => {
-    const names = Object.fromEntries(['ADMIN', 'SA', 'QA', 'DEVELOPER'].map((r) => [r, uid(r.toLowerCase())]));
+    const names = Object.fromEntries(['ADMIN', 'MAINTAINER', 'ANALYST', 'VIEWER'].map((r) => [r, uid(r.toLowerCase())]));
 
     await step(page, 'เปิดหน้าผู้ใช้ แถว admin ตั้งค่าจาก env แก้ไม่ได้', async () => {
       await page.goto('/#login');
@@ -31,16 +31,16 @@ test.describe.serial('ผู้ใช้ กลุ่ม และสิทธ�
       const r = row(page, ADMIN.username).filter({ hasText: 'ตั้งค่าจาก env' });
       await expect(r).toHaveCount(1);
       await expect(r.getByRole('combobox')).toBeDisabled();
-      await expect(r.getByText('ทุกโปรเจกต์ (ADMIN)')).toBeVisible();
+      await expect(r.getByText('ทุกโปรเจกต์ (ผู้ดูแลระบบ)')).toBeVisible();
       await expect(r.getByRole('button', { name: /รีเซ็ตรหัสผ่าน|ปิดใช้งาน/ })).toHaveCount(0);
     });
     await step(page, 'รหัสชั่วคราวสั้นเกินไปถูกปฏิเสธ', async () => {
-      await page.getByLabel('ชื่อผู้ใช้').fill(names.QA);
+      await page.getByLabel('ชื่อผู้ใช้').fill(names.ANALYST);
       await page.getByLabel('รหัสผ่านชั่วคราว').fill('short');
       await page.getByRole('button', { name: 'เพิ่มผู้ใช้' }).click();
       await expect(page.locator('#uerr')).toHaveText('รหัสผ่านชั่วคราวต้องมีอย่างน้อย 8 ตัวอักษร');
     });
-    for (const role of ['SA', 'QA', 'DEVELOPER']) {
+    for (const role of ['MAINTAINER', 'ANALYST', 'VIEWER']) {
       await step(page, `เพิ่มผู้ใช้ ${role} แล้วเลือกโปรเจกต์ที่เห็นทันที`, async () => {
         await page.getByLabel('ชื่อผู้ใช้').fill(names[role]);
         await page.getByLabel('รหัสผ่านชั่วคราว').fill('temp-pass-123');
@@ -62,15 +62,15 @@ test.describe.serial('ผู้ใช้ กลุ่ม และสิทธ�
       await page.getByLabel('รหัสผ่านชั่วคราว').fill('temp-pass-123');
       await page.getByLabel('Role', { exact: true }).selectOption('ADMIN');
       await page.getByRole('button', { name: 'เพิ่มผู้ใช้' }).click();
-      await expect(row(page, names.ADMIN)).toContainText('ทุกโปรเจกต์ (ADMIN)');
+      await expect(row(page, names.ADMIN)).toContainText('ทุกโปรเจกต์ (ผู้ดูแลระบบ)');
       await expect(page.getByRole('dialog')).toHaveCount(0);
     });
-    await step(page, 'เปลี่ยน role ของ DEVELOPER เป็น QA แล้วกลับ', async () => {
-      const sel = row(page, names.DEVELOPER).getByRole('combobox');
-      await sel.selectOption('QA');
-      await expect(page.locator('#toast')).toContainText(`เปลี่ยน role ของ ${names.DEVELOPER} เป็น QA แล้ว`);
-      await row(page, names.DEVELOPER).getByRole('combobox').selectOption('DEVELOPER');
-      await expect(row(page, names.DEVELOPER).getByRole('combobox')).toHaveValue('DEVELOPER');
+    await step(page, 'เปลี่ยน role ของผู้ดูผลเป็นผู้ตรวจสอบ แล้วกลับ', async () => {
+      const sel = row(page, names.VIEWER).getByRole('combobox');
+      await sel.selectOption('ANALYST');
+      await expect(page.locator('#toast')).toContainText(`เปลี่ยน role ของ ${names.VIEWER} เป็นผู้ตรวจสอบแล้ว`);
+      await row(page, names.VIEWER).getByRole('combobox').selectOption('VIEWER');
+      await expect(row(page, names.VIEWER).getByRole('combobox')).toHaveValue('VIEWER');
     });
     await step(page, 'server มีผู้ใช้ครบทุก role', async () => {
       const users = await admin.get('/api/users');
@@ -83,12 +83,12 @@ test.describe.serial('ผู้ใช้ กลุ่ม และสิทธ�
   });
 
   test('แต่ละ role เห็นปุ่มและเมนูต่างกัน', async ({ page, step, browser, admin }) => {
-    const dev = await makeUser(admin, { role: 'DEVELOPER', projectIds: [P.id] });
-    const qa = await makeUser(admin, { role: 'QA', projectIds: [P.id] });
-    const sa = await makeUser(admin, { role: 'SA', projectIds: [P.id] });
+    const dev = await makeUser(admin, { role: 'VIEWER', projectIds: [P.id] });
+    const qa = await makeUser(admin, { role: 'ANALYST', projectIds: [P.id] });
+    const sa = await makeUser(admin, { role: 'MAINTAINER', projectIds: [P.id] });
 
     const d = await newUserPage(browser, dev);
-    await step(d.page, 'DEVELOPER: ไม่มีปุ่มสแกน ไม่มีเมนูตั้งค่าและผู้ใช้', async () => {
+    await step(d.page, 'VIEWER: ไม่มีปุ่มสแกน ไม่มีเมนูตั้งค่าและผู้ใช้', async () => {
       await d.page.goto(`/#repo/${repoP.id}`);
       await expect(d.page.locator('.scanbar')).toBeVisible();
       await expect(d.page.locator('#scanNow')).toHaveCount(0);
@@ -101,7 +101,7 @@ test.describe.serial('ผู้ใช้ กลุ่ม และสิทธ�
     await d.ctx.close();
 
     const q = await newUserPage(browser, qa);
-    await step(q.page, 'QA: เพิ่ม repo ไม่ได้ แต่สั่งสแกนและแชร์ได้', async () => {
+    await step(q.page, 'ANALYST: เพิ่ม repo ไม่ได้ แต่สั่งสแกนและแชร์ได้', async () => {
       await expect(q.page.getByRole('heading', { name: P.name, exact: true })).toBeVisible();
       await expect(q.page.locator('#newRepo')).toHaveCount(0);
       await expect(q.page.locator('#newProj')).toHaveCount(0);
@@ -116,7 +116,7 @@ test.describe.serial('ผู้ใช้ กลุ่ม และสิทธ�
     await q.ctx.close();
 
     const s = await newUserPage(browser, sa);
-    await step(s.page, 'SA: เห็นหน้าตั้งค่าแบบดูอย่างเดียว ไม่เห็นหน้าผู้ใช้', async () => {
+    await step(s.page, 'MAINTAINER: เห็นหน้าตั้งค่าแบบดูอย่างเดียว ไม่เห็นหน้าผู้ใช้', async () => {
       await expect(s.page.getByRole('link', { name: 'ตั้งค่า', exact: true })).toBeVisible();
       await expect(s.page.getByRole('link', { name: 'ผู้ใช้', exact: true })).toHaveCount(0);
       await s.page.getByRole('link', { name: 'ตั้งค่า', exact: true }).click();
@@ -125,7 +125,7 @@ test.describe.serial('ผู้ใช้ กลุ่ม และสิทธ�
       await expect(s.page.locator('#saveGen')).toHaveCount(0);
       await expect(s.page.locator('[data-ttog]').first()).toBeDisabled();
     });
-    await step(s.page, 'SA: เพิ่ม repo ได้', async () => {
+    await step(s.page, 'MAINTAINER: เพิ่ม repo ได้', async () => {
       await s.page.getByRole('link', { name: 'โปรเจกต์', exact: true }).click();
       await expect(s.page.locator('#newRepo')).toBeEnabled();
     });
@@ -133,9 +133,9 @@ test.describe.serial('ผู้ใช้ กลุ่ม และสิทธ�
   });
 
   test('ให้สิทธิ์ผ่านกลุ่ม รายคน และเห็นทุกโปรเจกต์ แล้วดูว่าใครเห็นโปรเจกต์', async ({ page, step, browser, admin }) => {
-    const viaGroup = await makeUser(admin, { role: 'QA', prefix: 'grp' });
-    const direct = await makeUser(admin, { role: 'QA', prefix: 'direct' });
-    const everyone = await makeUser(admin, { role: 'QA', prefix: 'all' });
+    const viaGroup = await makeUser(admin, { role: 'ANALYST', prefix: 'grp' });
+    const direct = await makeUser(admin, { role: 'ANALYST', prefix: 'direct' });
+    const everyone = await makeUser(admin, { role: 'ANALYST', prefix: 'all' });
     const gname = uid('ทีม QA');
 
     await step(page, 'ผู้ใช้ใหม่ยังไม่มีสิทธิ์', async () => {
@@ -198,8 +198,8 @@ test.describe.serial('ผู้ใช้ กลุ่ม และสิทธ�
   });
 
   test('ปิดใช้งานผู้ใช้แล้ว session จบทันที และรีเซ็ตรหัสผ่าน', async ({ page, step, browser, admin }) => {
-    const victim = await makeUser(admin, { role: 'QA', prefix: 'off', projectIds: [P.id] });
-    const forgot = await makeUser(admin, { role: 'QA', prefix: 'reset', projectIds: [P.id] });
+    const victim = await makeUser(admin, { role: 'ANALYST', prefix: 'off', projectIds: [P.id] });
+    const forgot = await makeUser(admin, { role: 'ANALYST', prefix: 'reset', projectIds: [P.id] });
     const v = await newUserPage(browser, victim);
 
     await step(v.page, 'ผู้ใช้กำลังใช้งานอยู่', async () => {

@@ -71,7 +71,7 @@ const shareView = (s, url = null) => ({
 /** Logged-in routes: export report, create / list / revoke share links */
 export function reportRoutes({ db }) {
   const r = express.Router();
-  const sharers = requireRole('ADMIN', 'SA', 'QA');
+  const sharers = requireRole('ADMIN', 'MAINTAINER', 'ANALYST');
 
   r.get('/scans/:id/report', ah(async (req, res) => res.json(await buildReport(db, req.params.id, req.query, req.user))));
 

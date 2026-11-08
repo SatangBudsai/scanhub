@@ -1,5 +1,5 @@
 import express from 'express';
-import { hashPassword, requireRole, ROLES } from '../auth.js';
+import { hashPassword, normalizeRole, requireRole, ROLES } from '../auth.js';
 import { ah, bad, HttpError, notFound } from '../util.js';
 
 const USER_RE = /^[a-z0-9._-]{2,40}$/;
@@ -43,7 +43,7 @@ export function userRoutes({ db }) {
   r.post('/', ah(async (req, res) => {
     const username = String(req.body?.username || '').trim().toLowerCase();
     const password = String(req.body?.password || '');
-    const role = String(req.body?.role || '');
+    const role = normalizeRole(req.body?.role || 'VIEWER');
     if (!USER_RE.test(username)) throw bad('ชื่อผู้ใช้ใช้ได้เฉพาะ a-z 0-9 . _ - ยาว 2–40 ตัว');
     if (password.length < 8) throw bad('รหัสผ่านชั่วคราวต้องมีอย่างน้อย 8 ตัวอักษร');
     if (!ROLES.includes(role)) throw bad('role ไม่ถูกต้อง');
@@ -58,7 +58,8 @@ export function userRoutes({ db }) {
   r.patch('/:id', ah(async (req, res) => {
     const u = await load(req.params.id);
     if (u.from_env) throw bad('บัญชี admin ตั้งค่าจาก env แก้จากหน้านี้ไม่ได้');
-    const { role, active, allProjects, projectIds, groupIds } = req.body || {};
+    const { active, allProjects, projectIds, groupIds } = req.body || {};
+    const role = req.body?.role === undefined ? undefined : normalizeRole(req.body.role);
     if (role !== undefined && !ROLES.includes(role)) throw bad('role ไม่ถูกต้อง');
     const pids = projectIds !== undefined ? await idList(db, projectIds, 'projects', 'projectIds') : null;
     const gids = groupIds !== undefined ? await idList(db, groupIds, 'groups', 'groupIds') : null;

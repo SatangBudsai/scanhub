@@ -34,7 +34,7 @@ export async function loadScanDetail(db, id, user) {
 
 export function projectRoutes({ db, queue, runner }) {
   const r = express.Router();
-  const manage = requireRole('ADMIN', 'SA');
+  const manage = requireRole('ADMIN', 'MAINTAINER');
 
   // Both loaders hide projects the user cannot see (404)
   const loadRepo = async (req, id) => {
@@ -184,7 +184,7 @@ export function projectRoutes({ db, queue, runner }) {
     res.json((await db.all('SELECT * FROM scans WHERE repo_id = ? ORDER BY num DESC LIMIT 100', repo.id)).map(scanSummary));
   }));
 
-  r.post('/repos/:id/scan', requireRole('ADMIN', 'SA', 'QA'), ah(async (req, res) => {
+  r.post('/repos/:id/scan', requireRole('ADMIN', 'MAINTAINER', 'ANALYST'), ah(async (req, res) => {
     const repo = await loadRepo(req, req.params.id);
     if (!repo.git_url) throw bad('repo นี้ยังไม่มี Git URL ให้เชื่อมผ่าน CI หรือใส่ Git URL ก่อน');
     const branch = req.body?.branch ? String(req.body.branch).trim() : repo.branch;
