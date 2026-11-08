@@ -6,10 +6,10 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="no-referrer">
 <title>รายงานผลการสแกน · ScanHub</title>
-<link rel="icon" href="/favicon.ico?v=datum" sizes="16x16 32x32 48x48">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=datum">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=datum">
-<script src="/brand.js?v=datum"></script>
+<link rel="icon" href="/favicon.ico?v=scanline-v2" sizes="16x16 32x32 48x48">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=scanline-v2">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=scanline-v2">
+<script src="/brand.js?v=scanline-v2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -47,10 +47,13 @@ svg.ic{width:16px;height:16px;stroke:currentColor;stroke-width:1.5;fill:none;str
 .toolbar{position:sticky;top:0;z-index:10;backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .toolbar-in{max-width:calc(210mm + 48px);margin:0 auto;height:56px;padding:0 24px;display:flex;align-items:center;gap:16px}
 .brand{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:500;color:var(--t1)}
-.brand .brand-logo{display:block;width:auto;height:28px;flex:none}
-.state .brand .brand-logo{height:36px}
+.brand-lockup{display:inline-flex;align-items:center;gap:9px;white-space:nowrap;color:var(--t1);line-height:1}
+.brand-lockup .brand-mark{display:block;width:24px;height:24px;flex:none;color:var(--acc-text)}
+.brand-lockup .brand-name{font:600 17px/24px var(--sans);letter-spacing:-.35px}
+.state .brand-mark{width:30px;height:30px}
+.state .brand-name{font-size:22px;line-height:30px;letter-spacing:-.5px}
 .report-brand{color:var(--t1);margin-bottom:20px;break-inside:avoid}
-.report-brand .brand-logo{display:block;width:auto;height:26px}
+.report-brand .brand-lockup{display:inline-flex}
 .toolbar .sp{flex:1}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 14px;border-radius:8px;background:var(--card);border:1px solid var(--line2);color:var(--t1);white-space:nowrap;transition:background-color .14s var(--ease),transform .12s var(--ease)}
 .btn:hover{background:var(--raised);text-decoration:none}
