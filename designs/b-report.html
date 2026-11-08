@@ -1,0 +1,1291 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ScanHub · Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Design B — Report. Light graphite ramp, teal accent used rarely, commit SHA keycaps as the signature.
+   Built with unslop rules by Damir Sokolovsky (@heydamir), CC BY 4.0 */
+:root{
+  --bg:#fafafa; --card:#ffffff; --raised:#f4f4f5; --sunk:#f7f7f8;
+  --line:rgba(23,23,23,.08); --line2:rgba(23,23,23,.14);
+  --t1:#171717; --t2:#525252; --t3:#737373;
+  --acc:#0f766e; --acc-ink:#0d5f58; --acc-soft:#e7f2f1;
+  --crit:#b42318; --crit-bg:#fdeceb;
+  --high:#b54708; --high-bg:#fdf0e3;
+  --med:#8a6100;  --med-bg:#fbf3dc;
+  --low:#475467;  --low-bg:#eef1f5;
+  --info:#737373; --info-bg:#f4f4f5;
+  --pos:#15803d; --pos-bg:#e9f5ec;
+  --ease:cubic-bezier(0.22,1,0.36,1);
+  --sans:"Anuphan","IBM Plex Sans Thai",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--t1);font-family:var(--sans);font-size:14px;line-height:20px;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+a{color:inherit;text-decoration:none}
+button,input,select,textarea{font:inherit;color:inherit}
+.mono{font-family:var(--mono)}
+.muted{color:var(--t3)} .sec{color:var(--t2)}
+.ic{width:16px;height:16px;stroke-width:1.5;flex:none}
+svg.lucide{width:16px;height:16px;stroke-width:1.5;flex:none}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:6px}
+
+/* shell */
+.top{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line)}
+.top-in{max-width:1168px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;gap:24px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:16px}
+.brand svg{width:20px;height:20px}
+.switch{height:32px;border:1px solid var(--line2);background:var(--card);border-radius:8px;padding:0 28px 0 10px;appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23737373' stroke-width='1.5' viewBox='0 0 24 24'%3E%3Cpath d='m7 15 5 5 5-5M7 9l5-5 5 5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;color:var(--t2)}
+.nav{display:flex;gap:4px;margin-left:8px}
+.nav a{height:32px;display:flex;align-items:center;padding:0 12px;border-radius:8px;color:var(--t2);transition:background-color .15s var(--ease),color .15s var(--ease)}
+.nav a:hover{background:var(--raised);color:var(--t1)}
+.nav a.on{color:var(--t1);background:var(--raised)}
+.spacer{flex:1}
+.usr{position:relative}
+.usr-btn{display:flex;align-items:center;gap:8px;height:32px;padding:0 8px 0 4px;border:0;background:none;border-radius:8px;cursor:pointer;color:var(--t2)}
+.usr-btn:hover{background:var(--raised)}
+.menu{position:absolute;right:0;top:40px;min-width:200px;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.06);display:none}
+.menu.open{display:block;animation:rise .18s var(--ease)}
+.menu a,.menu button{display:flex;gap:8px;align-items:center;width:100%;height:32px;padding:0 8px;border:0;background:none;border-radius:8px;cursor:pointer;color:var(--t2);text-align:left}
+.menu a:hover,.menu button:hover{background:var(--raised);color:var(--t1)}
+.menu .meta{padding:8px;font-size:12px;color:var(--t3);border-bottom:1px solid var(--line);margin-bottom:4px}
+.crumbs{max-width:1168px;margin:0 auto;padding:16px 24px 0;display:flex;gap:8px;align-items:center;color:var(--t3);font-size:13px;flex-wrap:wrap}
+.crumbs a:hover{color:var(--t1)}
+.crumbs .cur{color:var(--t1)}
+.crumbs svg{width:14px;height:14px}
+main{max-width:1168px;margin:0 auto;padding:24px 24px 96px}
+.back-link{position:fixed;left:16px;bottom:16px;font-size:12px;color:var(--t3);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:4px 10px;z-index:30}
+.back-link:hover{color:var(--t1)}
+
+/* type */
+h1{font-size:30px;line-height:36px;font-weight:500;margin:0;letter-spacing:-0.01em}
+h2{font-size:18px;line-height:24px;font-weight:500;margin:0}
+h3{font-size:15px;line-height:20px;font-weight:500;margin:0}
+.lead{font-size:17px;line-height:28px;color:var(--t1);max-width:860px;margin:16px 0 0}
+.page-head{display:flex;align-items:flex-start;gap:16px;justify-content:space-between;flex-wrap:wrap}
+.page-sub{color:var(--t2);margin-top:8px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.dotsep{width:3px;height:3px;border-radius:2px;background:var(--t3)}
+.section{margin-top:40px}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.section-head .muted{font-size:13px}
+
+/* controls */
+.btn{height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--line2);background:var(--card);display:inline-flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap;transition:background-color .15s var(--ease),border-color .15s var(--ease),transform .12s var(--ease)}
+.btn:hover{background:var(--raised)}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--acc);border-color:var(--acc);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.btn.primary:hover{background:var(--acc-ink)}
+.btn.sm{height:32px;padding:0 10px;font-size:13px}
+.btn.quiet{border-color:transparent;background:none;color:var(--t2)}
+.btn.quiet:hover{background:var(--raised);color:var(--t1)}
+.btn.danger{color:var(--crit);border-color:rgba(180,35,24,.3)}
+.btn.danger:hover{background:var(--crit-bg)}
+.btn[disabled]{opacity:.5;pointer-events:none}
+.input,.select{height:36px;border:1px solid var(--line2);background:var(--card);border-radius:8px;padding:0 12px;width:100%;transition:border-color .15s var(--ease)}
+.input:focus,.select:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-soft)}
+.input::placeholder{color:var(--t3)}
+.select{appearance:none;padding-right:32px;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23737373' stroke-width='1.5' viewBox='0 0 24 24'%3E%3Cpath d='m7 15 5 5 5-5M7 9l5-5 5 5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+.select[disabled]{background-color:var(--raised);color:var(--t3);cursor:not-allowed}
+label.lbl{display:block;font-size:13px;color:var(--t2);margin-bottom:8px}
+.field{margin-bottom:16px}
+.hint{font-size:12px;color:var(--t3);margin-top:4px}
+.check{display:flex;align-items:center;gap:8px;cursor:pointer}
+.check input{accent-color:var(--acc);width:16px;height:16px;margin:0}
+.toggle{position:relative;width:36px;height:20px;flex:none}
+.toggle input{opacity:0;position:absolute;inset:0;margin:0;cursor:pointer;z-index:1}
+.toggle span{position:absolute;inset:0;border-radius:10px;background:#d4d4d8;transition:background-color .15s var(--ease)}
+.toggle span::after{content:"";position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:8px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.15);transition:transform .15s var(--ease)}
+.toggle input:checked+span{background:var(--acc)}
+.toggle input:checked+span::after{transform:translateX(16px)}
+.toggle input:focus-visible+span{outline:2px solid var(--acc);outline-offset:2px}
+
+/* surfaces */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px}
+.card.pad{padding:20px 24px}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 24px;border-bottom:1px solid var(--line)}
+.panel{background:var(--sunk);border:1px solid var(--line);border-radius:10px}
+
+/* keycap SHA, the signature */
+.sha{display:inline-flex;align-items:center;height:20px;padding:0 6px;font-family:var(--mono);font-size:12px;line-height:1;color:var(--t1);background:var(--card);border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;white-space:nowrap}
+a.sha:hover{border-color:var(--acc);color:var(--acc-ink)}
+.br{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:12px;color:var(--t2)}
+.br svg{width:14px;height:14px}
+
+/* tags and severity */
+.tag{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px;border-radius:5px;font-size:12px;background:var(--raised);color:var(--t2);white-space:nowrap}
+.tag svg{width:12px;height:12px}
+.tag.tool{font-family:var(--mono);font-size:11px;border:1px solid var(--line);background:var(--card)}
+.tag.new{background:var(--acc-soft);color:var(--acc-ink)}
+.tag.fixed{background:var(--pos-bg);color:var(--pos)}
+.sev{display:inline-flex;align-items:center;gap:6px;font-size:12px;height:20px;padding:0 8px;border-radius:5px;white-space:nowrap;font-weight:500}
+.sev::before{content:"";width:6px;height:6px;border-radius:3px;background:currentColor}
+.sev.critical{color:var(--crit);background:var(--crit-bg)}
+.sev.high{color:var(--high);background:var(--high-bg)}
+.sev.medium{color:var(--med);background:var(--med-bg)}
+.sev.low{color:var(--low);background:var(--low-bg)}
+.sev.info{color:var(--info);background:var(--info-bg)}
+.c-critical{color:var(--crit)} .c-high{color:var(--high)} .c-medium{color:var(--med)} .c-low{color:var(--low)} .c-info{color:var(--info)}
+.dot{width:6px;height:6px;border-radius:3px;display:inline-block;background:currentColor;flex:none}
+.pos{color:var(--pos)}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr)}
+.stat{padding:16px 24px;border-left:1px solid var(--line)}
+.stat:first-child{border-left:0}
+.stat .k{font-size:13px;color:var(--t2)}
+.stat .v{font-size:28px;line-height:32px;font-weight:500;margin-top:8px}
+.stat .d{font-size:12px;color:var(--t3);margin-top:4px}
+.sevbar{display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px;margin-top:8px}
+.sevbar i{display:block;height:100%}
+.sevlegend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--t2)}
+.sevlegend span{display:inline-flex;gap:6px;align-items:center}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:12px;font-weight:400;color:var(--t3);text-align:left;padding:10px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:12px 16px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .num{text-align:right}
+.tbl tr.click{cursor:pointer;transition:background-color .15s var(--ease)}
+.tbl tr.click:hover td{background:var(--sunk)}
+.n0{color:#c4c4c8}
+
+/* projects */
+.proj{margin-top:32px}
+.proj-head{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.proj-head .muted{font-size:13px}
+.repo-name{display:flex;align-items:center;gap:8px;font-weight:500}
+.lang{font-size:12px;color:var(--t3);font-weight:400}
+
+/* chart */
+.chart-wrap{position:relative;padding:8px 24px 16px}
+.chart-wrap svg{display:block;width:100%;height:auto}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--t2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:12px;height:2px;border-radius:1px}
+.tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--line2);border-radius:10px;padding:8px 12px;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.06);opacity:0;transition:opacity .12s var(--ease);min-width:168px;transform:translateX(-50%)}
+.tip.show{opacity:1}
+.tip .r{display:flex;justify-content:space-between;gap:16px;margin-top:4px;color:var(--t2)}
+
+/* timeline */
+.tl{position:relative}
+.tl-item{display:grid;grid-template-columns:132px 24px 1fr auto;gap:0 16px;padding:16px 24px;border-bottom:1px solid var(--line);cursor:pointer;transition:background-color .15s var(--ease);align-items:start}
+.tl-item:last-child{border-bottom:0}
+.tl-item:hover{background:var(--sunk)}
+.tl-date{font-size:13px;color:var(--t2);padding-top:2px}
+.tl-date .muted{font-size:12px;display:block}
+.tl-rail{position:relative;align-self:stretch;display:flex;justify-content:center}
+.tl-rail::before{content:"";position:absolute;top:-16px;bottom:-16px;width:1px;background:var(--line2)}
+.tl-item:first-child .tl-rail::before{top:8px}
+.tl-item:last-child .tl-rail::before{bottom:calc(100% - 8px)}
+.tl-node{position:relative;width:10px;height:10px;border-radius:5px;background:var(--card);border:1.5px solid var(--t3);margin-top:5px}
+.tl-item.latest .tl-node{border-color:var(--acc);background:var(--acc)}
+.tl-main .row1{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tl-main .msg{color:var(--t1)}
+.tl-main .row2{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--t3)}
+.tl-main .row2 span{display:inline-flex;align-items:center;gap:4px}
+.tl-main .row2 svg{width:14px;height:14px}
+.tl-side{text-align:right;font-size:13px}
+.tl-counts{display:flex;gap:12px;justify-content:flex-end;font-family:var(--mono);font-size:12px}
+.tl-counts span{display:inline-flex;align-items:center;gap:4px}
+.tl-delta{margin-top:8px;font-size:12px;color:var(--t3)}
+.tl-delta b{font-weight:500}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* tabs */
+.tabs{display:flex;gap:24px;border-bottom:1px solid var(--line);margin-top:24px}
+.tabs a,.tabs button{height:40px;display:inline-flex;align-items:center;gap:8px;color:var(--t2);border:0;background:none;padding:0;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;transition:color .15s var(--ease),border-color .15s var(--ease)}
+.tabs a:hover,.tabs button:hover{color:var(--t1)}
+.tabs .on{color:var(--t1);border-bottom-color:var(--acc)}
+.seg{display:inline-flex;background:var(--raised);border-radius:8px;padding:2px;gap:2px}
+.seg button{height:28px;padding:0 10px;border:0;background:none;border-radius:6px;color:var(--t2);cursor:pointer;font-size:13px;transition:background-color .15s var(--ease),color .15s var(--ease)}
+.seg button.on{background:var(--card);color:var(--t1);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+
+/* scan */
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.tool{display:flex;align-items:center;gap:10px;padding:12px 24px;border-top:1px solid var(--line)}
+.tool .nm{flex:1}
+.tool .du{font-family:var(--mono);font-size:12px;color:var(--t3)}
+.tool.failed .st{color:var(--crit)} .tool.ok .st{color:var(--pos)} .tool.skipped .st{color:var(--t3)}
+.tool .why{display:block;font-size:12px;color:var(--t3)}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.filters .search{position:relative;flex:1 1 220px;max-width:320px}
+.filters .search svg{position:absolute;left:10px;top:10px;color:var(--t3)}
+.filters .search .input{padding-left:34px}
+.filters .select{width:auto;min-width:132px}
+.chip{height:32px;padding:0 10px;border:1px solid var(--line2);border-radius:8px;background:var(--card);display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--t2);transition:background-color .15s var(--ease),border-color .15s var(--ease)}
+.chip:hover{background:var(--raised)}
+.chip.on{border-color:currentColor;background:var(--card)}
+.chip .n{font-family:var(--mono);font-size:12px;color:var(--t3)}
+.chip.critical.on{color:var(--crit);background:var(--crit-bg)} .chip.high.on{color:var(--high);background:var(--high-bg)} .chip.medium.on{color:var(--med);background:var(--med-bg)} .chip.low.on{color:var(--low);background:var(--low-bg)} .chip.info.on{color:var(--info);background:var(--info-bg)}
+.grp{margin-bottom:12px;overflow:hidden}
+.grp-head{display:flex;align-items:center;gap:12px;padding:12px 20px;cursor:pointer;border:0;background:none;width:100%;text-align:left;transition:background-color .15s var(--ease)}
+.grp-head:hover{background:var(--sunk)}
+.grp-head .chev{transition:transform .18s var(--ease);color:var(--t3)}
+.grp.open .grp-head .chev{transform:rotate(90deg)}
+.grp-head .ttl{flex:1;display:flex;gap:8px;align-items:center;min-width:0}
+.grp-head .ttl .mono{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grp-head .cnts{display:flex;gap:10px;font-family:var(--mono);font-size:12px}
+.grp-head .cnts span{display:inline-flex;align-items:center;gap:4px}
+.grp-body{display:none;border-top:1px solid var(--line)}
+.grp.open .grp-body{display:block}
+.fd{border-bottom:1px solid var(--line)}
+.fd:last-child{border-bottom:0}
+.fd-row{display:grid;grid-template-columns:88px 1fr auto auto 16px;gap:16px;align-items:center;padding:12px 20px;cursor:pointer;transition:background-color .15s var(--ease)}
+.fd-row:hover{background:var(--sunk)}
+.fd.fixedrow .fd-title{color:var(--t3);text-decoration:line-through;text-decoration-color:rgba(23,23,23,.25)}
+.fd-title{color:var(--t1)}
+.fd-meta{display:flex;gap:12px;font-size:12px;color:var(--t3);margin-top:4px;flex-wrap:wrap}
+.fd-meta .mono{font-size:12px}
+.fd-tools{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.fd-row .chev{color:var(--t3);transition:transform .18s var(--ease)}
+.fd.open .fd-row .chev{transform:rotate(90deg)}
+.fd-detail{display:none;padding:4px 20px 20px 124px}
+.fd.open .fd-detail{display:block;animation:rise .2s var(--ease)}
+.fd-detail p{margin:0 0 12px;color:var(--t2);max-width:760px;line-height:22px}
+.dl{display:grid;grid-template-columns:120px 1fr;gap:8px 16px;font-size:13px;margin:16px 0 0}
+.dl dt{color:var(--t3)} .dl dd{margin:0;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.fixbox{display:flex;gap:10px;padding:12px 16px;background:var(--acc-soft);border-radius:10px;color:var(--acc-ink);margin-top:12px;max-width:820px}
+.fixbox svg{margin-top:2px}
+.refs{margin-top:12px;display:flex;flex-direction:column;gap:4px;font-size:13px}
+.refs a{color:var(--acc-ink);display:inline-flex;gap:6px;align-items:center}
+.refs a:hover{text-decoration:underline}
+.refs svg{width:14px;height:14px}
+
+/* code blocks */
+.code{background:var(--sunk);border:1px solid var(--line);border-radius:10px;overflow:auto;font-family:var(--mono);font-size:12.5px;line-height:20px;margin:0}
+.code .ln{display:flex;min-width:max-content}
+.code .ln .no{width:48px;text-align:right;padding-right:12px;color:#a3a3a3;user-select:none;flex:none}
+.code .ln .tx{padding-right:16px;white-space:pre;color:var(--t1)}
+.code .ln.hl{background:var(--crit-bg);box-shadow:inset 2px 0 0 var(--crit)}
+.code .ln.hl.high{background:var(--high-bg);box-shadow:inset 2px 0 0 var(--high)}
+.code .ln.hl.medium{background:var(--med-bg);box-shadow:inset 2px 0 0 var(--med)}
+.code .ln.hl.low,.code .ln.hl.info{background:var(--low-bg);box-shadow:inset 2px 0 0 var(--low)}
+.code .file{display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid var(--line);color:var(--t3);font-size:12px;position:sticky;left:0}
+.code .pad{padding:8px 0}
+pre.snip{background:var(--sunk);border:1px solid var(--line);border-radius:10px;margin:0;padding:16px;overflow:auto;font-family:var(--mono);font-size:12.5px;line-height:20px;color:var(--t1);max-height:460px}
+.snip-wrap{position:relative}
+.snip-wrap .btn{position:absolute;top:8px;right:8px}
+
+/* connect */
+.steps-list{counter-reset:s}
+.cstep{display:grid;grid-template-columns:32px 1fr;gap:16px;margin-top:32px}
+.cstep .num{width:24px;height:24px;border-radius:12px;border:1px solid var(--line2);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--t2);background:var(--card);margin-top:2px}
+.tokenbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tokenbox .val{flex:1;min-width:240px;height:36px;display:flex;align-items:center;padding:0 12px;border:1px solid var(--line2);border-radius:8px;background:var(--sunk);font-family:var(--mono);font-size:13px}
+.toolpick{display:flex;flex-wrap:wrap;gap:8px 20px}
+
+/* setup */
+.wiz{max-width:760px;margin:48px auto 0}
+.wiz-steps{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--t3);margin-bottom:24px}
+.wiz-steps .s{display:flex;align-items:center;gap:8px}
+.wiz-steps .s b{width:20px;height:20px;border-radius:10px;border:1px solid var(--line2);display:inline-flex;align-items:center;justify-content:center;font-weight:400;font-size:12px}
+.wiz-steps .s.on{color:var(--t1)} .wiz-steps .s.on b{border-color:var(--acc);background:var(--acc);color:#fff}
+.wiz-steps .s.done b{border-color:var(--acc);color:var(--acc)}
+.wiz-steps .ln{flex:0 0 32px;height:1px;background:var(--line2)}
+.pick{display:grid;grid-template-columns:20px 1fr auto;gap:12px;align-items:start;padding:14px 20px;border-top:1px solid var(--line);cursor:pointer;transition:background-color .15s var(--ease)}
+.pick:first-child{border-top:0}
+.pick:hover{background:var(--sunk)}
+.pick input{accent-color:var(--acc);width:16px;height:16px;margin:2px 0 0}
+.pick .w{font-size:13px;color:var(--t2);margin-top:2px}
+.prog{height:4px;background:var(--raised);border-radius:2px;overflow:hidden;width:120px}
+.prog i{display:block;height:100%;background:var(--acc);transition:transform .2s var(--ease);transform-origin:left}
+
+/* login */
+.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-card{width:100%;max-width:400px}
+.login .brand{justify-content:center;font-size:18px;margin-bottom:32px}
+
+/* users (reference) */
+.avatar{width:32px;height:32px;border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;background:#e8eef5;color:#334155;border:1px solid rgba(51,65,85,.12);flex:none}
+.ustat{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:12px;font-size:12px;background:var(--pos-bg);color:var(--pos)}
+.ustat::before{content:"";width:6px;height:6px;border-radius:3px;background:currentColor}
+.ustat.off{background:var(--raised);color:var(--t3)}
+.envtag{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:11px;background:var(--raised);font-size:12px;color:var(--t2)}
+.envtag svg{width:12px;height:12px}
+details.perm summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:14px 16px;color:var(--t2)}
+details.perm summary::-webkit-details-marker{display:none}
+details.perm summary svg{transition:transform .18s var(--ease)}
+details.perm[open] summary svg{transform:rotate(90deg)}
+.perm-tbl td.ck{text-align:center;color:var(--acc)}
+.perm-tbl th.c{text-align:center}
+
+/* modal + toast */
+.scrim{position:fixed;inset:0;background:rgba(23,23,23,.24);display:flex;align-items:flex-start;justify-content:center;padding:96px 16px;z-index:50;animation:fade .16s var(--ease)}
+.modal{background:var(--card);border-radius:16px;width:100%;max-width:480px;border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.08);animation:rise .2s var(--ease)}
+.modal .hd{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid var(--line)}
+.modal .bd{padding:20px 24px}
+.modal .ft{display:flex;justify-content:flex-end;gap:8px;padding:16px 24px;border-top:1px solid var(--line)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--t1);color:#fafafa;border-radius:10px;padding:10px 16px;font-size:13px;display:flex;gap:8px;align-items:center;z-index:60;animation:rise .2s var(--ease)}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.toast{animation:none}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.enter{animation:rise .32s var(--ease)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.empty{padding:32px 24px;text-align:center;color:var(--t3)}
+.log{font-family:var(--mono);font-size:12px;line-height:20px;color:var(--t2);padding:12px 16px;max-height:200px;overflow:auto}
+.log .ok{color:var(--pos)} .log .err{color:var(--crit)}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.sep{height:1px;background:var(--line);margin:20px 0}
+.kv{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+.kv:last-child{border-bottom:0}
+
+@media (max-width:860px){
+  .top-in{gap:12px;padding:0 16px}
+  .switch{display:none}
+  .nav{margin-left:0}
+  .nav a{padding:0 8px}
+  main,.crumbs{padding-left:16px;padding-right:16px}
+  .stats{grid-template-columns:1fr 1fr}
+  .stat:nth-child(3){border-left:0}
+  .stat:nth-child(n+3){border-top:1px solid var(--line)}
+  .tl-item{grid-template-columns:20px 1fr;padding:16px}
+  .tl-date{grid-column:2;order:-1}
+  .tl-rail{grid-row:1 / span 3}
+  .tl-side{grid-column:2;text-align:left;margin-top:8px}
+  .tl-counts{justify-content:flex-start}
+  .fd-row{grid-template-columns:1fr 16px;gap:8px}
+  .fd-row .sev{justify-self:start}
+  .fd-row .fd-tools,.fd-row .st{grid-column:1}
+  .fd-row .fd-tools{justify-content:flex-start}
+  .fd-detail{padding:4px 16px 20px}
+  .grid2{grid-template-columns:1fr}
+  .hide-sm{display:none}
+  .tbl th,.tbl td{padding:10px 12px}
+  .scroll-x{overflow-x:auto}
+  h1{font-size:26px;line-height:32px}
+}
+@media (max-width:560px){.nav a span{display:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<a class="back-link" href="index.html">← เลือกดีไซน์อื่น</a>
+
+<script>
+/* ---------- helpers ---------- */
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ic=(n,cls)=>`<i data-lucide="${n}" class="ic ${cls||''}"></i>`;
+const MON=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const p2=n=>String(n).padStart(2,'0');
+const fmt=d=>`${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()+543} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+const fmtDay=d=>`${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()+543}`;
+const fmtTime=d=>`${p2(d.getHours())}:${p2(d.getMinutes())}`;
+const dur=s=>{const m=Math.floor(s/60),r=s%60;return m?`${m}m ${p2(r)}s`:`${r}s`};
+const D=(m,d,h,mi)=>new Date(2026,m,d,h,mi);
+const NOW=D(10,8,15,52);
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function hash(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+
+const SEV=['critical','high','medium','low','info'];
+const SEVL={critical:'Critical',high:'High',medium:'Medium',low:'Low',info:'Info'};
+const SK={critical:'c',high:'h',medium:'m',low:'l',info:'i'};
+const CATS=['Vulnerability','Secret','Bug','Code smell','Misconfiguration','Security hotspot'];
+const TRIG={ci:['CI','workflow'],manual:['สั่งเอง','mouse-pointer-click'],schedule:['ตามเวลา','clock']};
+
+const TOOLS={
+  sonarqube:{name:'SonarQube',what:'คุณภาพโค้ดและ SAST: bug, code smell, security hotspot',ver:'10.7.0',note:'ใช้ RAM ประมาณ 2 GB'},
+  trivy:{name:'Trivy',what:'ช่องโหว่ใน dependency, container image และ IaC',ver:'0.57.1'},
+  semgrep:{name:'Semgrep',what:'SAST ตามชุด rule รองรับกว่า 30 ภาษา',ver:'1.97.0'},
+  gitleaks:{name:'Gitleaks',what:'secret และ credential ที่หลุดใน code และ git history',ver:'8.21.2'},
+  depcheck:{name:'OWASP Dependency-Check',what:'CVE ใน dependency ของ Java, .NET และ Node.js',ver:'11.1.0'},
+  checkov:{name:'Checkov',what:'misconfiguration ใน Terraform, Kubernetes, Dockerfile',ver:'3.2.296'},
+  grype:{name:'Grype',what:'CVE ใน container image และ SBOM',ver:'0.84.0'}
+};
+const TOOL_IDS=Object.keys(TOOLS);
+const toolName=t=>TOOLS[t].name;
+const toolShort=t=>({sonarqube:'sonarqube',trivy:'trivy',semgrep:'semgrep',gitleaks:'gitleaks',depcheck:'dep-check',checkov:'checkov',grype:'grype'})[t];
+
+/* ---------- state ---------- */
+const S={
+  auth:store.get('shb_auth',null),
+  setupDone:store.get('shb_setup',false),
+  installed:store.get('shb_tools',['sonarqube','trivy','semgrep','gitleaks','checkov','grype']),
+  sched:store.get('shb_sched',{on:true,time:'03:00',db:true}),
+  projFilter:'all',
+  f:{sev:new Set(),cat:'',tool:'',status:'open',q:'',group:'file'},
+  openGroups:null, openFd:new Set(['f1']),
+  ci:{tab:'github',gate:true,tools:null},
+  wiz:{step:1,pick:null,installing:false,done:false,prog:{}},
+  tokens:{}, showToken:false
+};
+const save=()=>{store.set('shb_tools',S.installed);store.set('shb_sched',S.sched)};
+
+/* ---------- data ---------- */
+const PROJECTS=[
+  {id:'payment',name:'Payment Platform',desc:'ระบบรับชำระเงินและบัญชีแยกประเภท',repos:['payment-api','payment-web','ledger-worker']},
+  {id:'mobile',name:'Mobile Banking',desc:'แอปธนาคารบนมือถือและ BFF',repos:['mb-android','mb-bff']},
+  {id:'internal',name:'Internal Tools',desc:'ระบบภายในองค์กร',repos:['hr-portal']}
+];
+const REPOS={
+  'payment-api':{name:'payment-api',lang:'Go',branch:'main',project:'payment',git:'https://git.internal/payment/payment-api.git'},
+  'payment-web':{name:'payment-web',lang:'TypeScript',branch:'main',project:'payment',git:'https://git.internal/payment/payment-web.git'},
+  'ledger-worker':{name:'ledger-worker',lang:'Java',branch:'main',project:'payment',git:'https://git.internal/payment/ledger-worker.git'},
+  'mb-android':{name:'mb-android',lang:'Kotlin',branch:'develop',project:'mobile',git:'https://git.internal/mobile/mb-android.git'},
+  'mb-bff':{name:'mb-bff',lang:'Node.js',branch:'main',project:'mobile',git:'https://git.internal/mobile/mb-bff.git'},
+  'hr-portal':{name:'hr-portal',lang:'Python',branch:'main',project:'internal',git:'https://git.internal/internal/hr-portal.git'}
+};
+
+/* source files used for snippets */
+const FILES={
+  'go.mod':{start:1,code:`module git.internal/payment/payment-api
+
+go 1.21.6
+
+require (
+	github.com/gin-gonic/gin v1.9.1
+	github.com/go-jose/go-jose/v3 v3.0.1
+	github.com/jackc/pgx/v5 v5.5.4
+	golang.org/x/crypto v0.21.0
+	golang.org/x/net v0.15.0
+	google.golang.org/protobuf v1.31.0
+)`},
+  'Dockerfile':{start:1,code:`FROM golang:1.21.6 AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -o /out/payment-api ./cmd/api
+
+FROM alpine:latest
+RUN apk add --no-cache ca-certificates tzdata
+COPY --from=build /out/payment-api /usr/local/bin/payment-api
+EXPOSE 8080
+ENTRYPOINT ["/usr/local/bin/payment-api"]`},
+  'deploy/k8s/deployment.yaml':{start:24,code:`    spec:
+      containers:
+        - name: payment-api
+          image: registry.internal/payment/payment-api:a91f3c2
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: payment-api-env
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false`},
+  'internal/client/bank.go':{start:36,code:`func NewBankClient(cfg Config) *BankClient {
+	tr := &http.Transport{
+		MaxIdleConns:    50,
+		IdleConnTimeout: 90 * time.Second,
+		TLSClientConfig: &tls.Config{
+			// TODO: remove after bank UAT cert is fixed
+			InsecureSkipVerify: true,
+		},
+	}
+	return &BankClient{
+		http: &http.Client{Transport: tr, Timeout: 15 * time.Second},
+		base: cfg.BankURL,
+	}
+}
+
+// Transfer sends a fund transfer request to the partner bank.
+func (c *BankClient) Transfer(ctx context.Context, req TransferReq) (*TransferResp, error) {
+	resp, err := c.post(ctx, "/v2/transfer", req)
+	if err != nil {
+		log.Printf("transfer failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bank returned %d", resp.StatusCode)
+	}`}
+};
+function win(name,hl,around){
+  const f=FILES[name];const lines=f.code.split('\n');around=around||3;
+  const i=hl-f.start;const a=Math.max(0,i-around),b=Math.min(lines.length,i+around+1);
+  return {file:name,start:f.start+a,hl,code:lines.slice(a,b).join('\n')};
+}
+
+const FINDINGS=[
+ {id:'f1',sev:'critical',cat:'Secret',title:'AWS access key ถูก hardcode ไว้ในไฟล์ config',file:'config/dev.yaml',line:14,rule:'aws-access-token',rules:{gitleaks:'aws-access-token',semgrep:'generic.secrets.security.detected-aws-access-key-id-value'},tools:['gitleaks','semgrep'],st:'new',
+  desc:'พบ AWS access key ID และ secret access key ในไฟล์ที่ commit เข้า repository ใครที่เข้าถึง repo หรือ git history ได้ สามารถใช้ key นี้อ่านและเขียน bucket payment-receipts-dev ได้ทันที Gitleaks และ Semgrep รายงานจุดเดียวกัน จึงรวมเป็นรายการเดียว',
+  fix:'Revoke key นี้ใน AWS IAM ทันที ย้ายค่าไปเก็บใน secret manager หรือ environment variable แล้วลบออกจาก git history ด้วย git filter-repo',
+  snip:{file:'config/dev.yaml',start:11,hl:14,code:`storage:
+  provider: s3
+  region: ap-southeast-1
+  access_key_id: AKIA****************
+  secret_access_key: ****************************************
+  bucket: payment-receipts-dev`},
+  refs:[['Gitleaks rule: aws-access-token','https://github.com/gitleaks/gitleaks'],['AWS IAM: จัดการ access key ที่หลุด','https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html']]},
+ {id:'f2',sev:'critical',cat:'Vulnerability',title:'CVE-2024-45337 การใช้ PublicKeyCallback ผิดวิธีอาจข้ามการยืนยันตัวตน SSH',file:'go.mod',line:9,pkg:'golang.org/x/crypto',ver:'0.21.0',fixv:'0.31.0',rule:'CVE-2024-45337',tools:['trivy','grype'],st:'existing',first:'77ab0f3',
+  desc:'แอปที่ใช้ ssh.ServerConfig.PublicKeyCallback อาจตัดสินใจ authorization จาก key ที่ client ไม่ได้ถือครองจริง ทำให้ข้ามการยืนยันตัวตนได้ CVSS 9.1',
+  fix:'อัปเกรด golang.org/x/crypto เป็น v0.31.0 ขึ้นไป: go get golang.org/x/crypto@v0.31.0',snipf:['go.mod',9],
+  refs:[['NVD: CVE-2024-45337','https://nvd.nist.gov/vuln/detail/CVE-2024-45337'],['GO-2024-3321','https://pkg.go.dev/vuln/GO-2024-3321']]},
+ {id:'f3',sev:'high',cat:'Vulnerability',title:'SQL injection จากการต่อ string ใน query',file:'internal/repo/order.go',line:88,rule:'go.lang.security.audit.database.string-formatted-query',rules:{semgrep:'go.lang.security.audit.database.string-formatted-query',sonarqube:'go:S3649'},tools:['semgrep','sonarqube'],st:'new',
+  desc:'ค่า merchantID และ status มาจาก query string ของ request โดยตรง และถูกต่อเข้า SQL ทำให้ผู้โจมตีอ่านหรือแก้ข้อมูลในตาราง orders ได้',
+  fix:'ใช้ parameterized query: r.db.QueryContext(ctx, "... WHERE merchant_id = $1 AND status = $2", merchantID, status)',
+  snip:{file:'internal/repo/order.go',start:86,hl:88,code:`// FindByMerchant lists orders of a merchant, optionally filtered by status.
+func (r *OrderRepo) FindByMerchant(ctx context.Context, merchantID, status string) ([]Order, error) {
+	q := "SELECT id, amount, status FROM orders WHERE merchant_id = '" + merchantID + "'"
+	if status != "" {
+		q += " AND status = '" + status + "'"
+	}
+	rows, err := r.db.QueryContext(ctx, q)`},
+  refs:[['OWASP: SQL Injection Prevention','https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html'],['CWE-89','https://cwe.mitre.org/data/definitions/89.html']]},
+ {id:'f4',sev:'high',cat:'Vulnerability',title:'CVE-2023-44487 HTTP/2 rapid reset ทำให้ server ล่มได้',file:'go.mod',line:10,pkg:'golang.org/x/net',ver:'0.15.0',fixv:'0.17.0',rule:'CVE-2023-44487',tools:['trivy','grype'],st:'existing',first:'5b20f7e',
+  desc:'ผู้โจมตีส่ง HEADERS แล้วตามด้วย RST_STREAM ซ้ำ ๆ ทำให้ server ใช้ CPU สูงจนให้บริการไม่ได้',fix:'อัปเกรด golang.org/x/net เป็น v0.17.0 ขึ้นไป (แนะนำ v0.23.0 เพื่อแก้ CVE-2023-45288 ไปพร้อมกัน)',snipf:['go.mod',10],
+  refs:[['NVD: CVE-2023-44487','https://nvd.nist.gov/vuln/detail/CVE-2023-44487']]},
+ {id:'f5',sev:'high',cat:'Misconfiguration',title:'Container รันด้วย user root',file:'Dockerfile',line:12,rule:'CKV_DOCKER_3',rules:{checkov:'CKV_DOCKER_3',trivy:'DS002'},tools:['checkov','trivy'],st:'existing',first:'d48b2a9',
+  desc:'Dockerfile ไม่มีคำสั่ง USER ทำให้ process ในcontainer รันเป็น root ถ้าแอปถูกเจาะ ผู้โจมตีจะมีสิทธิ์สูงสุดใน container',fix:'เพิ่ม RUN adduser -D -u 10001 app และ USER 10001 ก่อน ENTRYPOINT',snipf:['Dockerfile',12],
+  refs:[['Checkov: CKV_DOCKER_3','https://www.checkov.io/5.Policy%20Index/dockerfile.html'],['Trivy: DS002','https://avd.aquasec.com/misconfig/ds002']]},
+ {id:'f6',sev:'high',cat:'Vulnerability',title:'CVE-2024-24790 net/netip จัดประเภท IPv4-mapped IPv6 ผิด',file:'go.mod',line:3,pkg:'stdlib',ver:'1.21.6',fixv:'1.21.11',rule:'CVE-2024-24790',tools:['trivy'],st:'existing',first:'5b20f7e',
+  desc:'Is* methods ของ netip.Addr ให้ผลผิดกับ IPv4-mapped IPv6 address อาจทำให้ allowlist ตาม IP ถูกข้ามได้',fix:'Build ด้วย Go 1.21.11 ขึ้นไป และแก้ go directive ใน go.mod',snipf:['go.mod',3],refs:[['NVD: CVE-2024-24790','https://nvd.nist.gov/vuln/detail/CVE-2024-24790']]},
+ {id:'f7',sev:'high',cat:'Security hotspot',title:'ปิดการตรวจสอบ TLS certificate (InsecureSkipVerify)',file:'internal/client/bank.go',line:42,rule:'go:S4830',rules:{sonarqube:'go:S4830',semgrep:'go.lang.security.audit.crypto.bad_tls.tls-with-insecure-cipher'},tools:['sonarqube','semgrep'],st:'existing',first:'19fa6b4',
+  desc:'Client ที่เรียก API ธนาคารพันธมิตรไม่ตรวจ certificate ทำให้ถูกดักกลางทาง (MITM) แล้วอ่านหรือแก้คำสั่งโอนเงินได้',fix:'ลบ InsecureSkipVerify แล้วเพิ่ม CA ของธนาคารผ่าน tls.Config.RootCAs',snipf:['internal/client/bank.go',42],
+  refs:[['SonarQube rule go:S4830','https://rules.sonarsource.com/go/RSPEC-4830/']]},
+ {id:'f8',sev:'high',cat:'Vulnerability',title:'CVE-2024-34156 encoding/gob stack exhaustion',file:'go.mod',line:3,pkg:'stdlib',ver:'1.21.6',fixv:'1.22.7',rule:'CVE-2024-34156',tools:['trivy'],st:'existing',first:'e52d9c6',
+  desc:'Decoder.Decode กับข้อความที่ซ้อนลึกมากทำให้ stack หมดและ process ล่ม',fix:'Build ด้วย Go 1.22.7 ขึ้นไป',snipf:['go.mod',3],refs:[['NVD: CVE-2024-34156','https://nvd.nist.gov/vuln/detail/CVE-2024-34156']]},
+ {id:'f9',sev:'medium',cat:'Vulnerability',title:'CVE-2023-45288 HTTP/2 CONTINUATION flood',file:'go.mod',line:10,pkg:'golang.org/x/net',ver:'0.15.0',fixv:'0.23.0',rule:'CVE-2023-45288',tools:['trivy','grype'],st:'existing',first:'6c03e1d',
+  desc:'ผู้โจมตีส่ง CONTINUATION frame จำนวนมากทำให้ server ใช้ CPU สูง',fix:'อัปเกรด golang.org/x/net เป็น v0.23.0 ขึ้นไป',snipf:['go.mod',10],refs:[['NVD: CVE-2023-45288','https://nvd.nist.gov/vuln/detail/CVE-2023-45288']]},
+ {id:'f10',sev:'medium',cat:'Misconfiguration',title:'ไม่ได้กำหนด HEALTHCHECK ใน Dockerfile',file:'Dockerfile',line:8,rule:'CKV_DOCKER_2',tools:['checkov'],st:'existing',first:'5b20f7e',
+  desc:'ไม่มี HEALTHCHECK ทำให้ runtime ที่ไม่ใช่ Kubernetes ตรวจไม่ได้ว่าแอปยังทำงานอยู่',fix:'เพิ่ม HEALTHCHECK CMD wget -qO- http://localhost:8080/healthz || exit 1',snipf:['Dockerfile',8]},
+ {id:'f11',sev:'medium',cat:'Bug',title:'ไม่ได้ตรวจสอบ error ที่คืนจาก tx.Rollback()',file:'internal/repo/order.go',line:121,rule:'go:S8148',tools:['sonarqube'],st:'existing',first:'19fa6b4',
+  desc:'ถ้า rollback ล้มเหลว connection อาจค้างอยู่ใน pool และ error จะหายไปโดยไม่มี log',fix:'ตรวจ error แล้ว log หรือรวมเข้ากับ error หลักด้วย errors.Join',
+  snip:{file:'internal/repo/order.go',start:118,hl:121,code:`	if err := r.insertItems(ctx, tx, o.Items); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Rollback()`}},
+ {id:'f12',sev:'medium',cat:'Security hotspot',title:'ใช้ math/rand สร้าง reference id ที่ลูกค้าเห็น',file:'internal/payment/ref.go',line:23,rule:'go:S2245',rules:{sonarqube:'go:S2245',semgrep:'go.lang.security.audit.crypto.math_random.math-random-used'},tools:['sonarqube','semgrep'],st:'existing',first:'d48b2a9',
+  desc:'math/rand เดาได้ ถ้า reference id ใช้ยืนยันรายการ ผู้โจมตีอาจเดา id ของรายการอื่นได้',fix:'ใช้ crypto/rand แทน math/rand',
+  snip:{file:'internal/payment/ref.go',start:18,hl:23,code:`// NewReference returns a merchant-facing reference id.
+func NewReference(prefix string) string {
+	const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+	b := make([]byte, 10)
+	for i := range b {
+		b[i] = alphabet[rand.Intn(len(alphabet))]
+	}
+	return prefix + "-" + string(b)
+}`}},
+ {id:'f13',sev:'medium',cat:'Misconfiguration',title:'Deployment ไม่ได้กำหนด resources.limits',file:'deploy/k8s/deployment.yaml',line:26,rule:'CKV_K8S_11',rules:{checkov:'CKV_K8S_11',trivy:'KSV011'},tools:['checkov','trivy'],st:'existing',first:'5b20f7e',
+  desc:'Container ไม่มี CPU และ memory limit ถ้า memory leak จะกินทรัพยากรของ node จน pod อื่นได้รับผลกระทบ',fix:'กำหนด resources.limits.cpu และ resources.limits.memory เช่น 500m และ 512Mi',snipf:['deploy/k8s/deployment.yaml',26]},
+ {id:'f14',sev:'medium',cat:'Misconfiguration',title:'readOnlyRootFilesystem ถูกตั้งเป็น false',file:'deploy/k8s/deployment.yaml',line:39,rule:'CKV_K8S_22',tools:['checkov'],st:'existing',first:'6c03e1d',
+  desc:'Root filesystem ที่เขียนได้ทำให้ผู้โจมตีวางไฟล์หรือแก้ binary ใน container ได้',fix:'ตั้ง readOnlyRootFilesystem: true และ mount emptyDir สำหรับ /tmp',snipf:['deploy/k8s/deployment.yaml',39]},
+ {id:'f15',sev:'medium',cat:'Vulnerability',title:'CVE-2024-28180 go-jose decompression bomb',file:'go.mod',line:7,pkg:'github.com/go-jose/go-jose/v3',ver:'3.0.1',fixv:'3.0.3',rule:'CVE-2024-28180',tools:['trivy','grype'],st:'existing',first:'e52d9c6',
+  desc:'JWE ที่บีบอัดมาอย่างจงใจทำให้ใช้ memory และ CPU สูงตอน decrypt',fix:'อัปเกรด go-jose เป็น v3.0.3 ขึ้นไป',snipf:['go.mod',7],refs:[['NVD: CVE-2024-28180','https://nvd.nist.gov/vuln/detail/CVE-2024-28180']]},
+ {id:'f16',sev:'medium',cat:'Code smell',title:'Cognitive complexity 31 เกินเกณฑ์ 15',file:'internal/payment/refund.go',line:57,rule:'go:S3776',tools:['sonarqube'],st:'new',
+  desc:'ฟังก์ชัน PartialRefund ที่เพิ่มใน commit นี้มีเงื่อนไขซ้อนหลายชั้น ทดสอบและแก้ไขยาก',fix:'แยกการตรวจสถานะรายการ การคำนวณยอด และการเรียก gateway ออกเป็นฟังก์ชันย่อย',
+  snip:{file:'internal/payment/refund.go',start:57,hl:57,code:`func (s *Service) PartialRefund(ctx context.Context, orderID string, amount decimal.Decimal, reason string) (*Refund, error) {
+	o, err := s.orders.Get(ctx, orderID)
+	if err != nil {
+		return nil, err
+	}
+	if o.Status != StatusCaptured && o.Status != StatusPartiallyRefunded {`}},
+ {id:'f17',sev:'medium',cat:'Security hotspot',title:'Log หมายเลขบัตร (PAN) แบบไม่ mask',file:'internal/payment/refund.go',line:94,rule:'scanhub.pci.log-unmasked-pan',tools:['semgrep'],st:'existing',first:'77ab0f3',
+  desc:'หมายเลขบัตรเต็มถูกเขียนลง log ขัดกับ PCI DSS ข้อ 3.4',fix:'Log เฉพาะ 6 หลักแรกและ 4 หลักท้าย เช่น ใช้ card.Masked()',
+  snip:{file:'internal/payment/refund.go',start:92,hl:94,code:`	if err != nil {
+		s.log.Error("refund failed",
+			"pan", card.Number,
+			"order", orderID,
+			"err", err)`}},
+ {id:'f18',sev:'medium',cat:'Bug',title:'อาจเกิด nil pointer dereference ที่ resp',file:'internal/client/bank.go',line:57,rule:'go:S2259',tools:['sonarqube'],st:'existing',first:'19fa6b4',
+  desc:'เมื่อ c.post คืน error ค่า resp เป็น nil แต่โค้ดยังทำงานต่อและเรียก resp.Body.Close()',fix:'return ทันทีเมื่อ err != nil',snipf:['internal/client/bank.go',57]},
+ {id:'f19',sev:'low',cat:'Code smell',title:'โค้ดซ้ำ 4 บล็อก (6.2% ของไฟล์)',file:'internal/handler/order.go',line:30,rule:'common-go:DuplicatedBlocks',tools:['sonarqube'],st:'existing',first:'5b20f7e',desc:'ส่วน parse และ validate request ถูกคัดลอกซ้ำใน 4 handler',fix:'แยกเป็น helper bindAndValidate()'},
+ {id:'f20',sev:'low',cat:'Code smell',title:'ฟังก์ชันมีพารามิเตอร์ 9 ตัว เกินเกณฑ์ 7',file:'internal/payment/service.go',line:112,rule:'go:S107',tools:['sonarqube'],st:'existing',first:'5b20f7e',desc:'ฟังก์ชัน NewService รับพารามิเตอร์มากเกินไป',fix:'รวมพารามิเตอร์เป็น struct ServiceDeps'},
+ {id:'f21',sev:'low',cat:'Code smell',title:'มี TODO ค้างอยู่',file:'internal/handler/webhook.go',line:77,rule:'go:S1135',tools:['sonarqube'],st:'existing',first:'e52d9c6',desc:'// TODO: verify webhook signature',fix:'ตรวจ HMAC signature ของ webhook ก่อนประมวลผล'},
+ {id:'f22',sev:'low',cat:'Misconfiguration',title:'Base image ใช้ tag latest',file:'Dockerfile',line:8,rule:'CKV_DOCKER_7',rules:{checkov:'CKV_DOCKER_7',trivy:'DS001'},tools:['checkov','trivy'],st:'existing',first:'5b20f7e',desc:'tag latest ทำให้ build แต่ละครั้งได้ image ต่างกัน',fix:'Pin เป็น alpine:3.20.3 หรือ digest',snipf:['Dockerfile',8]},
+ {id:'f23',sev:'low',cat:'Vulnerability',title:'CVE-2024-24786 protobuf วนลูปไม่สิ้นสุดกับ JSON ที่ผิดรูป',file:'go.mod',line:11,pkg:'google.golang.org/protobuf',ver:'1.31.0',fixv:'1.33.0',rule:'CVE-2024-24786',tools:['trivy','grype'],st:'existing',first:'5b20f7e',desc:'protojson.Unmarshal อาจวนลูปไม่จบเมื่อเจอ input บางแบบ',fix:'อัปเกรดเป็น v1.33.0 ขึ้นไป',snipf:['go.mod',11]},
+ {id:'f24',sev:'low',cat:'Code smell',title:'ค่าคงที่ "application/json" ซ้ำ 5 ครั้ง',file:'internal/handler/order.go',line:44,rule:'go:S1192',tools:['sonarqube'],st:'existing',first:'5b20f7e',desc:'string เดียวกันซ้ำหลายจุด',fix:'ประกาศเป็นค่าคงที่ contentTypeJSON'},
+ {id:'f25',sev:'low',cat:'Misconfiguration',title:'ไม่ได้กำหนด securityContext.runAsNonRoot',file:'deploy/k8s/deployment.yaml',line:37,rule:'CKV_K8S_23',tools:['checkov'],st:'existing',first:'5b20f7e',desc:'Pod ยอมให้ container รันเป็น root',fix:'ตั้ง runAsNonRoot: true และ runAsUser: 10001',snipf:['deploy/k8s/deployment.yaml',37]},
+ {id:'f26',sev:'low',cat:'Code smell',title:'Block ว่างที่ไม่มีคำอธิบาย',file:'internal/payment/ref.go',line:41,rule:'go:S108',tools:['sonarqube'],st:'existing',first:'e52d9c6',desc:'if block ว่าง อาจเป็นโค้ดที่ลืมเขียน',fix:'ลบ block หรือเพิ่ม comment อธิบาย'},
+ {id:'f27',sev:'low',cat:'Bug',title:'ค่าที่คืนจาก fmt.Sscanf ไม่ถูกตรวจ',file:'internal/handler/webhook.go',line:52,rule:'go:S8193',tools:['sonarqube'],st:'existing',first:'6c03e1d',desc:'ถ้า parse ไม่สำเร็จ amount จะเป็น 0 โดยไม่มี error',fix:'ตรวจค่า n และ err ที่คืนจาก Sscanf'},
+ {id:'f28',sev:'info',cat:'Code smell',title:'ไฟล์ยาว 612 บรรทัด',file:'internal/payment/service.go',line:1,rule:'go:S104',tools:['sonarqube'],st:'existing',first:'5b20f7e',desc:'ไฟล์ยาวเกินเกณฑ์ 500 บรรทัด',fix:'แยก refund และ capture ออกเป็นไฟล์ของตัวเอง'},
+ {id:'f29',sev:'info',cat:'Secret',title:'Private key สำหรับทดสอบใน testdata (อยู่ใน allowlist)',file:'testdata/certs/test.key',line:1,rule:'private-key',tools:['gitleaks'],st:'existing',first:'5b20f7e',desc:'เป็น key สำหรับ unit test ถูกระบุใน .gitleaksignore แล้ว แสดงไว้เพื่อให้เห็นว่ามีอยู่',fix:'ไม่ต้องแก้ ตรวจว่า key นี้ไม่ได้ใช้ที่ environment จริง'},
+ {id:'f30',sev:'info',cat:'Misconfiguration',title:'GitHub Action ไม่ได้ pin ด้วย commit SHA',file:'.github/workflows/ci.yml',line:22,rule:'CKV_GHA_7',tools:['checkov'],st:'existing',first:'d48b2a9',desc:'ใช้ actions/setup-go@v5 แบบ tag ซึ่งถูกย้ายได้',fix:'Pin เป็น actions/setup-go@<commit sha>'},
+ {id:'f31',sev:'medium',cat:'Vulnerability',title:'CVE-2024-6104 go-retryablehttp อาจ log URL ที่มี credential',file:'go.mod',line:12,pkg:'github.com/hashicorp/go-retryablehttp',ver:'0.7.4',fixv:'0.7.7',rule:'CVE-2024-6104',tools:['trivy','grype'],st:'fixed',desc:'แก้แล้วโดยอัปเกรดเป็น v0.7.7 ใน commit นี้',fix:'แก้แล้ว'},
+ {id:'f32',sev:'high',cat:'Secret',title:'Slack webhook URL ใน .env.example',file:'.env.example',line:9,rule:'slack-webhook-url',tools:['gitleaks'],st:'fixed',desc:'ลบออกจากไฟล์แล้ว และ revoke webhook เดิมแล้ว',fix:'แก้แล้ว'},
+ {id:'f33',sev:'medium',cat:'Bug',title:'ปิด rows ไม่ครบทุกเส้นทาง',file:'internal/repo/order.go',line:61,rule:'go:S2095',tools:['sonarqube'],st:'fixed',desc:'เพิ่ม defer rows.Close() แล้ว',fix:'แก้แล้ว'},
+ {id:'f34',sev:'low',cat:'Code smell',title:'ตัวแปร ctx ไม่ถูกใช้',file:'internal/handler/order.go',line:118,rule:'go:S1481',tools:['sonarqube'],st:'fixed',desc:'ลบตัวแปรที่ไม่ใช้แล้ว',fix:'แก้แล้ว'},
+ {id:'f35',sev:'medium',cat:'Vulnerability',title:'CVE-2023-29401 gin filename ใน Content-Disposition ไม่ถูก escape',file:'go.mod',line:6,pkg:'github.com/gin-gonic/gin',ver:'1.9.0',fixv:'1.9.1',rule:'CVE-2023-29401',tools:['trivy'],st:'fixed',desc:'อัปเกรดเป็น v1.9.1 แล้ว',fix:'แก้แล้ว'}
+];
+FINDINGS.forEach(f=>{if(f.snipf)f.snip=win(f.snipf[0],f.snipf[1])});
+
+function countOpen(list){const c={c:0,h:0,m:0,l:0,i:0};list.forEach(f=>{if(f.st!=='fixed')c[SK[f.sev]]++});return c}
+const tot=c=>c.c+c.h+c.m+c.l+c.i;
+
+/* scan history */
+const PA_LATEST=countOpen(FINDINGS);
+const PA=[
+ {sha:'a91f3c2',d:D(10,8,10,14),msg:'feat(refund): add partial refund endpoint',br:'main',tr:'ci',by:'satang.b',dur:192,...PA_LATEST,nw:3,fx:5},
+ {sha:'8f2c1a0',d:D(10,7,18,47),msg:'fix(auth): rotate JWT signing key on deploy',br:'main',tr:'ci',by:'satang.b',dur:185,c:1,h:6,m:12,l:10,i:3,nw:1,fx:2},
+ {sha:'3d7e9b1',d:D(10,7,3,0),msg:'chore(deps): bump pgx to v5.5.4',br:'main',tr:'schedule',by:'ระบบ',dur:178,c:1,h:6,m:12,l:11,i:3,nw:0,fx:2},
+ {sha:'c1e44d8',d:D(10,6,14,22),msg:'build: harden Dockerfile, drop curl',br:'feature/dockerfile-hardening',tr:'manual',by:'anupat.p',dur:201,c:1,h:7,m:13,l:11,i:3,nw:6,fx:2},
+ {sha:'77ab0f3',d:D(10,5,11,8),msg:'feat(card): mask PAN in receipts',br:'main',tr:'ci',by:'satang.b',dur:176,c:1,h:6,m:11,l:10,i:3,nw:1,fx:4},
+ {sha:'e52d9c6',d:D(10,3,3,0),msg:'refactor(order): split repository layer',br:'main',tr:'schedule',by:'ระบบ',dur:181,c:1,h:7,m:12,l:11,i:3,nw:2,fx:6},
+ {sha:'19fa6b4',d:D(9,30,16,40),msg:'feat(bank): partner bank transfer client',br:'main',tr:'ci',by:'satang.b',dur:169,c:2,h:8,m:13,l:12,i:3,nw:0,fx:3},
+ {sha:'6c03e1d',d:D(9,27,10,5),msg:'chore(deps): bump x/net, protobuf',br:'main',tr:'ci',by:'satang.b',dur:172,c:2,h:8,m:14,l:14,i:3,nw:1,fx:4},
+ {sha:'d48b2a9',d:D(9,23,9,31),msg:'ci: add k8s manifests and workflow',br:'main',tr:'ci',by:'satang.b',dur:166,c:2,h:9,m:15,l:15,i:3,nw:0,fx:3},
+ {sha:'5b20f7e',d:D(9,20,15,2),msg:'chore: connect repository to ScanHub',br:'main',tr:'manual',by:'admin',dur:240,c:3,h:9,m:16,l:16,i:3,nw:47,fx:0}
+];
+const MSGS={
+  TypeScript:['feat(checkout): add PromptPay QR step','fix(form): validate expiry date','chore(deps): bump next to 14.2.15','refactor: move api client to hooks','feat(receipt): download as PDF','fix(i18n): Thai date format on receipts','chore(deps): bump axios to 1.7.7'],
+  Java:['feat(ledger): nightly reconciliation job','fix: idempotency key collision','chore(deps): bump spring-boot to 3.3.5','perf: batch insert journal lines','fix(kafka): retry on rebalance','refactor: extract posting rules'],
+  Kotlin:['feat(login): biometric unlock','fix(transfer): double tap submits twice','chore: bump compileSdk to 35','feat(card): freeze card toggle','fix(push): token refresh on reinstall'],
+  'Node.js':['feat(bff): aggregate account summary','fix: forward correlation id','chore(deps): bump express to 4.21.1','feat: rate limit transfer endpoint','fix(cache): stale balance after transfer'],
+  Python:['feat(leave): carry-over rules 2570','fix(payroll): export encoding','chore(deps): bump django to 4.2.16','feat: SSO login with Entra ID']
+};
+function genHistory(repoId,fin,n,last,dropFirst){
+  const r=REPOS[repoId],rnd=mulberry(hash(repoId));const msgs=MSGS[r.lang];
+  const hex=()=>{let s='';for(let k=0;k<7;k++)s+='0123456789abcdef'[Math.floor(rnd()*16)];return s};
+  const out=[];let cur={...fin};let d=new Date(last);
+  for(let k=0;k<n;k++){
+    const t=rnd(),tr=t<.6?'ci':t<.9?'schedule':'manual';
+    const isFirst=k===n-1;
+    let nw=isFirst?tot(cur):Math.floor(rnd()*3),fx=isFirst?0:Math.floor(rnd()*4);
+    const s={sha:hex(),d:new Date(d),msg:isFirst?'chore: connect repository to ScanHub':(tr==='schedule'?msgs[k%msgs.length]:msgs[(k+2)%msgs.length]),br:r.branch,tr:isFirst?'manual':tr,by:tr==='schedule'?'ระบบ':(rnd()<.5?'satang.b':'anupat.p'),dur:90+Math.floor(rnd()*160),...cur,nw,fx};
+    if(tr==='schedule'&&!isFirst)s.d.setHours(3,0);
+    out.push(s);
+    const prev={...cur};
+    for(let j=0;j<nw&&!isFirst;j++){const keys=['m','l','h','l','m'];const kk=keys[Math.floor(rnd()*keys.length)];if(prev[kk]>0)prev[kk]--;else s.nw--}
+    for(let j=0;j<fx&&!isFirst;j++){const keys=['m','l','l','h','m'];prev[keys[Math.floor(rnd()*keys.length)]]++}
+    cur=prev;d=new Date(d.getTime()-(14+Math.floor(rnd()*60))*3600e3);
+  }
+  return out;
+}
+const SCANS={
+  'payment-api':PA,
+  'payment-web':genHistory('payment-web',{c:0,h:2,m:7,l:11,i:2},8,D(10,8,9,41)),
+  'ledger-worker':genHistory('ledger-worker',{c:1,h:3,m:12,l:20,i:4},9,D(10,7,22,5)),
+  'mb-android':genHistory('mb-android',{c:0,h:1,m:5,l:9,i:1},6,D(10,7,16,30)),
+  'mb-bff':genHistory('mb-bff',{c:0,h:4,m:6,l:3,i:0},7,D(10,6,14,12)),
+  'hr-portal':genHistory('hr-portal',{c:2,h:1,m:3,l:4,i:1},5,D(10,3,3,0))
+};
+SCANS['hr-portal'][0].tr='schedule';SCANS['hr-portal'][0].by='ระบบ';
+const scanId=(repo,s)=>`${repo}~${s.sha}`;
+function findScan(id){const [repo,sha]=id.split('~');const list=SCANS[repo]||[];const i=list.findIndex(s=>s.sha===sha);return i<0?null:{repo,s:list[i],prev:list[i+1],idx:i}}
+function toolsRun(repo){
+  return TOOL_IDS.filter(t=>S.installed.includes(t)).map(t=>{
+    if(t==='depcheck'&&REPOS[repo].lang==='Go')return{t,st:'skipped',why:'ไม่รองรับ Go modules'};
+    const d={sonarqube:161,trivy:38,semgrep:65,gitleaks:6,depcheck:212,checkov:22,grype:19}[t];
+    return{t,st:'ok',d};
+  });
+}
+
+let USERS=[
+  {u:'admin',role:'ADMIN',env:true,active:true,last:'เมื่อสักครู่'},
+  {u:'anupat.p',role:'QA',active:true,last:'6 พ.ย. 2569 09:52'},
+  {u:'narunart.k',role:'QA',active:true,last:'ยังไม่เคย',pending:true},
+  {u:'satang.b',role:'DEVELOPER',active:true,last:'6 พ.ย. 2569 17:28'}
+];
+const ROLES=['ADMIN','SA','QA','DEVELOPER'];
+const PERMS=[
+  ['ดูผลสแกนและประวัติ',[1,1,1,1]],
+  ['สั่งสแกนเอง',[1,1,1,1]],
+  ['เปลี่ยนสถานะ finding (ยอมรับความเสี่ยง, false positive)',[1,1,1,0]],
+  ['สร้างโปรเจกต์และเพิ่ม repo',[1,1,0,0]],
+  ['ดูและสร้าง token สำหรับ CI/CD',[1,1,0,1]],
+  ['ติดตั้ง ถอด และอัปเดต scanner',[1,1,0,0]],
+  ['จัดการผู้ใช้',[1,0,0,0]]
+];
+
+/* ---------- shell ---------- */
+const app=document.getElementById('app');
+const LOGO=`<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="1.75" y="1.75" width="16.5" height="16.5" rx="4.25" stroke="#171717" stroke-width="1.5"/><path d="M5.5 7h9M5.5 10h9M5.5 13h5" stroke="#171717" stroke-width="1.5" stroke-linecap="round"/><path d="M5.5 10h9" stroke="#0f766e" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+function shell(active,crumbs,body){
+  const u=S.auth?S.auth.user:'admin';
+  return `<header class="top"><div class="top-in">
+    <a class="brand" href="#projects">${LOGO}ScanHub</a>
+    <select class="switch" aria-label="เลือกโปรเจกต์" onchange="A.pickProject(this.value)">
+      <option value="all">ทุกโปรเจกต์</option>
+      ${PROJECTS.map(p=>`<option value="${p.id}" ${S.projFilter===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}
+    </select>
+    <nav class="nav">
+      <a href="#projects" class="${active==='projects'?'on':''}">${ic('folder')}<span>&nbsp;โปรเจกต์</span></a>
+      <a href="#settings" class="${active==='settings'?'on':''}">${ic('settings')}<span>&nbsp;ตั้งค่า</span></a>
+      <a href="#users" class="${active==='users'?'on':''}">${ic('users')}<span>&nbsp;ผู้ใช้</span></a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="usr">
+      <button class="usr-btn" onclick="A.menu(event)" aria-haspopup="true"><span class="avatar">${esc(u.slice(0,2).toUpperCase())}</span><span class="hide-sm">${esc(u)}</span>${ic('chevron-down')}</button>
+      <div class="menu" id="umenu">
+        <div class="meta">${esc(u)} · ADMIN</div>
+        <a href="#setup">${ic('rotate-ccw')}เปิดตัวช่วยตั้งค่าอีกครั้ง</a>
+        <button onclick="A.logout()">${ic('log-out')}ออกจากระบบ</button>
+      </div>
+    </div>
+  </div></header>
+  ${crumbs?`<div class="crumbs">${crumbs}</div>`:''}
+  <main class="enter">${body}</main>`;
+}
+const crumb=(parts)=>parts.map((p,i)=>i===parts.length-1?`<span class="cur">${p[0]}</span>`:`<a href="${p[1]}">${p[0]}</a>`).join(ic('chevron-right'));
+
+/* ---------- views ---------- */
+const V={};
+
+V.login=()=>`<div class="login"><div class="login-card enter">
+  <div class="brand">${LOGO}ScanHub</div>
+  <div class="card pad">
+    <h2>เข้าสู่ระบบ</h2>
+    <p class="sec" style="margin:4px 0 20px;font-size:13px">ผลสแกนของทุก repo ในที่เดียว</p>
+    <form onsubmit="return A.login(event)">
+      <div class="field"><label class="lbl" for="lu">ชื่อผู้ใช้</label><input class="input" id="lu" autocomplete="username" placeholder="เช่น somchai.s" value="admin"></div>
+      <div class="field"><label class="lbl" for="lp">รหัสผ่าน</label><input class="input" id="lp" type="password" autocomplete="current-password" value="••••••••••"></div>
+      <button class="btn primary" style="width:100%;justify-content:center;margin-top:4px" type="submit">เข้าสู่ระบบ</button>
+    </form>
+  </div>
+  <p class="muted" style="font-size:12px;line-height:18px;margin:16px 4px 0">บัญชี admin มาจาก env <span class="mono">SCANHUB_ADMIN_USER</span> และ <span class="mono">SCANHUB_ADMIN_PASSWORD</span> ระบบตั้งค่าใหม่ตาม env ทุกครั้งที่ start ผู้ใช้อื่นขอบัญชีจาก admin</p>
+</div></div>`;
+
+V.setup=()=>{
+  const w=S.wiz;if(!w.pick)w.pick=new Set(S.installed);
+  const steps=['เลือก scanner','อัปเดตอัตโนมัติ','ติดตั้ง'];
+  const head=`<div class="wiz-steps">${steps.map((s,i)=>`${i?'<span class="ln"></span>':''}<span class="s ${w.step===i+1?'on':w.step>i+1?'done':''}"><b>${w.step>i+1?ic('check'):i+1}</b>${s}</span>`).join('')}</div>`;
+  let body='';
+  if(w.step===1){
+    body=`<h1>ติดตั้ง scanner ที่ต้องการ</h1>
+    <p class="lead" style="font-size:15px;line-height:24px;color:var(--t2)">ScanHub จะติดตั้งและรัน scanner บน server นี้ ผลของทุกตัวจะถูกรวมเป็นรายการเดียวต่อการสแกน เพิ่มหรือถอดออกทีหลังได้ที่หน้าตั้งค่า</p>
+    <div class="card" style="margin-top:24px">${TOOL_IDS.map(t=>`<label class="pick"><input type="checkbox" ${w.pick.has(t)?'checked':''} onchange="A.wizPick('${t}',this.checked)"><div><div>${toolName(t)}</div><div class="w">${TOOLS[t].what}</div></div><span class="mono muted" style="font-size:12px">${TOOLS[t].note?TOOLS[t].note+' · ':''}v${TOOLS[t].ver}</span></label>`).join('')}</div>
+    <div class="row" style="justify-content:space-between;margin-top:24px"><span class="muted" style="font-size:13px">เลือกแล้ว ${w.pick.size} จาก ${TOOL_IDS.length}</span><button class="btn primary" ${w.pick.size?'':'disabled'} onclick="A.wizGo(2)">ถัดไป ${ic('arrow-right')}</button></div>`;
+  }else if(w.step===2){
+    body=`<h1>อัปเดต scanner อัตโนมัติ</h1>
+    <p class="lead" style="font-size:15px;line-height:24px;color:var(--t2)">ฐานข้อมูลช่องโหว่เปลี่ยนทุกวัน ถ้าไม่อัปเดต scanner จะไม่เห็น CVE ใหม่ แนะนำให้อัปเดตทุกวันนอกเวลาทำงาน</p>
+    <div class="card pad" style="margin-top:24px">
+      <label class="row" style="justify-content:space-between;cursor:pointer"><span><span style="display:block">อัปเดตทุกวัน</span><span class="muted" style="font-size:13px">ตรวจเวอร์ชันใหม่ของ scanner ที่ติดตั้งไว้</span></span><span class="toggle"><input type="checkbox" ${S.sched.on?'checked':''} onchange="S.sched.on=this.checked"><span></span></span></label>
+      <div class="sep"></div>
+      <div class="grid2"><div><label class="lbl" for="wt">เวลา (เวลาของ server, Asia/Bangkok)</label><input class="input" id="wt" type="time" value="${S.sched.time}" onchange="S.sched.time=this.value"></div>
+      <div><label class="lbl">ความถี่</label><select class="select"><option>ทุกวัน</option><option>ทุกวันจันทร์</option></select></div></div>
+      <label class="check" style="margin-top:16px"><input type="checkbox" ${S.sched.db?'checked':''} onchange="S.sched.db=this.checked">อัปเดตฐานข้อมูลช่องโหว่ (Trivy DB, Grype DB, NVD) ไปพร้อมกัน</label>
+    </div>
+    <div class="row" style="justify-content:space-between;margin-top:24px"><button class="btn quiet" onclick="A.wizGo(1)">${ic('arrow-left')} ย้อนกลับ</button><button class="btn primary" onclick="A.wizGo(3)">ถัดไป ${ic('arrow-right')}</button></div>`;
+  }else{
+    const list=[...w.pick];
+    body=`<h1>${w.done?'ติดตั้งเสร็จแล้ว':'ตรวจสอบและติดตั้ง'}</h1>
+    <p class="lead" style="font-size:15px;line-height:24px;color:var(--t2)">${w.done?`ติดตั้ง ${list.length} scanner แล้ว อัปเดตรอบถัดไป ${S.sched.on?'พรุ่งนี้ '+S.sched.time:'ปิดอยู่'} ขั้นต่อไปคือสร้างโปรเจกต์และเชื่อม repo กับ CI/CD`:`จะติดตั้ง ${list.length} scanner และอัปเดต${S.sched.on?'ทุกวันเวลา '+S.sched.time:' เมื่อสั่งเองเท่านั้น'}`}</p>
+    <div class="card" style="margin-top:24px">${list.map(t=>{const p=w.prog[t]||0;return `<div class="pick" style="cursor:default;grid-template-columns:1fr auto auto"><div><div>${toolName(t)}</div><div class="w mono" style="font-size:12px">v${TOOLS[t].ver}</div></div><span class="muted" style="font-size:12px">${p>=1?'<span class="pos row" style="gap:4px">'+ic('check')+'ติดตั้งแล้ว</span>':p>0?'กำลังดึง image':'รอ'}</span><span class="prog"><i style="transform:scaleX(${p})"></i></span></div>`}).join('')}</div>
+    <div class="row" style="justify-content:space-between;margin-top:24px">${w.done?'<span></span>':`<button class="btn quiet" ${w.installing?'disabled':''} onclick="A.wizGo(2)">${ic('arrow-left')} ย้อนกลับ</button>`}
+    ${w.done?`<button class="btn primary" onclick="A.wizFinish()">เข้าสู่ ScanHub ${ic('arrow-right')}</button>`:`<button class="btn primary" ${w.installing?'disabled':''} onclick="A.wizInstall()">${w.installing?ic('loader-circle','spin')+' กำลังติดตั้ง':'ติดตั้ง'}</button>`}</div>`;
+  }
+  return `<header class="top"><div class="top-in"><span class="brand">${LOGO}ScanHub</span><div class="spacer"></div><span class="muted" style="font-size:13px">ตั้งค่าครั้งแรก</span></div></header>
+  <div class="wiz enter" style="padding:0 16px 96px">${head}${body}</div>`;
+};
+
+function repoSummary(id){const l=SCANS[id]||[];const s=l[0];return s?{s,c:{c:s.c,h:s.h,m:s.m,l:s.l,i:s.i},nw:s.nw}:null}
+const sevNums=(c)=>SEV.slice(0,4).map(k=>{const v=c[SK[k]];return `<td class="num mono ${v?'c-'+k:'n0'}">${v||'0'}</td>`}).join('');
+
+V.projects=()=>{
+  const list=PROJECTS.filter(p=>S.projFilter==='all'||p.id===S.projFilter);
+  const allRepos=PROJECTS.flatMap(p=>p.repos);
+  const last=allRepos.map(r=>SCANS[r]&&SCANS[r][0]).filter(Boolean).sort((a,b)=>b.d-a.d)[0];
+  const body=`<div class="page-head"><div><h1>โปรเจกต์</h1><div class="page-sub">${allRepos.length} repo ใน ${PROJECTS.length} โปรเจกต์<span class="dotsep"></span>สแกนล่าสุด ${last?fmt(last.d):'-'}</div></div>
+  <div class="row"><button class="btn" onclick="A.newProject()">${ic('folder-plus')}สร้างโปรเจกต์</button><button class="btn primary" onclick="A.newRepo()">${ic('plus')}เพิ่ม repo</button></div></div>
+  ${list.map(p=>{
+    const sums=p.repos.map(repoSummary).filter(Boolean);const all={c:0,h:0,m:0,l:0,i:0};sums.forEach(x=>{for(const k in all)all[k]+=x.c[k]});
+    return `<section class="proj" id="p-${p.id}"><div class="proj-head"><h2>${esc(p.name)}</h2><span class="muted">${esc(p.desc)} · ${p.repos.length} repo · ยังเปิดอยู่ ${tot(all)} รายการ</span><span class="spacer"></span><button class="btn sm quiet" onclick="A.newRepo('${p.id}')">${ic('plus')}เพิ่ม repo</button></div>
+    <div class="card scroll-x"><table class="tbl"><thead><tr><th>Repo</th><th class="hide-sm">Branch</th><th>สแกนล่าสุด</th><th class="num">Critical</th><th class="num">High</th><th class="num">Medium</th><th class="num">Low</th><th class="num">ใหม่</th><th style="width:32px"></th></tr></thead><tbody>
+    ${p.repos.map(id=>{const r=REPOS[id],x=repoSummary(id);
+      if(!x)return `<tr class="click" onclick="location.hash='#connect/${id}'"><td><div class="repo-name">${esc(r.name)} <span class="lang">${esc(r.lang)}</span></div></td><td class="hide-sm"><span class="br">${ic('git-branch')}${esc(r.branch)}</span></td><td colspan="6" class="muted">ยังไม่เคยสแกน · เชื่อมต่อ CI/CD เพื่อเริ่ม</td><td>${ic('chevron-right','muted')}</td></tr>`;
+      return `<tr class="click" onclick="location.hash='#repo/${id}'"><td><div class="repo-name">${esc(r.name)} <span class="lang">${esc(r.lang)}</span></div></td><td class="hide-sm"><span class="br">${ic('git-branch')}${esc(r.branch)}</span></td><td><div class="row" style="gap:8px"><span class="sha">${x.s.sha}</span><span class="sec" style="font-size:13px">${fmt(x.s.d)}</span></div></td>${sevNums(x.c)}<td class="num mono">${x.nw?`<span class="tag new">+${x.nw}</span>`:'<span class="n0">0</span>'}</td><td>${ic('chevron-right','muted')}</td></tr>`}).join('')}
+    </tbody></table></div></section>`}).join('')}`;
+  return shell('projects',null,body);
+};
+
+function smooth(pts){if(pts.length<2)return'';let d=`M${pts[0][0]},${pts[0][1]}`;for(let i=0;i<pts.length-1;i++){const p0=pts[i-1]||pts[i],p1=pts[i],p2=pts[i+1],p3=pts[i+2]||p2;const c1=[p1[0]+(p2[0]-p0[0])/6,p1[1]+(p2[1]-p0[1])/6],c2=[p2[0]-(p3[0]-p1[0])/6,p2[1]-(p3[1]-p1[1])/6];d+=` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0]},${p2[1]}`}return d}
+function trend(repo){
+  const sc=(SCANS[repo]||[]).filter(s=>!s.running).slice().reverse();const n=sc.length;if(n<2)return'<div class="empty">ต้องมีอย่างน้อย 2 รอบสแกน</div>';
+  const W=1040,H=260,pl=40,pr=24,pt=20,pb=44;
+  const max=Math.max(10,Math.ceil(Math.max(...sc.map(s=>tot(s)))/10)*10);
+  const x=i=>+(pl+i*(W-pl-pr)/(n-1)).toFixed(1),y=v=>+(pt+(H-pt-pb)*(1-v/max)).toFixed(1);
+  const pT=sc.map((s,i)=>[x(i),y(tot(s))]),pC=sc.map((s,i)=>[x(i),y(s.c+s.h)]);
+  let g='';for(let v=0;v<=max;v+=max/4){g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(23,23,23,.07)"/><text x="${pl-10}" y="${y(v)+4}" text-anchor="end" font-family="IBM Plex Mono" font-size="11" fill="#8a8a8a">${Math.round(v)}</text>`}
+  const xl=sc.map((s,i)=>`<text x="${x(i)}" y="${H-22}" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="${i===n-1?'#171717':'#8a8a8a'}">${s.sha}</text><text x="${x(i)}" y="${H-6}" text-anchor="middle" font-size="11" fill="#a3a3a3">${s.d.getDate()} ${MON[s.d.getMonth()]}</text>`).join('');
+  const area=smooth(pT)+` L${x(n-1)},${y(0)} L${x(0)},${y(0)} Z`;
+  const hit=sc.map((s,i)=>`<rect x="${x(i)-(W-pl-pr)/(n-1)/2}" y="${pt}" width="${(W-pl-pr)/(n-1)}" height="${H-pt-pb}" fill="transparent" onmouseenter="A.tip(${i})" onmouseleave="A.tip(-1)" onclick="location.hash='#scan/${scanId(repo,s)}'" style="cursor:pointer"/>`).join('');
+  A._tipData={repo,sc,x,y,W,H,pT,pC};
+  const last=pC[n-1],lastT=pT[n-1];
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="กราฟปัญหาที่ยังเปิดอยู่ตามรอบสแกน">${g}
+  <path d="${area}" fill="rgba(23,23,23,.035)"/>
+  <path d="${smooth(pT)}" fill="none" stroke="#a3a3a3" stroke-width="1.5"/>
+  <path d="${smooth(pC)}" fill="none" stroke="#0f766e" stroke-width="2"/>
+  <line id="tipline" x1="0" x2="0" y1="${pt}" y2="${H-pb}" stroke="rgba(23,23,23,.18)" stroke-dasharray="2 3" opacity="0"/>
+  <circle cx="${lastT[0]}" cy="${lastT[1]}" r="3.5" fill="#fff" stroke="#a3a3a3" stroke-width="1.5"/>
+  <circle cx="${last[0]}" cy="${last[1]}" r="4" fill="#0f766e" stroke="#fff" stroke-width="1.5"/>
+  <text x="${last[0]-8}" y="${last[1]-10}" text-anchor="end" font-family="IBM Plex Mono" font-size="12" fill="#0d5f58">${sc[n-1].c+sc[n-1].h}</text>
+  <text x="${lastT[0]-8}" y="${lastT[1]-10}" text-anchor="end" font-family="IBM Plex Mono" font-size="12" fill="#525252">${tot(sc[n-1])}</text>
+  ${xl}${hit}</svg><div class="tip" id="tip"></div>`;
+}
+
+function repoHead(id,tab){
+  const r=REPOS[id],p=PROJECTS.find(p=>p.id===r.project);
+  return `<div class="page-head"><div><h1>${esc(r.name)}</h1><div class="page-sub"><span>${esc(r.lang)}</span><span class="dotsep"></span><span class="br">${ic('git-branch')}${esc(r.branch)}</span><span class="dotsep"></span><span class="mono muted" style="font-size:12px">${esc(r.git)}</span></div></div>
+  <div class="row"><button class="btn primary" onclick="A.scanNow('${id}')">${ic('play')}สแกนตอนนี้</button></div></div>
+  <div class="tabs"><a href="#repo/${id}" class="${tab==='history'?'on':''}">${ic('history')}ประวัติการสแกน</a><a href="#connect/${id}" class="${tab==='connect'?'on':''}">${ic('plug')}เชื่อมต่อ</a></div>`;
+}
+
+V.repo=(id)=>{
+  const r=REPOS[id];if(!r)return V.notfound();
+  const p=PROJECTS.find(p=>p.id===r.project);const sc=SCANS[id]||[];
+  const done=sc.filter(s=>!s.running);const L=done[0],P=done[1];
+  const cr=crumb([['โปรเจกต์','#projects'],[esc(p.name),'#projects'],[esc(r.name)]]);
+  if(!L)return shell('projects',cr,repoHead(id,'history')+`<div class="card" style="margin-top:24px"><div class="empty">ยังไม่มีผลสแกน เชื่อมต่อ CI/CD หรือกด "สแกนตอนนี้"</div></div>`);
+  const ch=L.c+L.h,chP=P?P.c+P.h:ch;const in30=done.filter(s=>NOW-s.d<30*864e5).length;
+  const cmp=(a,b,word)=>{const d=a-b;return d===0?`เท่ากับสแกนก่อน`:d<0?`<span class="pos">${-d} ${word||'น้อยกว่า'}สแกนก่อน</span>`:`${d} มากกว่าสแกนก่อน`};
+  const body=repoHead(id,'history')+`
+  <div class="card stats" style="margin-top:24px">
+    <div class="stat"><div class="k">ยังเปิดอยู่</div><div class="v">${tot(L)}</div><div class="d">${P?cmp(tot(L),tot(P)):'สแกนแรก'}</div></div>
+    <div class="stat"><div class="k">Critical และ High</div><div class="v">${ch}</div><div class="d">${P?cmp(ch,chP):''}</div></div>
+    <div class="stat"><div class="k">สแกนใน 30 วัน</div><div class="v">${in30}</div><div class="d">CI ${done.filter(s=>s.tr==='ci'&&NOW-s.d<30*864e5).length} · ตามเวลา ${done.filter(s=>s.tr==='schedule'&&NOW-s.d<30*864e5).length} · สั่งเอง ${done.filter(s=>s.tr==='manual'&&NOW-s.d<30*864e5).length}</div></div>
+    <div class="stat"><div class="k">สแกนล่าสุด</div><div class="v" style="font-size:20px;line-height:32px">${fmtDay(L.d)}</div><div class="d">${fmtTime(L.d)} · ${TRIG[L.tr][0]} · ${dur(L.dur)}</div></div>
+  </div>
+  <section class="section"><div class="card">
+    <div class="card-head"><h3>ปัญหาที่ยังเปิดอยู่ตามรอบสแกน</h3><div class="legend"><span><i style="background:#a3a3a3"></i>ทั้งหมด</span><span><i style="background:var(--acc);height:2px"></i>Critical และ High</span></div></div>
+    <div class="chart-wrap" id="chart">${trend(id)}</div>
+  </div></section>
+  <section class="section"><div class="section-head"><h2>ประวัติการสแกน</h2><span class="muted">${sc.length} รอบ · เก็บผลไว้ 180 วัน</span></div>
+  <div class="card tl">${sc.map((s,i)=>timelineItem(id,s,sc[i+1],i===0)).join('')}</div></section>`;
+  return shell('projects',cr,body);
+};
+function timelineItem(repo,s,prev,latest){
+  if(s.running)return `<div class="tl-item latest" style="cursor:default"><div class="tl-date">${fmtDay(s.d)}<span class="muted">${fmtTime(s.d)}</span></div><div class="tl-rail"><span class="tl-node"></span></div>
+  <div class="tl-main"><div class="row1"><span class="sha">${s.sha}</span><span class="msg">${esc(s.msg)}</span></div><div class="row2"><span>${ic('loader-circle','spin')}กำลังสแกนด้วย ${S.installed.length} scanner</span><span>${ic(TRIG[s.tr][1])}${TRIG[s.tr][0]} โดย ${esc(s.by)}</span></div></div><div class="tl-side muted">กำลังรัน</div></div>`;
+  const tools=toolsRun(repo).filter(t=>t.st==='ok').length;
+  return `<div class="tl-item ${latest?'latest':''}" onclick="location.hash='#scan/${scanId(repo,s)}'" tabindex="0" onkeydown="if(event.key==='Enter')this.click()">
+    <div class="tl-date">${fmtDay(s.d)}<span class="muted">${fmtTime(s.d)}</span></div>
+    <div class="tl-rail"><span class="tl-node"></span></div>
+    <div class="tl-main"><div class="row1"><span class="sha">${s.sha}</span><span class="msg">${esc(s.msg)}</span></div>
+      <div class="row2"><span class="br">${ic('git-branch')}${esc(s.br)}</span><span>${ic(TRIG[s.tr][1])}${TRIG[s.tr][0]}${s.by!=='ระบบ'?' โดย '+esc(s.by):''}</span><span>${ic('scan-line')}${tools} scanner</span><span>${ic('timer')}${dur(s.dur)}</span></div></div>
+    <div class="tl-side"><div class="tl-counts">${SEV.slice(0,4).map(k=>`<span class="${s[SK[k]]?'c-'+k:'n0'}" title="${SEVL[k]}"><span class="dot"></span>${s[SK[k]]}</span>`).join('')}</div>
+      <div class="tl-delta">${prev?`<b class="${s.nw?'':'muted'}" style="color:${s.nw?'var(--acc-ink)':''}">+${s.nw} ใหม่</b> · <b class="${s.fx?'pos':'muted'}">−${s.fx} แก้แล้ว</b>`:'สแกนแรก'}</div></div>
+  </div>`;
+}
+
+/* scan detail */
+function scanFindings(){return FINDINGS}
+function filtered(list){
+  const f=S.f,q=f.q.trim().toLowerCase();
+  return list.filter(x=>(!f.sev.size||f.sev.has(x.sev))&&(!f.cat||x.cat===f.cat)&&(!f.tool||x.tools.includes(f.tool))&&
+    (f.status==='all'||(f.status==='open'?x.st!=='fixed':x.st===f.status))&&
+    (!q||[x.title,x.file,x.rule,x.pkg||'',x.cat].join(' ').toLowerCase().includes(q)));
+}
+V.scan=(id)=>{
+  const fs=findScan(id);if(!fs)return V.notfound();
+  const {repo,s,prev}=fs,r=REPOS[repo],p=PROJECTS.find(p=>p.id===r.project);
+  const list=scanFindings(),open=list.filter(f=>f.st!=='fixed'),nw=list.filter(f=>f.st==='new'),fx=list.filter(f=>f.st==='fixed');
+  const c=countOpen(list),nwc=countOpen(nw);
+  const nwSev=SEV.filter(k=>nwc[SK[k]]).map(k=>`${SEVL[k]} ${nwc[SK[k]]}`).join(', ');
+  const prevTot=open.length-nw.length+fx.length;
+  const runs=toolsRun(repo);
+  const cr=crumb([['โปรเจกต์','#projects'],[esc(p.name),'#projects'],[esc(r.name),'#repo/'+repo],['สแกน '+s.sha]]);
+  const summary=prev?`สแกนนี้พบปัญหาใหม่ ${nw.length} รายการ${nwSev?` (${nwSev})`:''} และแก้ไขแล้ว ${fx.length} รายการ เทียบกับสแกน <a class="sha" href="#scan/${scanId(repo,prev)}">${prev.sha}</a> ยังเปิดอยู่ทั้งหมด ${open.length} รายการ${c.c?` โดยมี Critical ${c.c} รายการที่ควรแก้ก่อน`:''}`:`สแกนแรกของ repo นี้ พบปัญหาทั้งหมด ${open.length} รายการ`;
+  const segs=SEV.map(k=>c[SK[k]]?`<i style="flex:${c[SK[k]]};background:var(--${{critical:'crit',high:'high',medium:'med',low:'low',info:'info'}[k]})" title="${SEVL[k]} ${c[SK[k]]}"></i>`:'').join('');
+  const body=`<div class="page-head"><div><div class="row" style="gap:12px"><h1>ผลการสแกน</h1><span class="sha" style="height:24px;font-size:13px">${s.sha}</span></div>
+    <div class="page-sub"><span>${fmt(s.d)}</span><span class="dotsep"></span><span class="br">${ic('git-branch')}${esc(s.br)}</span><span class="dotsep"></span><span>${TRIG[s.tr][0]}${s.by!=='ระบบ'?' โดย '+esc(s.by):''}</span><span class="dotsep"></span><span>ใช้เวลา ${dur(s.dur)}</span></div></div>
+    <div class="row"><button class="btn" onclick="A.toast('ดาวน์โหลด scanhub-${repo}-${s.sha}.sarif')">${ic('download')}SARIF</button><button class="btn" onclick="A.scanNow('${repo}')">${ic('refresh-cw')}สแกนซ้ำ</button></div></div>
+  <p class="lead">${summary}</p>
+  <div class="card" style="margin-top:24px">
+    <div class="stats">
+      <div class="stat"><div class="k">ยังเปิดอยู่</div><div class="v">${open.length}</div><div class="d">${prev?(open.length<prevTot?`<span class="pos">${prevTot-open.length} น้อยกว่าสแกนก่อน</span>`:`${open.length-prevTot} มากกว่าสแกนก่อน`):''}</div></div>
+      <div class="stat"><div class="k">พบใหม่</div><div class="v" style="color:var(--acc-ink)">${nw.length}</div><div class="d">${nwSev||'ไม่มี'}</div></div>
+      <div class="stat"><div class="k">แก้ไขแล้ว</div><div class="v pos">${fx.length}</div><div class="d">เทียบกับ ${prev?prev.sha:'-'}</div></div>
+      <div class="stat"><div class="k">Critical และ High</div><div class="v">${c.c+c.h}</div><div class="d">Critical ${c.c} · High ${c.h}</div></div>
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid var(--line)"><div class="sevbar">${segs}</div>
+    <div class="sevlegend">${SEV.map(k=>`<span><span class="dot c-${k}"></span>${SEVL[k]} <span class="mono">${c[SK[k]]}</span></span>`).join('')}</div></div>
+    <div class="tools">${runs.map(t=>`<div class="tool ${t.st}"><span class="st">${ic(t.st==='ok'?'circle-check':t.st==='failed'?'circle-x':'circle-minus')}</span><span class="nm">${toolName(t.t)}${t.why?`<span class="why">ข้าม · ${t.why}</span>`:''}</span><span class="du">${t.d?dur(t.d):''}</span></div>`).join('')}</div>
+  </div>
+  <section class="section"><div class="section-head"><h2>รายการปัญหาจากทุก scanner</h2><span class="muted">รวมผลซ้ำจากหลาย scanner เป็นรายการเดียว · ${list.length} รายการรวมที่แก้แล้ว</span></div>
+    <div class="filters" id="filters">${filtersHtml(list)}</div>
+    <div id="groups">${groupsHtml(list,repo)}</div>
+  </section>`;
+  return shell('projects',cr,body);
+};
+function filtersHtml(list){
+  const f=S.f,cnt=k=>list.filter(x=>x.sev===k&&(f.status==='all'||(f.status==='open'?x.st!=='fixed':x.st===f.status))).length;
+  return `<div class="search">${ic('search')}<input class="input" placeholder="ค้นหา" value="${esc(f.q)}" oninput="A.fq(this.value)" aria-label="ค้นหา finding"></div>
+  ${SEV.map(k=>`<button class="chip ${k} ${f.sev.has(k)?'on':''}" onclick="A.fsev('${k}')"><span class="dot c-${k}"></span>${SEVL[k]} <span class="n">${cnt(k)}</span></button>`).join('')}
+  <select class="select" onchange="A.fset('cat',this.value)" aria-label="ประเภท"><option value="">ทุกประเภท</option>${CATS.map(c=>`<option ${f.cat===c?'selected':''}>${c}</option>`).join('')}</select>
+  <select class="select" onchange="A.fset('tool',this.value)" aria-label="Scanner"><option value="">ทุก scanner</option>${TOOL_IDS.filter(t=>S.installed.includes(t)).map(t=>`<option value="${t}" ${f.tool===t?'selected':''}>${toolName(t)}</option>`).join('')}</select>
+  <select class="select" onchange="A.fset('status',this.value)" aria-label="สถานะ"><option value="open" ${f.status==='open'?'selected':''}>ยังเปิดอยู่</option><option value="new" ${f.status==='new'?'selected':''}>ใหม่</option><option value="existing" ${f.status==='existing'?'selected':''}>มีอยู่เดิม</option><option value="fixed" ${f.status==='fixed'?'selected':''}>แก้แล้ว</option><option value="all" ${f.status==='all'?'selected':''}>ทั้งหมด</option></select>
+  <span class="spacer"></span>
+  <span class="muted" style="font-size:13px">จัดกลุ่ม</span><div class="seg" role="tablist">${[['file','ไฟล์'],['severity','ความรุนแรง'],['tool','Scanner']].map(([k,l])=>`<button class="${f.group===k?'on':''}" onclick="A.fset('group','${k}')">${l}</button>`).join('')}</div>`;
+}
+function groupsHtml(list,repo){
+  const items=filtered(list);const sevRank=k=>SEV.indexOf(k);
+  if(!items.length)return `<div class="card"><div class="empty">ไม่มีรายการที่ตรงกับตัวกรอง</div></div>`;
+  let groups=[];
+  if(S.f.group==='file'){const m={};items.forEach(x=>{(m[x.file]=m[x.file]||[]).push(x)});groups=Object.entries(m).map(([k,v])=>({k,label:`<span class="mono">${esc(k)}</span>`,icon:/go\.mod|package|pom|\.lock/.test(k)?'package':'file-code',v}));}
+  else if(S.f.group==='severity'){groups=SEV.map(k=>({k,label:`<span class="sev ${k}">${SEVL[k]}</span>`,v:items.filter(x=>x.sev===k)})).filter(g=>g.v.length)}
+  else{groups=TOOL_IDS.map(t=>({k:t,label:toolName(t),icon:'scan-line',v:items.filter(x=>x.tools.includes(t))})).filter(g=>g.v.length)}
+  groups.forEach(g=>{g.v.sort((a,b)=>sevRank(a.sev)-sevRank(b.sev)||(a.st==='fixed')-(b.st==='fixed'));g.top=sevRank(g.v[0].sev)});
+  if(S.f.group!=='severity')groups.sort((a,b)=>a.top-b.top||b.v.length-a.v.length);
+  if(!S.openGroups)S.openGroups=new Set(groups.slice(0,2).map(g=>S.f.group+':'+g.k));
+  return groups.map(g=>{const key=S.f.group+':'+g.k,open=S.openGroups.has(key);
+    const cc={};g.v.forEach(x=>cc[x.sev]=(cc[x.sev]||0)+1);const n=g.v.filter(x=>x.st==='new').length;
+    return `<div class="card grp ${open?'open':''}"><button class="grp-head" onclick="A.tg('${esc(key)}',this)" aria-expanded="${open}">${ic('chevron-right','chev')}<span class="ttl">${g.icon?ic(g.icon,'muted'):''}${g.label}${n?`<span class="tag new">${n} ใหม่</span>`:''}</span>
+      <span class="cnts">${SEV.filter(k=>cc[k]).map(k=>`<span class="c-${k}"><span class="dot"></span>${cc[k]}</span>`).join('')}</span></button>
+      <div class="grp-body">${g.v.map(x=>findingHtml(x,repo)).join('')}</div></div>`}).join('');
+}
+function codeHtml(sn,sev){
+  const lines=sn.code.split('\n');
+  return `<div class="code"><div class="file"><span>${esc(sn.file)}</span><span>บรรทัด ${sn.hl}</span></div><div class="pad">${lines.map((l,i)=>{const no=sn.start+i;return `<div class="ln ${no===sn.hl?'hl '+sev:''}"><span class="no">${no}</span><span class="tx">${esc(l)||' '}</span></div>`}).join('')}</div></div>`;
+}
+function findingHtml(x,repo){
+  const open=S.openFd.has(x.id);
+  const loc=x.pkg?`${x.pkg}@${x.ver}`:`${x.file}:${x.line}`;
+  const stTag=x.st==='new'?'<span class="tag new st">ใหม่</span>':x.st==='fixed'?'<span class="tag fixed st">แก้แล้ว</span>':'<span class="tag st">มีอยู่เดิม</span>';
+  const ruleRows=x.rules?Object.entries(x.rules).map(([t,r])=>`<span class="tag tool">${toolShort(t)}</span><span class="mono" style="font-size:12px">${esc(r)}</span>`).join('<span style="width:8px"></span>'):`<span class="mono" style="font-size:12px">${esc(x.rule)}</span>`;
+  const firstSha=x.first;
+  return `<div class="fd ${open?'open':''} ${x.st==='fixed'?'fixedrow':''}" data-id="${x.id}">
+    <div class="fd-row" onclick="A.tf('${x.id}',this)" tabindex="0" onkeydown="if(event.key==='Enter')this.click()" role="button" aria-expanded="${open}">
+      <span class="sev ${x.sev}">${SEVL[x.sev]}</span>
+      <div><div class="fd-title">${esc(x.title)}</div><div class="fd-meta"><span>${esc(x.cat)}</span><span class="mono">${esc(loc)}</span><span class="mono">${esc(x.rule)}</span></div></div>
+      <div class="fd-tools">${x.tools.map(t=>`<span class="tag tool">${toolShort(t)}</span>`).join('')}</div>
+      ${stTag}
+      ${ic('chevron-right','chev')}
+    </div>
+    <div class="fd-detail">
+      <p>${esc(x.desc)}</p>
+      ${x.snip?codeHtml(x.snip,x.sev):''}
+      ${x.st!=='fixed'?`<div class="fixbox">${ic('wrench')}<div>${x.fixv?`อัปเกรด <span class="mono">${esc(x.pkg)}</span> จาก ${esc(x.ver)} เป็น <span class="mono">${esc(x.fixv)}</span> · `:''}${esc(x.fix)}</div></div>`:''}
+      <dl class="dl">
+        <dt>ตำแหน่ง</dt><dd class="mono" style="font-size:12px">${esc(x.file)}:${x.line}${x.pkg?` · ${esc(x.pkg)}@${esc(x.ver)}`:''}</dd>
+        <dt>Rule</dt><dd>${ruleRows}</dd>
+        <dt>พบโดย</dt><dd>${x.tools.map(toolName).join(', ')}${x.tools.length>1?' <span class="muted">· รวมเป็นรายการเดียว</span>':''}</dd>
+        <dt>พบครั้งแรก</dt><dd>${x.st==='new'?'สแกนนี้':firstSha?`<span class="sha">${firstSha}</span>`:'-'}</dd>
+      </dl>
+      ${x.refs?`<div class="refs">${x.refs.map(([t,u])=>`<a href="${u}" target="_blank" rel="noopener">${ic('external-link')}${esc(t)}</a>`).join('')}</div>`:''}
+      ${x.st!=='fixed'?`<div class="row" style="margin-top:16px"><button class="btn sm" onclick="A.toast('ทำเครื่องหมายว่ายอมรับความเสี่ยงแล้ว')">ยอมรับความเสี่ยง</button><button class="btn sm quiet" onclick="A.toast('ทำเครื่องหมายว่าเป็น false positive แล้ว')">False positive</button></div>`:''}
+    </div></div>`;
+}
+
+/* connect */
+function token(id){if(!S.tokens[id]){const r=mulberry(hash(id+'tok'));let s='';for(let i=0;i<32;i++)s+='abcdefghijkmnopqrstuvwxyz23456789'[Math.floor(r()*33)];S.tokens[id]='shp_'+s}return S.tokens[id]}
+const SERVER='https://scanhub.internal';
+function snippet(kind,repo){
+  const tools=[...(S.ci.tools||new Set(S.installed))].join(',');const gate=S.ci.gate;
+  const img='ghcr.io/scanhub/cli:1.4.2';
+  const args=(br,sha,ind,cont)=>{const L=[`--repo ${repo}`,`--branch "${br}"`,`--commit "${sha}"`,`--tools ${tools}`];if(gate)L.push('--fail-on new:critical,new:high');return L.map(l=>ind+l).join(cont+'\n')};
+  if(kind==='github')return `# .github/workflows/scanhub.yml
+name: ScanHub
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan with ScanHub
+        env:
+          SCANHUB_URL: ${SERVER}
+          SCANHUB_TOKEN: \${{ secrets.SCANHUB_TOKEN }}
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src \\
+            -e SCANHUB_URL -e SCANHUB_TOKEN \\
+            ${img} scan . \\
+${args('${{ github.head_ref || github.ref_name }}','${{ github.event.pull_request.head.sha || github.sha }}','              ',' \\')}`.replace(/\$\{\{/g,'${{');
+  if(kind==='gitlab')return `# .gitlab-ci.yml
+scanhub:
+  stage: test
+  image: ${img}
+  variables:
+    GIT_DEPTH: "0"
+    SCANHUB_URL: ${SERVER}
+    # ตั้ง SCANHUB_TOKEN ใน Settings > CI/CD > Variables (masked)
+  script:
+    - >
+      scanhub scan .
+${args('$CI_COMMIT_REF_NAME','$CI_COMMIT_SHA','      ','')}
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH`;
+  if(kind==='jenkins')return `// Jenkinsfile
+pipeline {
+  agent any
+  environment {
+    SCANHUB_URL   = '${SERVER}'
+    SCANHUB_TOKEN = credentials('scanhub-${repo}')
+  }
+  stages {
+    stage('ScanHub') {
+      agent { docker { image '${img}'; reuseNode true } }
+      steps {
+        sh '''
+          scanhub scan . \\
+${args('$GIT_BRANCH','$GIT_COMMIT','            ',' \\')}
+        '''
+      }
+    }
+  }
+}`;
+  if(kind==='azure')return `# azure-pipelines.yml
+trigger:
+  branches:
+    include: [main, develop]
+pr:
+  branches:
+    include: [main]
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+    fetchDepth: 0
+  - script: |
+      docker run --rm -v "$(Build.SourcesDirectory):/src" -w /src \\
+        -e SCANHUB_URL -e SCANHUB_TOKEN \\
+        ${img} scan . \\
+${args('$(Build.SourceBranchName)','$(Build.SourceVersion)','          ',' \\')}
+    displayName: Scan with ScanHub
+    env:
+      SCANHUB_URL: ${SERVER}
+      SCANHUB_TOKEN: $(SCANHUB_TOKEN)`;
+  if(kind==='bitbucket')return `# bitbucket-pipelines.yml
+# ตั้ง SCANHUB_TOKEN ใน Repository settings > Repository variables (secured)
+image: ${img}
+
+definitions:
+  steps:
+    - step: &scanhub
+        name: Scan with ScanHub
+        script:
+          - export SCANHUB_URL=${SERVER}
+          - >
+            scanhub scan .
+${args('$BITBUCKET_BRANCH','$BITBUCKET_COMMIT','            ','')}
+
+pipelines:
+  branches:
+    main:
+      - step: *scanhub
+  pull-requests:
+    '**':
+      - step: *scanhub`;
+  return `# 1) ส่ง source ให้ ScanHub สแกนด้วย scanner บน server
+export SCANHUB_URL=${SERVER}
+export SCANHUB_TOKEN=<token ของ repo นี้>
+
+docker run --rm -v "$PWD:/src" -w /src \\
+  -e SCANHUB_URL -e SCANHUB_TOKEN \\
+  ${img} scan . \\
+${args('$(git rev-parse --abbrev-ref HEAD)','$(git rev-parse HEAD)','    ',' \\')}
+
+# 2) หรือสแกนเองแล้วส่งผล (SARIF หรือ JSON ของแต่ละ scanner)
+trivy fs --format sarif -o trivy.sarif .
+
+curl -fsS -X POST "$SCANHUB_URL/api/v1/repos/${repo}/scans" \\
+  -H "Authorization: Bearer $SCANHUB_TOKEN" \\
+  -F "branch=$(git rev-parse --abbrev-ref HEAD)" \\
+  -F "commit=$(git rev-parse HEAD)" \\
+  -F "tool=trivy" \\
+  -F "report=@trivy.sarif"`;
+}
+const CI_TABS=[['github','GitHub Actions'],['gitlab','GitLab CI'],['jenkins','Jenkinsfile'],['azure','Azure Pipelines'],['bitbucket','Bitbucket'],['cli','CLI และ API']];
+V.connect=(id)=>{
+  const r=REPOS[id];if(!r)return V.notfound();
+  const p=PROJECTS.find(p=>p.id===r.project);
+  if(!S.ci.tools)S.ci.tools=new Set(S.installed);
+  const tk=token(id);const masked=tk.slice(0,4)+'•'.repeat(24)+tk.slice(-4);
+  const cr=crumb([['โปรเจกต์','#projects'],[esc(p.name),'#projects'],[esc(r.name),'#repo/'+id],['เชื่อมต่อ']]);
+  const body=repoHead(id,'connect')+`
+  <p class="lead" style="font-size:15px;line-height:24px;color:var(--t2);max-width:760px">เลือกได้สองแบบ ให้ pipeline เรียก ScanHub ทุกครั้งที่ push หรือเปิด PR หรือให้ ScanHub ดึงโค้ดจาก Git URL มาสแกนตามเวลาเอง ทั้งสองแบบใช้ scanner ที่ติดตั้งบน server และเก็บผลไว้ในประวัติเดียวกัน</p>
+
+  <div class="cstep"><span class="num">1</span><div><h3>Token ของ repo นี้</h3><p class="sec" style="margin:4px 0 12px;font-size:13px">เก็บเป็น secret ชื่อ <span class="mono">SCANHUB_TOKEN</span> ใน CI ของคุณ token นี้ส่งผลสแกนได้เฉพาะ ${esc(r.name)}</p>
+    <div class="tokenbox"><span class="val" id="tokval">${S.showToken?tk:masked}</span>
+    <button class="btn" onclick="A.toggleTok()" aria-label="แสดง token">${ic(S.showToken?'eye-off':'eye')}</button>
+    <button class="btn" onclick="A.copy('${tk}')">${ic('copy')}คัดลอก</button>
+    <button class="btn quiet" onclick="A.regen('${id}')">${ic('refresh-cw')}สร้างใหม่</button></div>
+    <div class="hint">สร้างเมื่อ 20 ต.ค. 2569 โดย admin · ใช้ล่าสุด ${SCANS[id]&&SCANS[id][0]?fmt(SCANS[id][0].d):'ยังไม่เคย'}</div></div></div>
+
+  <div class="cstep"><span class="num">2</span><div><h3>Scanner และเงื่อนไข</h3><p class="sec" style="margin:4px 0 12px;font-size:13px">ค่าที่เลือกจะถูกใส่ในโค้ดด้านล่างให้อัตโนมัติ</p>
+    <div class="card pad"><div class="toolpick">${TOOL_IDS.filter(t=>S.installed.includes(t)).map(t=>`<label class="check"><input type="checkbox" ${S.ci.tools.has(t)?'checked':''} onchange="A.ciTool('${t}',this.checked)">${toolName(t)}</label>`).join('')}</div>
+    <div class="sep"></div>
+    <label class="row" style="justify-content:space-between;cursor:pointer"><span><span style="display:block">ให้ build ไม่ผ่านเมื่อพบ Critical หรือ High ใหม่</span><span class="muted" style="font-size:13px">นับเฉพาะปัญหาที่ไม่มีในสแกนก่อนหน้าของ branch เดียวกัน ของเดิมไม่ทำให้ build ล้ม</span></span><span class="toggle"><input type="checkbox" ${S.ci.gate?'checked':''} onchange="A.ciGate(this.checked)"><span></span></span></label></div></div></div>
+
+  <div class="cstep"><span class="num">3</span><div style="min-width:0"><h3>วางโค้ดใน pipeline</h3>
+    <div class="tabs" style="margin-top:8px;overflow-x:auto">${CI_TABS.map(([k,l])=>`<button class="${S.ci.tab===k?'on':''}" onclick="A.ciTab('${k}')">${l}</button>`).join('')}</div>
+    <div class="snip-wrap" style="margin-top:16px"><pre class="snip" id="snip">${esc(snippet(S.ci.tab,id))}</pre><button class="btn sm" onclick="A.copySnip()">${ic('copy')}คัดลอก</button></div>
+    <p class="muted" style="font-size:12px;margin-top:8px">CLI จะบีบอัด source ส่งให้ ScanHub รอผล แล้วคืน exit code 1 เมื่อไม่ผ่านเงื่อนไข ผลสแกนจะแสดงในหน้าประวัติของ repo นี้</p></div></div>
+
+  <div class="cstep"><span class="num">4</span><div><h3>หรือให้ ScanHub ดึงโค้ดเอง</h3><p class="sec" style="margin:4px 0 12px;font-size:13px">เหมาะกับ repo ที่ยังไม่มี CI หรืออยากสแกนทุกคืนแยกจาก pipeline</p>
+    <div class="card pad"><div class="grid2">
+      <div><label class="lbl" for="gu">Git URL</label><input class="input mono" id="gu" style="font-size:13px" value="${esc(r.git)}"></div>
+      <div><label class="lbl" for="gb">Branch</label><input class="input mono" id="gb" style="font-size:13px" value="${esc(r.branch)}"></div>
+      <div><label class="lbl" for="gc">สิทธิ์เข้าถึง</label><select class="select" id="gc"><option>Deploy key (SSH)</option><option>Personal access token</option><option>Public repo ไม่ต้องใช้</option></select></div>
+      <div><label class="lbl" for="gs">สแกนเมื่อ</label><select class="select" id="gs"><option>ทุกวัน 02:00</option><option>ทุก push ผ่าน webhook</option><option>ทุกวันจันทร์ 02:00</option><option>สั่งเองเท่านั้น</option></select></div>
+    </div><div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" onclick="A.toast('ทดสอบการเชื่อมต่อสำเร็จ · ดึง ${esc(r.branch)} ได้')">ทดสอบการเชื่อมต่อ</button><button class="btn primary" onclick="A.toast('บันทึกแล้ว สแกนรอบถัดไปคืนนี้ 02:00')">บันทึก</button></div></div></div></div>`;
+  return shell('projects',cr,body);
+};
+
+/* settings */
+V.settings=()=>{
+  const inst=TOOL_IDS.filter(t=>S.installed.includes(t)),avail=TOOL_IDS.filter(t=>!S.installed.includes(t));
+  const upd={trivy:'8 พ.ย. 2569 03:00',grype:'8 พ.ย. 2569 03:00',semgrep:'8 พ.ย. 2569 03:01',gitleaks:'5 พ.ย. 2569 03:00',sonarqube:'28 ต.ค. 2569 03:02',checkov:'8 พ.ย. 2569 03:01',depcheck:'8 พ.ย. 2569 03:04'};
+  const body=`<div class="page-head"><div><h1>ตั้งค่า</h1><div class="page-sub">scanner ที่ติดตั้งบน server นี้และรอบการอัปเดต</div></div></div>
+  <section class="section"><div class="section-head"><h2>Scanner ที่ติดตั้ง</h2><span class="muted">${inst.length} ตัว</span></div>
+  <div class="card scroll-x"><table class="tbl"><thead><tr><th>Scanner</th><th>เวอร์ชัน</th><th class="hide-sm">อัปเดตล่าสุด</th><th>สถานะ</th><th style="text-align:right">จัดการ</th></tr></thead><tbody>
+  ${inst.map(t=>{const outdated=t==='sonarqube';return `<tr><td><div>${toolName(t)}</div><div class="muted" style="font-size:12px">${TOOLS[t].what}</div></td><td class="mono" style="font-size:13px">${TOOLS[t].ver}</td><td class="hide-sm sec" style="font-size:13px">${upd[t]}</td>
+    <td>${S.updating===t?`<span class="tag">${ic('loader-circle','spin')}กำลังอัปเดต</span>`:outdated?'<span class="tag" style="background:var(--med-bg);color:var(--med)">มี 10.7.1</span>':'<span class="tag fixed">พร้อมใช้งาน</span>'}</td>
+    <td style="text-align:right;white-space:nowrap"><button class="btn sm quiet" onclick="A.updTool('${t}')">${ic('refresh-cw')}อัปเดต</button><button class="btn sm quiet" onclick="A.rmTool('${t}')">${ic('trash-2')}ถอด</button></td></tr>`}).join('')}
+  </tbody></table></div>
+  ${avail.length?`<div class="section-head" style="margin-top:24px"><h3>เพิ่ม scanner</h3></div><div class="card">${avail.map(t=>`<div class="pick" style="cursor:default;grid-template-columns:1fr auto"><div><div>${toolName(t)} <span class="mono muted" style="font-size:12px">v${TOOLS[t].ver}</span></div><div class="w">${TOOLS[t].what}</div></div><button class="btn sm" onclick="A.addTool('${t}')">${ic('plus')}ติดตั้ง</button></div>`).join('')}</div>`:''}
+  </section>
+  <section class="section"><div class="section-head"><h2>อัปเดตอัตโนมัติ</h2></div>
+  <div class="card"><div style="padding:20px 24px">
+    <label class="row" style="justify-content:space-between;cursor:pointer"><span><span style="display:block">อัปเดต scanner และฐานข้อมูลช่องโหว่ทุกวัน</span><span class="muted" style="font-size:13px">รอบถัดไป ${S.sched.on?'9 พ.ย. 2569 '+S.sched.time:'ปิดอยู่'}</span></span><span class="toggle"><input type="checkbox" ${S.sched.on?'checked':''} onchange="A.schedOn(this.checked)"><span></span></span></label>
+    <div class="sep"></div>
+    <div class="grid2"><div><label class="lbl" for="st">เวลา (Asia/Bangkok)</label><input class="input" id="st" type="time" value="${S.sched.time}" onchange="A.schedTime(this.value)"></div>
+    <div style="display:flex;align-items:flex-end"><label class="check" style="height:36px"><input type="checkbox" ${S.sched.db?'checked':''} onchange="S.sched.db=this.checked;save()">อัปเดตฐานข้อมูลช่องโหว่ไปพร้อมกัน</label></div></div>
+  </div>
+  <div style="border-top:1px solid var(--line);padding:12px 24px 0" class="row"><span>รอบล่าสุด 8 พ.ย. 2569 03:00</span><span class="tag fixed">สำเร็จ ${inst.length-1}/${inst.length}</span><span class="spacer"></span><button class="btn sm" onclick="A.toast('เริ่มอัปเดตทุก scanner แล้ว')">${ic('refresh-cw')}อัปเดตตอนนี้</button></div>
+  <div class="log">${[
+    ['03:00:01','เริ่มอัปเดตตามเวลา',''],
+    ['03:00:14','trivy db 2026-11-08 ดาวน์โหลดแล้ว (52.3 MB)','ok'],
+    ['03:00:22','grype db v5 อัปเดตแล้ว','ok'],
+    ['03:01:05','semgrep rules p/default, p/golang อัปเดตแล้ว','ok'],
+    ['03:01:09','checkov 3.2.296 เป็นเวอร์ชันล่าสุด','ok'],
+    ['03:02:40','sonarqube 10.7.1 พบเวอร์ชันใหม่ ข้ามเพราะต้อง restart · กดอัปเดตเองเมื่อพร้อม','err'],
+    ['03:02:41','จบ ใช้เวลา 2m 40s','']
+  ].map(([t,m,c])=>`<div><span class="muted">${t}</span>  <span class="${c}">${esc(m)}</span></div>`).join('')}</div></div></section>
+  <section class="section"><div class="section-head"><h2>ทั่วไป</h2></div>
+  <div class="card pad"><div class="grid2">
+    <div><label class="lbl" for="su">Server URL</label><input class="input mono" id="su" style="font-size:13px" value="${SERVER}"><div class="hint">ใช้ในโค้ด CI/CD และลิงก์ในการแจ้งเตือน</div></div>
+    <div><label class="lbl" for="sr">เก็บผลสแกนไว้</label><select class="select" id="sr"><option>90 วัน</option><option selected>180 วัน</option><option>365 วัน</option><option>ไม่ลบ</option></select><div class="hint">สแกนล่าสุดของแต่ละ branch จะไม่ถูกลบ</div></div>
+  </div><div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn primary" onclick="A.toast('บันทึกการตั้งค่าแล้ว')">บันทึก</button></div></div></section>`;
+  return shell('settings',null,body);
+};
+
+/* users */
+V.users=()=>{
+  const body=`<h1>ผู้ใช้</h1>
+  <p class="sec" style="max-width:720px;margin:8px 0 0;line-height:22px">ไม่มีการสมัครเอง — ADMIN เพิ่มสมาชิกที่นี่ ผู้ใช้ใหม่ต้องเปลี่ยนรหัสผ่านชั่วคราวตอน login ครั้งแรก การปิดใช้งานไม่ลบประวัติ และมีผลทันที</p>
+  <div class="card" style="margin-top:24px;padding:24px">
+    <h3 class="row" style="gap:8px">${ic('user-plus','muted')}เพิ่มผู้ใช้</h3>
+    <form class="panel" style="margin-top:16px;padding:16px 20px;display:grid;grid-template-columns:1fr 1fr 200px auto;gap:16px;align-items:end" onsubmit="return A.addUser(event)">
+      <div><label class="lbl" for="nu">ชื่อผู้ใช้</label><input class="input" id="nu" placeholder="เช่น somchai.s" autocomplete="off"></div>
+      <div><label class="lbl" for="np">รหัสผ่านชั่วคราว</label><input class="input" id="np" type="password" placeholder="อย่างน้อย 8 ตัวอักษร" autocomplete="new-password"></div>
+      <div><label class="lbl" for="nr">Role</label><select class="select" id="nr">${ROLES.map(r=>`<option ${r==='SA'?'selected':''}>${r}</option>`).join('')}</select></div>
+      <button class="btn primary" type="submit">${ic('user-plus')}เพิ่มผู้ใช้</button>
+    </form>
+    <div class="panel scroll-x" style="margin-top:16px;background:var(--card)"><table class="tbl"><thead><tr><th>ชื่อผู้ใช้</th><th>สถานะ</th><th>Role</th><th class="hide-sm">เข้าใช้ล่าสุด</th><th style="text-align:right">จัดการ</th></tr></thead><tbody>
+    ${USERS.map((u,i)=>`<tr style="${u.active?'':'opacity:.6'}"><td><div class="row" style="gap:12px;flex-wrap:nowrap"><span class="avatar">${esc(u.u.slice(0,2).toUpperCase())}</span><div><div class="row" style="gap:8px"><span style="font-weight:500">${esc(u.u)}</span>${u.env?'<span class="muted" style="font-size:12px">(คุณ)</span><span class="envtag">'+ic('lock')+'ตั้งค่าจาก env</span>':''}</div>${u.pending?'<div class="muted" style="font-size:12px">รอเปลี่ยนรหัสผ่านชั่วคราว</div>':''}</div></div></td>
+      <td><span class="ustat ${u.active?'':'off'}">${u.active?'ใช้งาน':'ปิดใช้งาน'}</span></td>
+      <td><select class="select" style="width:150px;height:32px" ${u.env?'disabled':''} onchange="A.role(${i},this.value)" aria-label="Role ของ ${esc(u.u)}">${ROLES.map(r=>`<option ${u.role===r?'selected':''}>${r}</option>`).join('')}</select></td>
+      <td class="hide-sm sec" style="font-size:13px">${esc(u.last)}</td>
+      <td style="text-align:right;white-space:nowrap">${u.env?'':`<button class="btn sm quiet" onclick="A.resetPw(${i})">${ic('key-round')}รีเซ็ตรหัสผ่าน</button> <button class="btn sm ${u.active?'danger':''}" onclick="A.toggleUser(${i})">${ic('power')}${u.active?'ปิดใช้งาน':'เปิดใช้งาน'}</button>`}</td></tr>`).join('')}
+    </tbody></table></div>
+    <details class="panel perm" style="margin-top:16px"><summary>${ic('chevron-right')}สิทธิ์ของแต่ละ role</summary>
+      <div class="scroll-x" style="border-top:1px solid var(--line)"><table class="tbl perm-tbl"><thead><tr><th>สิทธิ์</th>${ROLES.map(r=>`<th class="c">${r}</th>`).join('')}</tr></thead><tbody>
+      ${PERMS.map(([n,v])=>`<tr><td>${n}</td>${v.map(x=>`<td class="ck">${x?ic('check'):'<span class="n0">—</span>'}</td>`).join('')}</tr>`).join('')}
+      </tbody></table></div>
+      <p class="muted" style="font-size:12px;padding:0 16px 12px;margin:0">ADMIN มีได้หลายคน แต่บัญชีจาก env แก้ role และปิดใช้งานไม่ได้ เปลี่ยนชื่อหรือรหัสผ่านได้ที่ env แล้ว restart</p>
+    </details>
+  </div>`;
+  return shell('users',null,body);
+};
+
+V.notfound=()=>shell('',null,`<h1>ไม่พบหน้านี้</h1><p class="sec">ลิงก์อาจไม่ถูกต้อง <a href="#projects" style="color:var(--acc-ink)">กลับไปหน้าโปรเจกต์</a></p>`);
+
+/* ---------- router ---------- */
+function render(){
+  const raw=location.hash.slice(1)||'projects';const [name,arg]=raw.split('/');
+  if(!S.auth&&name!=='login'){location.replace('#login');return}
+  if(S.auth&&name==='login'){location.replace(S.setupDone?'#projects':'#setup');return}
+  if(S.auth&&!S.setupDone&&name!=='setup'){location.replace('#setup');return}
+  const v=V[name];app.innerHTML=v?v(arg?decodeURIComponent(arg):undefined):V.notfound();
+  icons();
+  if(name!==A._last){window.scrollTo(0,0);A._last=raw}
+}
+function icons(){try{lucide.createIcons({attrs:{'stroke-width':1.5,width:16,height:16}})}catch(e){}}
+function refreshScan(){
+  const raw=location.hash.slice(1);const id=decodeURIComponent(raw.split('/')[1]||'');const fs=findScan(id);
+  document.getElementById('groups').innerHTML=groupsHtml(scanFindings(),fs?fs.repo:'');
+  const fl=document.getElementById('filters');const q=fl.querySelector('input');const had=document.activeElement===q;
+  fl.innerHTML=filtersHtml(scanFindings());if(had){const n=fl.querySelector('input');n.focus();n.setSelectionRange(n.value.length,n.value.length)}
+  icons();
+}
+
+/* ---------- actions ---------- */
+const A={
+  login(e){e.preventDefault();const u=document.getElementById('lu').value.trim()||'admin';S.auth={user:u};store.set('shb_auth',S.auth);location.hash=S.setupDone?'#projects':'#setup';return false},
+  logout(){S.auth=null;store.del('shb_auth');location.hash='#login'},
+  menu(e){e.stopPropagation();document.getElementById('umenu').classList.toggle('open')},
+  pickProject(v){S.projFilter=v;if(location.hash!=='#projects')location.hash='#projects';else render()},
+  wizPick(t,on){on?S.wiz.pick.add(t):S.wiz.pick.delete(t);render()},
+  wizGo(n){S.wiz.step=n;render()},
+  wizInstall(){const w=S.wiz;w.installing=true;const list=[...w.pick];let i=0;render();
+    const tick=()=>{if(i>=list.length){w.installing=false;w.done=true;S.installed=list;save();render();return}
+      const t=list[i];w.prog[t]=Math.min(1,(w.prog[t]||0)+.34);if(w.prog[t]>=1)i++;render();setTimeout(tick,220)};setTimeout(tick,200)},
+  wizFinish(){S.setupDone=true;store.set('shb_setup',true);S.wiz={step:1,pick:null,installing:false,done:false,prog:{}};location.hash='#projects'},
+  tip(i){const t=document.getElementById('tip'),ln=document.getElementById('tipline');if(!t)return;
+    if(i<0){t.classList.remove('show');ln.setAttribute('opacity',0);return}
+    const d=A._tipData,s=d.sc[i];const svg=t.previousElementSibling;const k=svg.getBoundingClientRect().width/d.W;
+    ln.setAttribute('x1',d.x(i));ln.setAttribute('x2',d.x(i));ln.setAttribute('opacity',1);
+    t.innerHTML=`<div class="row" style="gap:8px"><span class="sha">${s.sha}</span><span class="muted">${fmt(s.d)}</span></div><div class="r"><span>ทั้งหมด</span><span class="mono">${tot(s)}</span></div><div class="r"><span>Critical และ High</span><span class="mono" style="color:var(--acc-ink)">${s.c+s.h}</span></div><div class="r"><span>ใหม่ · แก้แล้ว</span><span class="mono">+${s.nw} · −${s.fx}</span></div>`;
+    const left=24+d.x(i)*k;t.style.left=Math.min(Math.max(left,110),svg.getBoundingClientRect().width-60)+'px';t.style.top=(8+d.pC[i][1]*k-96)+'px';t.classList.add('show')},
+  scanNow(repo){const l=SCANS[repo]=SCANS[repo]||[];if(l[0]&&l[0].running)return;const base=l[0]||{sha:'0000000',c:0,h:0,m:0,l:0,i:0,br:REPOS[repo].branch,msg:'manual scan'};
+    const s={...base,running:true,d:new Date(NOW.getTime()+ (A._n=(A._n||0)+1)*60000),tr:'manual',by:S.auth?S.auth.user:'admin',nw:0,fx:0};l.unshift(s);
+    A.toast('เริ่มสแกน '+REPOS[repo].name+' แล้ว');if(location.hash!=='#repo/'+repo)location.hash='#repo/'+repo;else render();
+    setTimeout(()=>{s.running=false;s.dur=168;s.sha=base.sha;if(location.hash==='#repo/'+repo)render();A.toast('สแกนเสร็จ ไม่พบปัญหาใหม่')},2600)},
+  fq(v){S.f.q=v;refreshScan()},
+  fsev(k){S.f.sev.has(k)?S.f.sev.delete(k):S.f.sev.add(k);refreshScan()},
+  fset(k,v){S.f[k]=v;if(k==='group')S.openGroups=null;refreshScan()},
+  tg(key,btn){const g=btn.parentElement;const o=g.classList.toggle('open');btn.setAttribute('aria-expanded',o);o?S.openGroups.add(key):S.openGroups.delete(key)},
+  tf(id,row){const fd=row.parentElement;const o=fd.classList.toggle('open');row.setAttribute('aria-expanded',o);o?S.openFd.add(id):S.openFd.delete(id)},
+  toggleTok(){S.showToken=!S.showToken;render()},
+  regen(id){delete S.tokens[id];S.tokens[id]=null;const r=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);S.tokens[id]='shp_'+(r+r).slice(0,32);S.showToken=true;render();A.toast('สร้าง token ใหม่แล้ว token เดิมใช้ไม่ได้ทันที')},
+  ciTab(k){S.ci.tab=k;render()},
+  ciTool(t,on){on?S.ci.tools.add(t):S.ci.tools.delete(t);const id=location.hash.split('/')[1];document.getElementById('snip').textContent=snippet(S.ci.tab,id)},
+  ciGate(on){S.ci.gate=on;const id=location.hash.split('/')[1];document.getElementById('snip').textContent=snippet(S.ci.tab,id)},
+  copySnip(){A.copy(document.getElementById('snip').textContent)},
+  copy(t){const done=()=>A.toast('คัดลอกแล้ว');try{navigator.clipboard.writeText(t).then(done,()=>{A.fallbackCopy(t);done()})}catch(e){A.fallbackCopy(t);done()}},
+  fallbackCopy(t){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(e){}ta.remove()},
+  updTool(t){S.updating=t;render();setTimeout(()=>{S.updating=null;if(t==='sonarqube')TOOLS.sonarqube.ver='10.7.1';render();A.toast(toolName(t)+' อัปเดตแล้ว')},1600)},
+  rmTool(t){S.installed=S.installed.filter(x=>x!==t);save();render();A.toast('ถอด '+toolName(t)+' แล้ว ประวัติผลสแกนเดิมยังอยู่')},
+  addTool(t){S.installed=[...S.installed,t];S.updating=t;save();render();setTimeout(()=>{S.updating=null;render();A.toast('ติดตั้ง '+toolName(t)+' แล้ว')},1600)},
+  schedOn(v){S.sched.on=v;save();render()},
+  schedTime(v){S.sched.time=v;save();render();A.toast('อัปเดตทุกวันเวลา '+v)},
+  addUser(e){e.preventDefault();const u=document.getElementById('nu').value.trim(),p=document.getElementById('np').value,r=document.getElementById('nr').value;
+    if(!/^[a-z0-9._-]{3,}$/i.test(u)){A.toast('ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัว ใช้ a-z 0-9 . _ -');return false}
+    if(USERS.some(x=>x.u===u)){A.toast('มีชื่อผู้ใช้นี้แล้ว');return false}
+    if(p.length<8){A.toast('รหัสผ่านชั่วคราวต้องมีอย่างน้อย 8 ตัวอักษร');return false}
+    USERS.push({u,role:r,active:true,last:'ยังไม่เคย',pending:true});render();A.toast('เพิ่ม '+u+' แล้ว');return false},
+  role(i,v){USERS[i].role=v;A.toast('เปลี่ยน role ของ '+USERS[i].u+' เป็น '+v)},
+  toggleUser(i){const u=USERS[i];u.active=!u.active;render();A.toast((u.active?'เปิดใช้งาน ':'ปิดใช้งาน ')+u.u+' แล้ว')},
+  resetPw(i){const u=USERS[i];const pw=Math.random().toString(36).slice(2,6)+'-'+Math.random().toString(36).slice(2,6)+'-'+Math.floor(10+Math.random()*89);u.pending=true;render();
+    A.modal('รีเซ็ตรหัสผ่าน',`<p class="sec" style="margin:0 0 12px">รหัสผ่านชั่วคราวใหม่ของ <b style="font-weight:500">${esc(u.u)}</b> ส่งให้ผู้ใช้ทางช่องทางที่ปลอดภัย ผู้ใช้ต้องเปลี่ยนตอน login ครั้งถัดไป</p><div class="tokenbox"><span class="val">${pw}</span><button class="btn" onclick="A.copy('${pw}')">${ic('copy')}คัดลอก</button></div><p class="muted" style="font-size:12px;margin:8px 0 0">รหัสนี้จะแสดงครั้งเดียว</p>`,`<button class="btn primary" onclick="A.close()">เสร็จ</button>`)},
+  newProject(){A.modal('สร้างโปรเจกต์',`<div class="field"><label class="lbl" for="mp">ชื่อโปรเจกต์</label><input class="input" id="mp" placeholder="เช่น Loan Origination"></div><div class="field" style="margin:0"><label class="lbl" for="md">คำอธิบาย</label><input class="input" id="md" placeholder="ไม่บังคับ"></div>`,
+    `<button class="btn quiet" onclick="A.close()">ยกเลิก</button><button class="btn primary" onclick="A.saveProject()">สร้าง</button>`)},
+  saveProject(){const n=document.getElementById('mp').value.trim();if(!n)return;const id='p'+Date.now();PROJECTS.push({id,name:n,desc:document.getElementById('md').value.trim()||'—',repos:[]});A.close();render();A.toast('สร้าง '+n+' แล้ว')},
+  newRepo(pid){A.modal('เพิ่ม repo',`<div class="field"><label class="lbl" for="rp">โปรเจกต์</label><select class="select" id="rp">${PROJECTS.map(p=>`<option value="${p.id}" ${p.id===pid?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
+    <div class="field"><label class="lbl" for="rn">ชื่อ repo</label><input class="input" id="rn" placeholder="เช่น loan-api"></div>
+    <div class="field"><label class="lbl" for="rg">Git URL</label><input class="input mono" id="rg" style="font-size:13px" placeholder="https://git.internal/team/loan-api.git"></div>
+    <div class="grid2"><div><label class="lbl" for="rb">Branch หลัก</label><input class="input mono" id="rb" style="font-size:13px" value="main"></div><div><label class="lbl" for="rl">ภาษา</label><select class="select" id="rl"><option>Go</option><option>TypeScript</option><option>Java</option><option>Kotlin</option><option>Node.js</option><option>Python</option><option>อื่น ๆ</option></select></div></div>`,
+    `<button class="btn quiet" onclick="A.close()">ยกเลิก</button><button class="btn primary" onclick="A.saveRepo()">เพิ่มแล้วไปเชื่อมต่อ</button>`)},
+  saveRepo(){const n=document.getElementById('rn').value.trim().toLowerCase().replace(/\s+/g,'-');if(!n||REPOS[n]){A.toast(n?'มี repo ชื่อนี้แล้ว':'ใส่ชื่อ repo');return}
+    const pid=document.getElementById('rp').value;REPOS[n]={name:n,lang:document.getElementById('rl').value,branch:document.getElementById('rb').value||'main',project:pid,git:document.getElementById('rg').value||`https://git.internal/${pid}/${n}.git`};
+    PROJECTS.find(p=>p.id===pid).repos.push(n);A.close();location.hash='#connect/'+n},
+  modal(title,body,foot){A.close();const d=document.createElement('div');d.className='scrim';d.id='scrim';d.onclick=e=>{if(e.target===d)A.close()};
+    d.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="hd"><h3>${esc(title)}</h3><button class="btn sm quiet" onclick="A.close()" aria-label="ปิด">${ic('x')}</button></div><div class="bd">${body}</div><div class="ft">${foot}</div></div>`;
+    document.body.appendChild(d);icons();const f=d.querySelector('input,select');if(f)f.focus()},
+  close(){const d=document.getElementById('scrim');if(d)d.remove()},
+  toast(m){const old=document.querySelector('.toast');if(old)old.remove();const t=document.createElement('div');t.className='toast';t.setAttribute('role','status');t.innerHTML=ic('check')+esc(m);document.body.appendChild(t);icons();clearTimeout(A._tt);A._tt=setTimeout(()=>t.remove(),2400)}
+};
+document.addEventListener('click',()=>{const m=document.getElementById('umenu');if(m)m.classList.remove('open')});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')A.close()});
+window.addEventListener('hashchange',render);
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+# Optional (E2E_DEV=1): run the working-copy server/ and public/ inside the same image, no rebuild needed.
+services:
+  scanhub:
+    volumes:
+      - ../server:/app/server:ro
+      - ../public:/app/public:ro

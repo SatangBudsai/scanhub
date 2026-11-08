@@ -1,0 +1,6 @@
+node_modules/
+data/
+.env
+*.log
+e2e/results/*
+!e2e/results/.gitkeep

@@ -1,0 +1,46 @@
+{
+  "issues": [
+    {
+      "key": "AZK1b2c3d4",
+      "rule": "gosecurity:S3649",
+      "severity": "BLOCKER",
+      "component": "scanhub_payment-api:internal/repo/order.go",
+      "project": "scanhub_payment-api",
+      "line": 88,
+      "message": "Change this code to not construct SQL queries directly from user-controlled data.",
+      "type": "VULNERABILITY",
+      "impacts": [{ "softwareQuality": "SECURITY", "severity": "HIGH" }]
+    },
+    {
+      "key": "AZK1b2c3d5",
+      "rule": "go:S1192",
+      "severity": "CRITICAL",
+      "component": "scanhub_payment-api:internal/handler/payment.go",
+      "line": 51,
+      "message": "Define a constant instead of duplicating this literal \"application/json\" 4 times.",
+      "type": "CODE_SMELL"
+    },
+    {
+      "key": "AZK1b2c3d6",
+      "rule": "go:S2259",
+      "severity": "MAJOR",
+      "component": "scanhub_payment-api:internal/handler/refund.go",
+      "textRange": { "startLine": 57, "endLine": 57 },
+      "message": "A nil pointer dereference will be raised here",
+      "type": "BUG",
+      "impacts": [{ "softwareQuality": "RELIABILITY", "severity": "MEDIUM" }]
+    }
+  ],
+  "hotspots": [
+    {
+      "key": "AZH9x8y7",
+      "component": "scanhub_payment-api:internal/payment/ref.go",
+      "securityCategory": "weak-cryptography",
+      "vulnerabilityProbability": "MEDIUM",
+      "status": "TO_REVIEW",
+      "line": 22,
+      "message": "Make sure that using this pseudorandom number generator is safe here.",
+      "ruleKey": "go:S2245"
+    }
+  ]
+}

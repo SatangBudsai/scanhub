@@ -1,0 +1,32 @@
+{
+  "reportSchema": "1.1",
+  "scanInfo": { "engineVersion": "11.1.0" },
+  "projectInfo": { "name": "payment-web" },
+  "dependencies": [
+    {
+      "isVirtual": false,
+      "fileName": "lodash:4.17.4",
+      "filePath": "/data/work/2/src/package-lock.json?lodash",
+      "packages": [{ "id": "pkg:npm/lodash@4.17.4", "confidence": "HIGHEST" }],
+      "vulnerabilities": [
+        {
+          "source": "NVD",
+          "name": "CVE-2019-10744",
+          "severity": "CRITICAL",
+          "cvssv3": { "baseScore": 9.1, "baseSeverity": "CRITICAL" },
+          "description": "Versions of lodash lower than 4.17.12 are vulnerable to Prototype Pollution.",
+          "references": [{ "source": "MISC", "url": "https://github.com/lodash/lodash/pull/4336", "name": "pull 4336" }]
+        }
+      ]
+    },
+    {
+      "fileName": "@babel/traverse:7.20.0",
+      "filePath": "/data/work/2/src/package-lock.json?@babel/traverse",
+      "packages": [{ "id": "pkg:npm/%40babel/traverse@7.20.0" }],
+      "vulnerabilities": [
+        { "name": "CVE-2023-45133", "severity": "CRITICAL", "cvssv3": { "baseScore": 9.3, "baseSeverity": "CRITICAL" }, "description": "Arbitrary code execution when compiling specifically crafted malicious code", "references": [] }
+      ]
+    },
+    { "fileName": "safe-lib:1.0.0", "packages": [{ "id": "pkg:npm/safe-lib@1.0.0" }] }
+  ]
+}

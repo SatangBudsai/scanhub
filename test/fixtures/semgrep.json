@@ -1,0 +1,45 @@
+{
+  "version": "1.96.0",
+  "results": [
+    {
+      "check_id": "go.lang.security.audit.database.string-formatted-query.string-formatted-query",
+      "path": "internal/repo/order.go",
+      "start": { "line": 88, "col": 2, "offset": 2101 },
+      "end": { "line": 88, "col": 70, "offset": 2169 },
+      "extra": {
+        "message": "String-formatted SQL query detected. This could lead to SQL injection if the string is not sanitized properly. Use parameterized queries instead.",
+        "metadata": {
+          "category": "security",
+          "cwe": ["CWE-89: Improper Neutralization of Special Elements used in an SQL Command"],
+          "confidence": "HIGH",
+          "impact": "HIGH",
+          "likelihood": "MEDIUM",
+          "references": ["https://owasp.org/Top10/A03_2021-Injection"]
+        },
+        "severity": "ERROR",
+        "fingerprint": "requires login",
+        "lines": "requires login"
+      }
+    },
+    {
+      "check_id": "generic.secrets.security.detected-aws-access-key-id-value.detected-aws-access-key-id-value",
+      "path": "config/dev.yaml",
+      "start": { "line": 14, "col": 15 },
+      "end": { "line": 14, "col": 35 },
+      "extra": {
+        "message": "AWS Access Key ID Value detected. This is a sensitive credential and should not be hardcoded here.",
+        "metadata": { "category": "security", "cwe": ["CWE-798: Use of Hard-coded Credentials"], "confidence": "LOW", "references": ["https://cwe.mitre.org/data/definitions/798.html"] },
+        "severity": "ERROR"
+      }
+    },
+    {
+      "check_id": "go.lang.best-practice.unused-param",
+      "path": "internal/handler/refund.go",
+      "start": { "line": 40, "col": 1 },
+      "end": { "line": 40, "col": 10 },
+      "extra": { "message": "Parameter ctx is never used", "metadata": { "category": "best-practice" }, "severity": "INFO" }
+    }
+  ],
+  "errors": [],
+  "paths": { "scanned": ["internal/repo/order.go", "config/dev.yaml"] }
+}

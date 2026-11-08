@@ -1,0 +1,36 @@
+{
+  "matches": [
+    {
+      "vulnerability": {
+        "id": "GHSA-v778-237x-gjrc",
+        "dataSource": "https://github.com/advisories/GHSA-v778-237x-gjrc",
+        "namespace": "github:language:go",
+        "severity": "Critical",
+        "urls": ["https://github.com/advisories/GHSA-v778-237x-gjrc"],
+        "description": "Misuse of ServerConfig.PublicKeyCallback may cause authorization bypass in golang.org/x/crypto",
+        "fix": { "versions": ["0.31.0"], "state": "fixed" }
+      },
+      "relatedVulnerabilities": [
+        { "id": "CVE-2024-45337", "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2024-45337", "severity": "Critical", "urls": [] }
+      ],
+      "artifact": {
+        "name": "golang.org/x/crypto",
+        "version": "v0.28.0",
+        "type": "go-module",
+        "locations": [{ "path": "/go.mod" }],
+        "purl": "pkg:golang/golang.org/x/crypto@v0.28.0"
+      }
+    },
+    {
+      "vulnerability": {
+        "id": "CVE-2024-24790",
+        "dataSource": "https://nvd.nist.gov/vuln/detail/CVE-2024-24790",
+        "severity": "Critical",
+        "description": "The various Is methods (IsPrivate, IsLoopback, etc) did not work as expected for IPv4-mapped IPv6 addresses.",
+        "fix": { "versions": ["1.21.11", "1.22.4"], "state": "fixed" }
+      },
+      "artifact": { "name": "stdlib", "version": "go1.22.3", "type": "go-module", "locations": [{ "path": "/go.mod" }] }
+    }
+  ],
+  "source": { "type": "directory", "target": "/data/work/1/src" }
+}

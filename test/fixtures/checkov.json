@@ -1,0 +1,42 @@
+[
+  {
+    "check_type": "dockerfile",
+    "results": {
+      "passed_checks": [],
+      "failed_checks": [
+        {
+          "check_id": "CKV_DOCKER_3",
+          "bc_check_id": "BC_DKR_3",
+          "check_name": "Ensure that a user for the container has been created",
+          "check_result": { "result": "FAILED" },
+          "file_path": "/Dockerfile",
+          "repo_file_path": "/Dockerfile",
+          "file_line_range": [1, 12],
+          "resource": "/Dockerfile.",
+          "severity": null,
+          "guideline": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/docker-policies/docker-policy-index/ensure-that-a-user-for-the-container-has-been-created"
+        }
+      ],
+      "skipped_checks": [],
+      "parsing_errors": []
+    },
+    "summary": { "passed": 10, "failed": 1, "skipped": 0, "parsing_errors": 0 }
+  },
+  {
+    "check_type": "kubernetes",
+    "results": {
+      "failed_checks": [
+        {
+          "check_id": "CKV_K8S_11",
+          "check_name": "CPU limits should be set",
+          "file_path": "/deploy/k8s/deployment.yaml",
+          "file_line_range": [21, 48],
+          "resource": "Deployment.default.payment-api",
+          "severity": "LOW",
+          "guideline": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/kubernetes-policies/kubernetes-policy-index/bc-k8s-10"
+        }
+      ]
+    },
+    "summary": { "passed": 30, "failed": 1 }
+  }
+]

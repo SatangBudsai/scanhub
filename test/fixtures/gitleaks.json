@@ -1,0 +1,22 @@
+[
+  {
+    "RuleID": "aws-access-token",
+    "Description": "Identified a pattern that may indicate AWS credentials, risking unauthorized cloud resource access and data breaches on AWS platforms.",
+    "StartLine": 14,
+    "EndLine": 14,
+    "StartColumn": 15,
+    "EndColumn": 34,
+    "Match": "AKIAZ7Q3EXAMPLE4KEY9",
+    "Secret": "AKIAZ7Q3EXAMPLE4KEY9",
+    "File": "config/dev.yaml",
+    "SymlinkFile": "",
+    "Commit": "",
+    "Entropy": 3.84,
+    "Author": "",
+    "Email": "",
+    "Date": "",
+    "Message": "",
+    "Tags": [],
+    "Fingerprint": "config/dev.yaml:aws-access-token:14"
+  }
+]

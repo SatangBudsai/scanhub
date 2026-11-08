@@ -1,0 +1,1464 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ScanHub Simple</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<!-- Design D "Simple". Styling follows unslop by Damir Sokolovsky (@heydamir), CC BY 4.0 -->
+<style>
+:root{
+  --bg:#fafafa;--card:#ffffff;--raised:#f4f4f5;--hover:#f4f4f5;--field:#ffffff;--sunk:#f7f7f8;--topbar:rgba(250,250,250,.9);
+  --line:rgba(23,23,23,.08);--line2:rgba(23,23,23,.14);--line3:rgba(23,23,23,.24);
+  --t1:#171717;--t2:#525252;--t3:#737373;--zero:#c4c4c4;
+  --acc:#3b6fd8;--acc-hover:#335fbd;--acc-ink:#ffffff;--acc-soft:rgba(59,111,216,.07);--acc-line:rgba(59,111,216,.35);--acc-text:#2f5fc4;
+  --pos:#16a34a;--pos-soft:rgba(22,163,74,.08);--neg:#dc2626;--neg-soft:rgba(220,38,38,.06);
+  --crit:#dc2626;--high:#ea580c;--med:#ca8a04;--low:#64748b;--info:#a3a3a3;
+  --ct-crit:#b91c1c;--ct-high:#c2410c;--ct-med:#a16207;
+  --code-text:#262626;--code-cm:#8a8a8a;--code-ln:#b4b4b4;--hl:rgba(220,38,38,.07);
+  --btn-hl:none;--shadow:0 8px 24px rgba(0,0,0,.08);--shadow-sm:0 1px 2px rgba(0,0,0,.05);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --sans:'IBM Plex Sans Thai',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141415;--card:#19191b;--raised:#232325;--hover:#1e1e20;--field:#161617;--sunk:#111112;--topbar:rgba(20,20,21,.9);
+  --line:rgba(237,237,237,.08);--line2:rgba(237,237,237,.12);--line3:rgba(237,237,237,.22);
+  --t1:#ededed;--t2:#a1a1a6;--t3:#85858b;--zero:#4a4a50;
+  --acc:#8fb4ff;--acc-hover:#a3c1ff;--acc-ink:#0e1626;--acc-soft:rgba(143,180,255,.1);--acc-line:rgba(143,180,255,.4);--acc-text:#8fb4ff;
+  --pos:#4cc38a;--pos-soft:rgba(76,195,138,.1);--neg:#e5484d;--neg-soft:rgba(229,72,77,.08);
+  --crit:#e5484d;--high:#e07b53;--med:#d4a94e;--low:#8b9cb5;--info:#66666d;
+  --ct-crit:#f08a8d;--ct-high:#eb9673;--ct-med:#d4a94e;
+  --code-text:#d6d6da;--code-cm:#6f6f76;--code-ln:#4c4c52;--hl:rgba(229,72,77,.1);
+  --btn-hl:inset 0 1px 0 rgba(255,255,255,.05);--shadow:0 12px 32px rgba(0,0,0,.45);--shadow-sm:none;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#141415;--card:#19191b;--raised:#232325;--hover:#1e1e20;--field:#161617;--sunk:#111112;--topbar:rgba(20,20,21,.9);
+  --line:rgba(237,237,237,.08);--line2:rgba(237,237,237,.12);--line3:rgba(237,237,237,.22);
+  --t1:#ededed;--t2:#a1a1a6;--t3:#85858b;--zero:#4a4a50;
+  --acc:#8fb4ff;--acc-hover:#a3c1ff;--acc-ink:#0e1626;--acc-soft:rgba(143,180,255,.1);--acc-line:rgba(143,180,255,.4);--acc-text:#8fb4ff;
+  --pos:#4cc38a;--pos-soft:rgba(76,195,138,.1);--neg:#e5484d;--neg-soft:rgba(229,72,77,.08);
+  --crit:#e5484d;--high:#e07b53;--med:#d4a94e;--low:#8b9cb5;--info:#66666d;
+  --ct-crit:#f08a8d;--ct-high:#eb9673;--ct-med:#d4a94e;
+  --code-text:#d6d6da;--code-cm:#6f6f76;--code-ln:#4c4c52;--hl:rgba(229,72,77,.1);
+  --btn-hl:inset 0 1px 0 rgba(255,255,255,.05);--shadow:0 12px 32px rgba(0,0,0,.45);--shadow-sm:none;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--t1);font:400 14px/20px var(--sans);-webkit-font-smoothing:antialiased}
+body{min-height:100vh}
+a{color:inherit;text-decoration:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:6px}
+svg.lucide{width:16px;height:16px;stroke-width:1.5;flex:none}
+b{font-weight:500}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+.t2{color:var(--t2)}.t3{color:var(--t3)}.pos{color:var(--pos)}.neg{color:var(--neg)}
+.small{font-size:12px;line-height:16px}
+code{font-family:var(--mono);font-size:12px;background:var(--raised);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+.sep{color:var(--zero)}
+.linkbtn{color:var(--acc-text);display:inline-flex;align-items:center;gap:6px}
+.linkbtn:hover{text-decoration:underline;text-underline-offset:3px}
+.linkacc{color:var(--acc-text)}
+.linkacc:hover{text-decoration:underline;text-underline-offset:3px}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:30;height:56px;background:var(--topbar);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1128px;margin:0 auto;height:100%;padding:0 24px;display:flex;align-items:center;gap:16px}
+.brand{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:500;flex:none}
+.brand svg{width:18px;height:18px}
+.switcher{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 10px;border:1px solid var(--line2);border-radius:8px;color:var(--t2);font-size:13px;max-width:220px;transition:border-color .14s var(--ease),color .14s var(--ease)}
+.switcher span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.switcher:hover{color:var(--t1);border-color:var(--line3)}
+.nav{display:flex;gap:4px;flex:1}
+.nav-a{height:32px;display:inline-flex;align-items:center;padding:0 10px;border-radius:8px;color:var(--t2);transition:background-color .14s var(--ease),color .14s var(--ease)}
+.nav-a:hover{color:var(--t1);background:var(--hover)}
+.nav-a.on{color:var(--t1);background:var(--raised)}
+.userbtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 6px 0 2px;border-radius:18px;color:var(--t2)}
+.userbtn:hover{color:var(--t1)}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--acc-soft);color:var(--acc-text);display:grid;place-items:center;font-size:12px;font-weight:500;flex:none;border:1px solid var(--acc-line)}
+.pop-wrap{position:relative}
+.pop{position:absolute;top:calc(100% + 8px);left:0;z-index:40;min-width:240px;max-height:min(70vh,520px);overflow:auto;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:6px;box-shadow:var(--shadow);animation:pop .18s var(--ease)}
+.pop-r{left:auto;right:0}
+@keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.pop-label{font-size:12px;color:var(--t3);padding:12px 10px 4px}
+.pop-label:first-child{padding-top:6px}
+.pop-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;height:32px;padding:0 10px;border-radius:6px;color:var(--t1);text-align:left}
+.pop-row:hover{background:var(--hover)}
+.pop-row.on{background:var(--raised)}
+.pop-me{padding:8px 10px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.pop .seg{margin:0 6px 8px;display:flex}
+.pop .seg button{flex:1;justify-content:center}
+.pop-row svg{color:var(--t3)}
+.pop hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+
+/* page */
+.wrap{max-width:1128px;margin:0 auto;padding:32px 24px 96px}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:24px}
+.head h1{font-size:28px;line-height:36px;font-weight:500;margin:0}
+.head p{margin:4px 0 0}
+.crumb{color:var(--t3);margin-bottom:4px}
+.crumb a:hover{color:var(--t1)}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}
+.meta .mono{display:inline-flex;align-items:center;gap:4px}
+.actions{display:flex;gap:8px;flex:none;align-items:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm)}
+.card-pad{padding:20px 24px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 14px;border-radius:8px;background:var(--card);border:1px solid var(--line2);color:var(--t1);white-space:nowrap;box-shadow:var(--btn-hl);transition:background-color .14s var(--ease),border-color .14s var(--ease),transform .12s var(--ease)}
+.btn:hover{background:var(--hover)}
+.btn:active{transform:scale(.98)}
+.btn[disabled]{opacity:.5;pointer-events:none}
+.btn-primary{background:var(--acc);border-color:transparent;color:var(--acc-ink);font-weight:500}
+.btn-primary:hover{background:var(--acc-hover)}
+.btn-ghost{background:transparent;border-color:transparent;box-shadow:none;color:var(--t2)}
+.btn-ghost:hover{background:var(--hover);color:var(--t1)}
+.btn-danger{background:transparent;border-color:color-mix(in srgb,var(--neg) 35%,transparent);color:var(--ct-crit);box-shadow:none}
+.btn-danger:hover{background:var(--neg-soft)}
+.btn-sm{height:30px;padding:0 10px;border-radius:7px;font-size:13px}
+.btn.is-act{border-color:var(--acc-line);color:var(--acc-text)}
+.field{display:flex;flex-direction:column;gap:8px;min-width:0}
+.field label,.lbl{font-size:13px;color:var(--t2)}
+.input,.select{height:40px;width:100%;background:var(--field);border:1px solid var(--line2);border-radius:10px;padding:0 12px;color:var(--t1);transition:border-color .14s var(--ease)}
+.input::placeholder{color:var(--t3)}
+.input:hover,.select:hover{border-color:var(--line3)}
+.input:focus,.select:focus{outline:none;border-color:var(--acc)}
+.select{appearance:none;padding-right:32px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2385858b' stroke-width='1.5' viewBox='0 0 24 24'%3E%3Cpath d='m7 15 5 5 5-5M7 9l5-5 5 5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.select-sm{height:32px;border-radius:8px;font-size:13px;padding-left:10px}
+.select[disabled]{opacity:.55}
+.hint{font-size:12px;line-height:18px;color:var(--t3)}
+.err{font-size:13px;color:var(--ct-crit);min-height:20px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.s-critical{background:var(--crit)}.s-high{background:var(--high)}.s-medium{background:var(--med)}.s-low{background:var(--low)}.s-info{background:var(--info)}
+.c-critical{color:var(--ct-crit)}.c-high{color:var(--ct-high)}.c-medium{color:var(--ct-med)}.c-low{color:var(--low)}.c-info{color:var(--t3)}
+.sev{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.kc{font:500 11px/16px var(--mono);border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--t2);background:var(--card);white-space:nowrap}
+.seg{display:inline-flex;background:var(--raised);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.seg button{height:28px;padding:0 12px;border-radius:7px;color:var(--t2);display:inline-flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;transition:background-color .14s var(--ease),color .14s var(--ease)}
+.seg button:hover{color:var(--t1)}
+.seg button.on{background:var(--card);color:var(--t1);box-shadow:var(--shadow-sm),inset 0 0 0 1px var(--line)}
+.seg .n{font-family:var(--mono);font-size:12px;color:var(--t3)}
+.switch{position:relative;width:36px;height:20px;border-radius:10px;background:var(--raised);border:1px solid var(--line2);flex:none;transition:background-color .16s var(--ease)}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--t3);transition:transform .16s var(--ease),background-color .16s var(--ease)}
+.switch[aria-checked=true]{background:var(--acc);border-color:transparent}
+.switch[aria-checked=true]::after{transform:translateX(16px);background:var(--acc-ink)}
+.check{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:5px;border:1px solid var(--line3);background:var(--field);flex:none}
+.check svg{width:12px;height:12px;stroke-width:2.5;opacity:0;color:var(--acc-ink)}
+.is-on .check{background:var(--acc);border-color:var(--acc)}
+.is-on .check svg{opacity:1}
+.empty{padding:40px 24px;text-align:center;color:var(--t3)}
+.empty-big{padding:56px 24px;text-align:center}
+.empty-big>svg{width:24px;height:24px;color:var(--t3)}
+.empty-big h2{font-size:18px;font-weight:500;margin:12px 0 4px}
+.empty-big p{margin:0 0 20px}
+
+/* projects */
+.group+.group{margin-top:32px}
+.group-h{display:flex;align-items:baseline;gap:8px;margin:0 0 8px 4px}
+.group-h h2{font-size:15px;line-height:22px;font-weight:500;margin:0}
+.list{overflow:hidden}
+.repo-row{display:grid;grid-template-columns:minmax(0,1fr) auto 140px 16px;align-items:center;gap:16px;height:56px;padding:0 20px;transition:background-color .12s var(--ease)}
+.repo-row+.repo-row{border-top:1px solid var(--line)}
+.repo-row:hover{background:var(--hover)}
+.rr-name{display:flex;align-items:baseline;gap:8px;min-width:0}
+.rr-name .nm{font-weight:500}
+.rr-st{display:flex;align-items:center;gap:12px;justify-content:flex-end}
+.rr-time{text-align:right}
+.status{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:12px;font-size:13px;border:1px solid var(--line);white-space:nowrap}
+.status .dot{width:6px;height:6px}
+.st-crit{color:var(--ct-crit);background:var(--neg-soft);border-color:color-mix(in srgb,var(--crit) 25%,transparent)}.st-crit .dot{background:var(--crit)}
+.st-high{color:var(--ct-high);border-color:color-mix(in srgb,var(--high) 25%,transparent)}.st-high .dot{background:var(--high)}
+.st-ok{color:var(--pos);background:var(--pos-soft);border-color:color-mix(in srgb,var(--pos) 25%,transparent)}.st-ok .dot{background:var(--pos)}
+.st-none{color:var(--t3)}.st-none .dot{background:var(--zero)}
+.sd-crit{background:var(--crit)}.sd-high{background:var(--high)}.sd-ok{background:var(--pos)}.sd-none{background:var(--zero)}
+.newtag{font-size:12px;color:var(--acc-text);font-family:var(--mono)}
+
+/* repo */
+.scanbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 12px 12px 20px;margin-bottom:16px}
+.sb-main{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;min-width:0}
+.sb-main .ttl{font-weight:500}
+.sb-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;color:var(--t2)}
+.pop-hist{width:420px;max-width:calc(100vw - 32px)}
+.hist-row{display:grid;grid-template-columns:44px 1fr auto 72px;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:6px}
+.hist-row:hover{background:var(--hover)}
+.hist-row.on{background:var(--raised)}
+.hist-row .hd{text-align:right}
+.sum{padding:20px 24px}
+.sum-top{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:32px;align-items:center}
+.nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.nums>div{padding:0}
+.spark-head{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px;color:var(--t2);margin-bottom:4px}
+.spark svg{display:block}
+.spark-x{display:flex;justify-content:space-between;font:400 11px/16px var(--mono);color:var(--t3)}
+.sevblock{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.sevblock-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--t2);margin-bottom:12px}
+.sevbar{display:flex;gap:2px;height:8px;border-radius:4px;overflow:hidden;background:var(--raised)}
+.sevbar span{display:block;min-width:4px}
+.sevlegend{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:12px}
+.sevlegend .it{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 8px;margin-left:-8px;border-radius:8px;font-size:13px;color:var(--t2)}
+.sevlegend .it .n{font:500 15px/1 var(--mono);color:var(--t1);font-variant-numeric:tabular-nums}
+.sevlegend .it.zero{color:var(--t3)}.sevlegend .it.zero .n{color:var(--t3)}.sevlegend .it.zero .dot{opacity:.35}
+.sevlegend button.it{cursor:pointer;transition:background-color .14s var(--ease)}
+.sevlegend button.it:hover{background:var(--raised)}
+.overview{padding:20px 24px;margin-bottom:32px}
+.ov-top{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.ov-top>div+div{padding-left:24px;border-left:1px solid var(--line)}
+.ov-top .k{font-size:13px;color:var(--t2)}
+.ov-top .v{font-size:28px;line-height:36px;font-weight:500;margin-top:4px;font-variant-numeric:tabular-nums}
+.ov-top .of{font-size:15px;color:var(--t3);font-weight:400}
+.ov-top .d{font-size:12px;color:var(--t3);margin-top:2px}
+@media (max-width:640px){.ov-top{grid-template-columns:1fr;gap:16px}.ov-top>div+div{padding-left:0;border-left:0}}
+@media (max-width:820px){.sum-top{grid-template-columns:1fr;gap:20px}.spark svg{width:100%}}
+.nums>div+div{padding-left:24px;border-left:1px solid var(--line)}
+.nums .k{font-size:13px;color:var(--t2)}
+.nums .v{font-size:28px;line-height:36px;font-weight:500;margin-top:4px;font-variant-numeric:tabular-nums}
+.nums .d{font-size:12px;color:var(--t3);margin-top:2px}
+.runline{display:flex;align-items:center;gap:8px;margin-top:12px;width:100%;text-align:left;color:var(--t2);font-size:13px}
+.runline:hover{color:var(--t1)}
+.runline .chev{transition:transform .16s var(--ease);color:var(--t3)}
+.runline[aria-expanded=true] .chev{transform:rotate(180deg)}
+.runs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 24px;margin-top:12px}
+.run{display:grid;grid-template-columns:16px 1fr auto;align-items:center;gap:8px;height:32px;font-size:13px}
+.run .mono{font-size:12px;color:var(--t3)}
+.run.ok svg{color:var(--pos)}.run.failed svg{color:var(--neg)}.run.skipped{color:var(--t3)}
+.run-note{grid-column:2/4;font-size:12px;color:var(--t3);margin-top:-8px}
+details.trend{margin-top:16px}
+details.trend summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:16px;height:48px;padding:0 20px;color:var(--t2);font-size:13px}
+details.trend summary::-webkit-details-marker{display:none}
+details.trend summary .chev{margin-left:auto;transition:transform .16s var(--ease);color:var(--t3)}
+details.trend[open] summary .chev{transform:rotate(180deg)}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--t3)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:2px;border-radius:1px;display:block}
+.chart{padding:0 20px 16px}
+.chart svg{display:block;width:100%;height:auto}
+.ch-grid{stroke:var(--line)}
+.ch-lbl{fill:var(--t3);font-family:var(--mono);font-size:11px}
+.ch-tot{stroke:var(--t3);fill:none;stroke-width:1.5}
+.ch-area{fill:var(--line)}
+.ch-acc{stroke:var(--acc);fill:none;stroke-width:2}
+.ch-pt{fill:var(--card);stroke:var(--acc);stroke-width:1.5}
+.ch-pt.cur{fill:var(--acc)}
+.ch-sel{stroke:var(--line3);stroke-dasharray:3 3}
+.ch-hit{fill:transparent;cursor:pointer}
+.ch-hit:hover{fill:var(--line)}
+
+/* findings */
+.findings{margin-top:40px}
+.f-head{display:flex;align-items:baseline;gap:12px;margin:0 0 12px 4px;flex-wrap:wrap}
+.f-head h2{font-size:18px;line-height:26px;font-weight:500;margin:0}
+.f-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.search{position:relative;flex:1;min-width:180px;max-width:320px;margin-left:auto}
+.search svg{position:absolute;left:10px;top:8px;color:var(--t3)}
+.search .input{height:32px;padding-left:34px;border-radius:8px;font-size:13px}
+.fpanel{padding:16px 20px;margin-bottom:12px;display:flex;flex-direction:column;gap:12px}
+.fp-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
+.fp-row .k{font-size:13px;color:var(--t2);width:80px;flex:none}
+.fp-row .select{width:auto;min-width:160px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:14px;border:1px solid var(--line2);font-size:13px;color:var(--t3);transition:border-color .14s var(--ease),color .14s var(--ease)}
+.chip .dot{opacity:.35}
+.chip.on{color:var(--t1);border-color:var(--line3)}
+.chip.on .dot{opacity:1}
+.g-h{display:flex;align-items:center;justify-content:space-between;gap:8px;height:36px;padding:0 20px;background:var(--sunk);font-size:12px;color:var(--t2);border-top:1px solid var(--line)}
+.g-h:first-child{border-top:0}
+.g-h .mono{color:var(--t3)}
+.f+.f{border-top:1px solid var(--line)}
+.g-h+.f{border-top:1px solid var(--line)}
+.f-row{display:grid;grid-template-columns:96px minmax(0,1fr) 56px 16px;align-items:center;gap:16px;width:100%;min-height:60px;padding:10px 20px;text-align:left;transition:background-color .12s var(--ease)}
+.f-row:hover{background:var(--hover)}
+.f.open .f-row{background:var(--hover)}
+.f-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.f-title{color:var(--t1)}
+.f-sub{display:flex;align-items:center;gap:6px;font-size:12px;line-height:16px;color:var(--t3);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.f-sub .mono{overflow:hidden;text-overflow:ellipsis}
+.f-st{font-size:12px;text-align:right}
+.st-new{color:var(--acc-text);font-weight:500}
+.f-chev{color:var(--t3);transition:transform .16s var(--ease)}
+.f.open .f-chev{transform:rotate(180deg)}
+.is-fixed .f-title{color:var(--t2);text-decoration:line-through;text-decoration-color:var(--line3)}
+.f-detail{padding:4px 20px 20px 132px;animation:pop .2s var(--ease)}
+.f-detail>p{margin:0 0 16px;color:var(--t2);max-width:720px}
+.fix{display:flex;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--sunk);margin:16px 0;max-width:720px}
+.fix svg{color:var(--t3);margin-top:2px}
+.fix .k{font-size:12px;color:var(--t3)}
+.kv{display:grid;grid-template-columns:96px 1fr;gap:8px 16px;font-size:13px;margin:0;max-width:720px}
+.kv dt{color:var(--t3)}
+.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.refs{display:flex;flex-wrap:wrap;gap:4px 16px}
+.f-act{display:flex;gap:8px;margin-top:16px}
+
+/* code */
+.code{position:relative;background:var(--sunk);border:1px solid var(--line);border-radius:10px;overflow:hidden;max-width:720px}
+.code pre{margin:0;padding:12px 16px;overflow:auto;font:400 12.5px/20px var(--mono);color:var(--code-text);tab-size:2}
+.code .cm{color:var(--code-cm)}
+.code .hl{display:inline-block;min-width:calc(100% + 32px);vertical-align:top;background:var(--hl);margin:0 -16px;padding:0 16px;box-shadow:inset 2px 0 0 var(--crit)}
+.code .ln{color:var(--code-ln);user-select:none;display:inline-block;width:32px}
+.code-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;height:40px;padding:0 6px 0 16px;border-bottom:1px solid var(--line);font:400 12px/16px var(--mono);color:var(--t3)}
+.code.wide{max-width:none}
+
+/* connect */
+.steps-v{position:relative}
+.step{display:grid;grid-template-columns:32px minmax(0,1fr);gap:16px;position:relative;padding-bottom:32px}
+.step:not(:last-child)::before{content:"";position:absolute;left:15px;top:36px;bottom:4px;width:1px;background:var(--line2)}
+.step-n{width:32px;height:32px;border-radius:50%;border:1px solid var(--line2);display:grid;place-items:center;font:500 13px/1 var(--mono);color:var(--t2);background:var(--card)}
+.step-b h2{font-size:16px;line-height:32px;font-weight:500;margin:0 0 12px}
+.ci-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:720px}
+.ci{display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;border:1px solid var(--line2);border-radius:10px;background:var(--card);text-align:left;transition:border-color .14s var(--ease),background-color .14s var(--ease)}
+.ci:hover{border-color:var(--line3)}
+.ci svg{color:var(--t3)}
+.ci.on{border-color:var(--acc);background:var(--acc-soft)}
+.ci.on svg{color:var(--acc-text)}
+.tokrow{display:flex;gap:8px;max-width:720px}
+.tokrow .input{flex:1;min-width:0}
+.gate{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:720px;padding:12px 16px;border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:12px}
+.toolchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-width:720px}
+.tchip{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border:1px solid var(--line2);border-radius:8px;font-size:13px;background:var(--card)}
+.tchip.is-on{border-color:var(--acc-line)}
+.alt{margin:8px 0 0 48px}
+.gitbox{margin:16px 0 0 48px;max-width:720px}
+.grid{display:grid;gap:16px}
+
+/* settings */
+.sec+.sec{margin-top:40px}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:0 0 12px 4px}
+.sec-h h2{font-size:16px;line-height:24px;font-weight:500;margin:0}
+.tool-row{display:grid;grid-template-columns:minmax(0,1fr) 140px auto;align-items:center;gap:16px;min-height:64px;padding:10px 12px 10px 20px}
+.tool-row+.tool-row{border-top:1px solid var(--line)}
+.tool-row .nm{font-weight:500}
+.addrow{display:flex;gap:8px;align-items:center;padding:12px 12px 12px 20px;border-top:1px solid var(--line);background:var(--sunk)}
+.addrow .select{max-width:420px}
+.row-line{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-top:1px solid var(--line)}
+.row-line:first-child{border-top:0;padding-top:0}
+.row-line .lbl2{font-weight:500}
+details.logd{border-top:1px solid var(--line);padding-top:16px}
+details.logd summary{cursor:pointer;color:var(--t2);font-size:13px;list-style:none;display:flex;align-items:center;gap:8px}
+details.logd summary::-webkit-details-marker{display:none}
+details.logd summary svg{transition:transform .16s var(--ease);color:var(--t3)}
+details.logd[open] summary svg{transform:rotate(90deg)}
+.log{font:400 12px/20px var(--mono);color:var(--t2);background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:12px 14px;max-height:200px;overflow:auto;margin-top:12px}
+.log .ok{color:var(--pos)}.log .bad{color:var(--ct-crit)}
+.note{display:flex;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--sunk);font-size:13px;color:var(--t2);line-height:20px}
+.note svg{color:var(--t3);margin-top:2px}
+
+/* auth + setup (shared markup with design A) */
+.auth{min-height:100vh;display:grid;place-items:center;padding:32px 16px}
+.auth-card{width:min(400px,100%)}
+.auth-card h1{font-size:24px;line-height:32px;font-weight:500;margin:32px 0 4px}
+.setup{max-width:800px;margin:0 auto;padding:48px 24px 64px}
+.steps{display:flex;gap:8px;margin:32px 0 24px}
+.stepper{flex:1;display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--t3)}
+.stepper i{height:2px;border-radius:1px;background:var(--raised);display:block}
+.stepper.done i,.stepper.cur i{background:var(--t1)}
+.stepper.cur{color:var(--t1)}
+.stepper.done{color:var(--t2)}
+.toolpick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tp{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--line2);border-radius:12px;background:var(--card);text-align:left;transition:border-color .14s var(--ease),background-color .14s var(--ease)}
+.tp:hover{border-color:var(--line3)}
+.tp.is-on{border-color:var(--acc-line);background:var(--acc-soft)}
+.tp .nm{font-weight:500}
+.tp .ds{font-size:13px;color:var(--t2);margin-top:2px}
+.tp .check{margin-top:2px}
+.prog{height:4px;border-radius:2px;background:var(--raised);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--t1);transform-origin:left;transform:scaleX(0);transition:transform .3s var(--ease)}
+.prog.done i{background:var(--pos)}
+.inst{display:grid;grid-template-columns:200px 1fr 120px;align-items:center;gap:16px;height:44px}
+
+/* users (shared markup with design A) */
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:24px}
+.page-head h1{font-size:28px;line-height:36px;font-weight:500;margin:0}
+.page-head p{margin:4px 0 0;color:var(--t2);max-width:720px}
+.card h2{font-size:15px;line-height:22px;font-weight:500;margin:0;display:flex;align-items:center;gap:8px}
+.users-form{display:grid;grid-template-columns:1fr 1fr 200px auto;gap:16px;align-items:end;padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--sunk)}
+.table{width:100%;border-collapse:collapse}
+.table th{font-size:12px;line-height:16px;font-weight:400;color:var(--t3);text-align:left;padding:12px 16px;white-space:nowrap}
+.table td{padding:12px 16px;border-top:1px solid var(--line);vertical-align:middle}
+.table .r{text-align:right}
+.table-wrap{overflow-x:auto}
+.cell-sub{font-size:12px;line-height:16px;color:var(--t3);margin-top:2px}
+.uname{display:flex;align-items:center;gap:12px}
+.lock{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:12px;background:var(--raised);border:1px solid var(--line);font-size:12px;color:var(--t2)}
+.lock svg{width:14px;height:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:12px;font-size:13px;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill-ok{background:var(--pos-soft);color:var(--pos);border:1px solid color-mix(in srgb,var(--pos) 25%,transparent)}
+.pill-off{background:var(--raised);color:var(--t3);border:1px solid var(--line)}
+.link-act{display:inline-flex;align-items:center;gap:6px;color:var(--t2);height:32px;padding:0 8px;border-radius:6px;font-size:13px;transition:color .14s var(--ease),background-color .14s var(--ease)}
+.link-act:hover{color:var(--t1);background:var(--hover)}
+details.perm{border:1px solid var(--line);border-radius:12px;background:var(--sunk)}
+details.perm summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;height:48px;padding:0 16px;color:var(--t2)}
+details.perm summary::-webkit-details-marker{display:none}
+details.perm summary svg{transition:transform .16s var(--ease)}
+details.perm[open] summary svg{transform:rotate(90deg)}
+.yes{color:var(--pos)}.no{color:var(--zero)}
+
+/* modal + toast */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:50;opacity:0;transition:opacity .2s var(--ease)}
+.scrim.show{opacity:1}
+.modal{position:fixed;left:50%;top:15vh;z-index:51;width:min(480px,calc(100vw - 32px));transform:translate(-50%,8px);opacity:0;transition:transform .2s var(--ease),opacity .2s var(--ease)}
+.modal.show{transform:translate(-50%,0);opacity:1}
+.modal .card{box-shadow:var(--shadow)}
+.m-head{padding:20px 24px 0}
+.m-head h2{font-size:16px;font-weight:500;margin:0}
+.m-body{padding:16px 24px 0;display:flex;flex-direction:column;gap:16px}
+.m-foot{display:flex;justify-content:flex-end;gap:8px;padding:8px 24px 20px}
+.toast{position:fixed;right:24px;bottom:56px;z-index:60;background:var(--card);border:1px solid var(--line2);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:13px;box-shadow:var(--shadow);opacity:0;transform:translateY(8px);transition:opacity .18s var(--ease),transform .18s var(--ease);pointer-events:none;max-width:420px}
+.toast.show{opacity:1;transform:none}
+.toast svg{color:var(--pos)}
+.design-back{position:fixed;right:16px;bottom:16px;z-index:45;font-size:12px;color:var(--t3);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+.design-back:hover{color:var(--t1)}
+.enter{animation:rise .32s var(--ease) both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media (max-width:860px){
+  .top-in{padding:0 16px;gap:8px}
+  .switcher,.hide-sm{display:none}
+  .nav-a{padding:0 8px}
+  .wrap{padding:24px 16px 80px}
+  .head{flex-direction:column;align-items:flex-start}
+  .repo-row{grid-template-columns:minmax(0,1fr) auto 16px;height:auto;min-height:56px;padding:10px 16px}
+  .rr-time{display:none}
+  .rr-st{flex-direction:column;align-items:flex-end;gap:2px}
+  .scanbar{flex-direction:column;align-items:flex-start;padding:12px 16px}
+  .nums{grid-template-columns:1fr}
+  .nums>div+div{padding-left:0;border-left:0;border-top:1px solid var(--line);margin-top:16px}
+  .runs{grid-template-columns:1fr}
+  .search{max-width:none;margin-left:0;flex-basis:100%}
+  .f-row{grid-template-columns:minmax(0,1fr) 16px;gap:8px;padding:12px 16px}
+  .f-row .sev{grid-column:1/-1;font-size:12px}
+  .f-st{display:none}
+  .f-detail{padding:4px 16px 20px}
+  .ci-grid{grid-template-columns:1fr 1fr}
+  .alt,.gitbox{margin-left:0}
+  .tool-row{grid-template-columns:1fr;gap:8px;padding:12px 16px}
+  .users-form,.toolpick{grid-template-columns:1fr}
+  .inst{grid-template-columns:110px 1fr 80px}
+  .grid{grid-template-columns:1fr!important}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="layer"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"><i data-lucide="circle-check"></i><span></span></div>
+<a class="design-back" href="index.html">← เลือกดีไซน์อื่น</a>
+
+<script>
+/* ---------- utils ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('scanhub.d.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('scanhub.d.' + k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem('scanhub.d.' + k); } catch (e) {} }
+};
+const icons = () => { try { lucide.createIcons(); } catch (e) {} };
+const pad = n => String(n).padStart(2, '0');
+const TM = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const NOW = new Date(2026, 10, 8, 10, 30);
+const fmt = d => `${d.getDate()} ${TM[d.getMonth()]} ${d.getFullYear() + 543} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const fmtDay = d => `${d.getDate()} ${TM[d.getMonth()]}`;
+function rel(d) {
+  const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(NOW) - day(d)) / 86400000);
+  const t = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if (diff === 0) return 'วันนี้ ' + t;
+  if (diff === 1) return 'เมื่อวาน ' + t;
+  return fmt(d);
+}
+const dur = s => s >= 60 ? `${Math.floor(s / 60)}m ${pad(s % 60)}s` : `${s}s`;
+function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const hashStr = s => [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261);
+let toastT;
+function toast(msg) {
+  const t = $('#toast'); t.querySelector('span').innerHTML = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600);
+}
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); toast('คัดลอกแล้ว'); }
+  catch (e) {
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('คัดลอกแล้ว'); } catch (er) { toast('คัดลอกไม่สำเร็จ เลือกข้อความแล้วคัดลอกเอง'); }
+    ta.remove();
+  }
+}
+
+/* ---------- catalog + data ---------- */
+const TOOLS = [
+  { id: 'sonarqube', name: 'SonarQube', desc: 'คุณภาพโค้ดและ SAST: bug, code smell, security hotspot', ver: '10.7.0' },
+  { id: 'trivy', name: 'Trivy', desc: 'ช่องโหว่ใน dependency, container image และ IaC', ver: '0.57.1' },
+  { id: 'semgrep', name: 'Semgrep', desc: 'SAST ตาม rule ที่ปรับเองได้ รองรับ 30+ ภาษา', ver: '1.96.0' },
+  { id: 'gitleaks', name: 'Gitleaks', desc: 'หา secret และ credential ในโค้ดและ git history', ver: '8.21.2' },
+  { id: 'depcheck', name: 'OWASP Dependency-Check', desc: 'จับคู่ dependency กับ CVE จาก NVD', ver: '11.1.0' },
+  { id: 'checkov', name: 'Checkov', desc: 'misconfiguration ใน Terraform, Kubernetes, Dockerfile', ver: '3.2.305' },
+  { id: 'grype', name: 'Grype', desc: 'ช่องโหว่ใน container image และ filesystem', ver: '0.84.0' }
+];
+const TOOL = Object.fromEntries(TOOLS.map(t => [t.id, t]));
+const SEV = ['critical', 'high', 'medium', 'low', 'info'];
+const SEVL = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low', info: 'Info' };
+const CATS = ['Vulnerability', 'Secret', 'Bug', 'Security hotspot', 'Misconfiguration', 'Code smell'];
+const STL = { new: 'ใหม่', existing: 'คงอยู่', fixed: 'แก้แล้ว' };
+const SERVER = 'https://scanhub.example.co.th';
+
+const PROJECTS = [
+  { id: 'payment', name: 'Payment Platform' },
+  { id: 'mobile', name: 'Mobile Banking' },
+  { id: 'internal', name: 'Internal Tools' }
+];
+const REPOS = [
+  { id: 'payment-api', project: 'payment', lang: 'Go', branch: 'main', set: 'go', lastNum: 48, scans: 11, lastAt: new Date(2026, 10, 8, 10, 14), trig: 'ci', tools: ['sonarqube','trivy','semgrep','gitleaks','checkov','grype','depcheck'] },
+  { id: 'payment-web', project: 'payment', lang: 'TypeScript', branch: 'main', set: 'js', lastNum: 112, scans: 9, lastAt: new Date(2026, 10, 8, 9, 41), trig: 'ci', tools: ['sonarqube','trivy','semgrep','gitleaks','checkov','grype'] },
+  { id: 'ledger-worker', project: 'payment', lang: 'Java', branch: 'main', set: 'java', lastNum: 27, scans: 8, lastAt: new Date(2026, 10, 8, 2, 0), trig: 'schedule', tools: ['sonarqube','trivy','semgrep','gitleaks','depcheck','checkov'] },
+  { id: 'mb-android', project: 'mobile', lang: 'Kotlin', branch: 'develop', set: 'java', lastNum: 64, scans: 8, lastAt: new Date(2026, 10, 7, 16, 20), trig: 'ci', tools: ['sonarqube','trivy','semgrep','gitleaks','depcheck'] },
+  { id: 'mb-bff', project: 'mobile', lang: 'Node.js', branch: 'main', set: 'js', lastNum: 85, scans: 9, lastAt: new Date(2026, 10, 8, 8, 5), trig: 'manual', tools: ['sonarqube','trivy','semgrep','gitleaks','checkov','grype'] },
+  { id: 'hr-portal', project: 'internal', lang: 'Python', branch: 'main', set: 'py', lastNum: 13, scans: 8, lastAt: new Date(2026, 10, 5, 2, 0), trig: 'schedule', tools: ['sonarqube','trivy','semgrep','gitleaks','checkov'] }
+];
+
+// F(sev, cat, title, loc, rule, tools, status, fix, desc, code)
+let fid = 0;
+const F = (sev, cat, title, loc, rule, tools, status, fix, desc, code) => ({ id: 'f' + (++fid), sev, cat, title, loc, rule, tools, status, fix, desc, code });
+const SETS = {
+  go: [
+    F('critical','Secret','AWS access key ถูก hardcode ไว้ในไฟล์ config','config/dev.yaml:14','aws-access-token',['gitleaks','semgrep'],'new','ลบ key ออกจากไฟล์และ git history แล้ว rotate key ใน AWS IAM ทันที','พบ AWS access key ID รูปแบบ AKIA… พร้อม secret key ในไฟล์ที่ commit เข้า repo ใครที่เข้าถึง repo ได้จะใช้ key นี้เรียก AWS API ได้ตามสิทธิ์ของ key',[11,['database:','  host: localhost','aws:','  access_key_id: AKIA4QZ7EXAMPLE7KDPQ','  secret_access_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLE','  region: ap-southeast-1']]),
+    F('critical','Vulnerability','SQL injection จากการต่อ string ใน query','internal/repo/order.go:88','go.lang.security.audit.database.string-formatted-query',['semgrep','sonarqube'],'new','ใช้ parameterized query เช่น db.QueryContext(ctx, "… WHERE id = $1", id)','ค่าจาก request ถูกนำไปต่อเป็น SQL ด้วย fmt.Sprintf โดยไม่ escape ผู้โจมตีส่งค่า orderId ที่มี SQL เพื่ออ่านหรือแก้ข้อมูลในฐานข้อมูลได้',[85,['func (r *OrderRepo) FindByID(ctx context.Context, id string) (*Order, error) {','\tvar o Order','\tq := fmt.Sprintf("SELECT id, amount, status FROM orders WHERE id = \'%s\'", id)','\trow := r.db.QueryRowContext(ctx, q)','\tif err := row.Scan(&o.ID, &o.Amount, &o.Status); err != nil {','\t\treturn nil, err']]),
+    F('critical','Vulnerability','golang.org/x/crypto: ServerConfig.PublicKeyCallback อาจทำให้ bypass การยืนยันตัวตน','golang.org/x/crypto@v0.28.0','CVE-2024-45337',['trivy','grype'],'existing','อัปเกรดเป็น v0.31.0','การใช้ PublicKeyCallback ผิดวิธีอาจทำให้ตัดสินใจ authorization จาก key ที่ client ไม่ได้ถือจริง'),
+    F('high','Vulnerability','golang.org/x/net: HTTP/2 rapid reset ทำให้ server ล่มได้ (DoS)','golang.org/x/net@v0.15.0','CVE-2023-44487',['trivy','grype','depcheck'],'existing','อัปเกรดเป็น v0.17.0','client ส่ง request แล้ว cancel ทันทีซ้ำๆ บน HTTP/2 stream ทำให้ server ใช้ทรัพยากรสูงจนให้บริการไม่ได้'),
+    F('high','Vulnerability','golang.org/x/net: HTTP/2 CONTINUATION flood','golang.org/x/net@v0.15.0','CVE-2023-45288',['trivy','grype'],'existing','อัปเกรดเป็น v0.23.0','ผู้โจมตีส่ง CONTINUATION frame จำนวนมากทำให้ server parse header ไม่จบและใช้ CPU สูง'),
+    F('high','Vulnerability','golang.org/x/net/html: parse HTML ที่สร้างมาเฉพาะทำให้ใช้ CPU สูง','golang.org/x/net@v0.15.0','CVE-2024-45338',['trivy'],'new','อัปเกรดเป็น v0.33.0','ฟังก์ชัน parse ใน x/net/html มีความซับซ้อนแบบ non-linear กับ input บางรูปแบบ'),
+    F('high','Vulnerability','stdlib net/netip: IsLoopback ให้ผลผิดกับ IPv4-mapped IPv6','stdlib@go1.22.3','CVE-2024-24790',['trivy','grype'],'existing','build ด้วย Go 1.22.4 ขึ้นไป','การตรวจ IP ด้วย Is* methods อาจให้ผลผิด ทำให้ access control ที่อิง IP ถูก bypass'),
+    F('high','Vulnerability','stdlib encoding/gob: decode ข้อมูลซ้อนลึกทำให้ stack exhaustion','stdlib@go1.22.3','CVE-2024-34156',['trivy'],'new','build ด้วย Go 1.22.7 ขึ้นไป','การ decode gob ที่ซ้อนกันลึกมากทำให้ process panic'),
+    F('high','Misconfiguration','Container รันด้วย user root','Dockerfile:1','CKV_DOCKER_3',['checkov','trivy'],'existing','เพิ่ม USER 10001 หลังติดตั้ง dependency','ไม่มีคำสั่ง USER ใน Dockerfile ทำให้ process ใน container รันเป็น root ถ้ามีช่องโหว่ RCE ผู้โจมตีจะได้สิทธิ์สูงสุดใน container',[1,['FROM golang:1.22.3-alpine AS build','WORKDIR /src','COPY . .','RUN go build -o /out/payment-api ./cmd/server','','FROM alpine:3.19','COPY --from=build /out/payment-api /usr/local/bin/','ENTRYPOINT ["payment-api"]']]),
+    F('high','Security hotspot','ตรวจ JWT โดยไม่จำกัด signing algorithm','internal/auth/jwt.go:42','go:S5659',['sonarqube'],'existing','กำหนด jwt.WithValidMethods([]string{"RS256"}) ตอน parse','ถ้าไม่จำกัด algorithm ผู้โจมตีอาจสร้าง token ด้วย alg ที่อ่อนกว่าและผ่านการตรวจได้',[39,['func (v *Verifier) Parse(raw string) (*Claims, error) {','\tc := &Claims{}','\t_, err := jwt.ParseWithClaims(raw, c, v.keyFunc)','\tif err != nil {','\t\treturn nil, err','\t}']]),
+    F('medium','Vulnerability','protobuf: protojson.Unmarshal วนไม่รู้จบกับ input บางแบบ','google.golang.org/protobuf@v1.31.0','CVE-2024-24786',['trivy','grype'],'existing','อัปเกรดเป็น v1.33.0','การ unmarshal JSON ที่มีรูปแบบเฉพาะเข้า message ที่มี google.protobuf.Any ทำให้วนไม่จบ'),
+    F('medium','Security hotspot','ใช้ math/rand สร้างเลขอ้างอิงการชำระเงิน','internal/payment/ref.go:23','go:S2245',['sonarqube','semgrep'],'existing','ใช้ crypto/rand แทน math/rand','math/rand คาดเดาได้ เลขอ้างอิงที่สร้างจากมันอาจถูกเดาได้',[20,['func NewRef() string {','\tb := make([]byte, 12)','\tfor i := range b {','\t\tb[i] = alphabet[rand.Intn(len(alphabet))]','\t}','\treturn string(b)']]),
+    F('medium','Security hotspot','เปิด pprof endpoint บน server หลัก','cmd/server/main.go:34','go:S4507',['sonarqube','semgrep'],'new','ย้าย pprof ไป listen บน localhost หรือปิดใน production','import net/http/pprof ทำให้ /debug/pprof เปิดบน mux หลัก ข้อมูล runtime และ heap รั่วออกไปได้',[31,['import (','\t"net/http"','\t_ "net/http/pprof"',')','','func main() {']]),
+    F('medium','Misconfiguration','Deployment ไม่ได้กำหนด CPU และ memory limits','deploy/k8s/deployment.yaml:21','CKV_K8S_11',['checkov'],'existing','กำหนด resources.limits.cpu และ resources.limits.memory','pod ที่ไม่มี limit ใช้ทรัพยากรของ node ได้ไม่จำกัด กระทบ workload อื่น'),
+    F('medium','Misconfiguration','Root filesystem ของ container เขียนได้','deploy/k8s/deployment.yaml:30','CKV_K8S_22',['checkov','trivy'],'existing','ตั้ง securityContext.readOnlyRootFilesystem: true','ถ้า filesystem เขียนได้ ผู้โจมตีวางไฟล์หรือแก้ binary ใน container ได้'),
+    F('medium','Misconfiguration','S3 bucket สำหรับ export statement ไม่ได้เปิด encryption','infra/s3.tf:5','CKV_AWS_19',['checkov'],'new','เพิ่ม server_side_encryption_configuration ด้วย aws:kms','ไฟล์ statement ใน bucket ถูกเก็บโดยไม่เข้ารหัส'),
+    F('medium','Misconfiguration','GitHub Actions ใช้ action โดยไม่ pin commit SHA','.github/workflows/ci.yml:18','CKV_GHA_7',['checkov'],'existing','pin action ด้วย commit SHA แทน tag','tag ของ action ถูกย้ายได้ ทำให้ pipeline รันโค้ดที่เปลี่ยนไปโดยไม่รู้ตัว'),
+    F('medium','Bug','อาจเกิด nil pointer dereference เมื่อไม่พบ refund','internal/handler/refund.go:57','go:S2259',['sonarqube'],'existing','ตรวจ r != nil ก่อนใช้งาน','FindRefund คืน nil, nil เมื่อไม่พบข้อมูล แต่ handler ใช้ r.Amount ต่อทันที',[54,['\tr, err := h.repo.FindRefund(ctx, id)','\tif err != nil {','\t\treturn err','\t}','\tresp.Amount = r.Amount']]),
+    F('medium','Bug','ไม่ได้ตรวจ error จาก rows.Close()','internal/repo/order.go:112','go:S1871',['sonarqube'],'existing','ใช้ defer พร้อมตรวจ error หรือ log ไว้','error ระหว่างปิด rows อาจซ่อนปัญหาการอ่านข้อมูลไม่ครบ'),
+    F('low','Vulnerability','stdlib archive/zip: ไฟล์ zip ที่สร้างมาเฉพาะถูก parse ผิด','stdlib@go1.22.3','CVE-2024-24789',['grype'],'existing','build ด้วย Go 1.22.4 ขึ้นไป','การจัดการ zip ที่มีรูปแบบผิดปกติต่างจาก implementation อื่น'),
+    F('low','Misconfiguration','Dockerfile ไม่มี HEALTHCHECK','Dockerfile:8','CKV_DOCKER_2',['checkov'],'existing','เพิ่ม HEALTHCHECK เรียก /healthz','orchestrator จะไม่รู้ว่า container ยังตอบสนองหรือไม่'),
+    F('low','Code smell','Cognitive complexity ของฟังก์ชันเป็น 24 (เกณฑ์ 15)','internal/payment/settle.go:61','go:S3776',['sonarqube'],'existing','แยก logic การปัดเศษและการรวมยอดออกเป็นฟังก์ชันย่อย','ฟังก์ชัน Settle มีเงื่อนไขซ้อนหลายชั้น อ่านและทดสอบยาก'),
+    F('low','Code smell','โค้ดซ้ำ 38 บรรทัดใน 2 ไฟล์','internal/handler/charge.go:120','common-go:DuplicatedBlocks',['sonarqube'],'existing','ย้ายส่วนที่ซ้ำไปไว้ใน helper เดียว','บล็อก validate request ซ้ำกับ internal/handler/refund.go:88'),
+    F('low','Code smell','String literal "invalid_amount" ซ้ำ 5 ครั้ง','internal/handler/charge.go:33','go:S1192',['sonarqube'],'new','ประกาศเป็น const','ค่าที่ซ้ำกันหลายที่แก้แล้วพลาดง่าย'),
+    F('low','Code smell','ฟังก์ชันมี parameter 9 ตัว (เกณฑ์ 7)','internal/payment/settle.go:18','go:S107',['sonarqube'],'existing','รวม parameter เป็น struct SettleInput','ฟังก์ชันที่รับ parameter มากเรียกใช้ผิดลำดับได้ง่าย'),
+    F('info','Code smell','TODO ค้างอยู่: "handle partial settlement"','internal/repo/ledger.go:77','go:S1135',['sonarqube'],'existing','ปิดงานที่ค้างหรือเปิด ticket แล้วลบ comment','พบ comment TODO ที่ยังไม่ได้ทำ'),
+    F('info','Code smell','TODO ค้างอยู่: "rotate session key"','internal/auth/session.go:15','go:S1135',['sonarqube'],'existing','ปิดงานที่ค้างหรือเปิด ticket แล้วลบ comment','พบ comment TODO ที่ยังไม่ได้ทำ'),
+    F('high','Secret','Slack webhook URL อยู่ใน script แจ้งเตือน','scripts/notify.sh:8','slack-webhook-url',['gitleaks'],'fixed','ย้ายไปเก็บใน secret ของ CI','webhook ถูกลบออกจากไฟล์ใน commit นี้แล้ว'),
+    F('critical','Vulnerability','golang.org/x/net: HPACK decoder ใช้หน่วยความจำมากเกินไป','golang.org/x/net@v0.7.0','CVE-2022-41723',['trivy','grype'],'fixed','อัปเกรดแล้วเป็น v0.15.0','ปิดแล้วจากการอัปเกรด dependency'),
+    F('medium','Security hotspot','ปิดการตรวจ TLS certificate ใน client ธนาคาร','internal/client/bank.go:29','go.lang.security.audit.crypto.tls.insecure-skip-verify',['semgrep'],'fixed','ลบ InsecureSkipVerify แล้ว','ปิดแล้วใน commit นี้'),
+    F('low','Code smell','ตัวแปร ctx ไม่ได้ใช้','internal/handler/health.go:12','go:S1172',['sonarqube'],'fixed','ลบตัวแปรที่ไม่ได้ใช้แล้ว','ปิดแล้วใน commit นี้')
+  ],
+  js: [
+    F('critical','Secret','Stripe secret key ถูก hardcode ไว้ในโค้ด','src/lib/payments.ts:7','stripe-access-token',['gitleaks','semgrep'],'new','ย้ายไปใช้ environment variable และ roll key ใน Stripe dashboard','พบ key รูปแบบ sk_live_… ในโค้ดที่ถูก bundle ไปกับแอป',[5,["import Stripe from 'stripe'","","const stripe = new Stripe('sk_live_51Nx8EXAMPLEqv0Yz', {","  apiVersion: '2024-06-20',","})"]]),
+    F('high','Vulnerability','lodash: command injection ผ่าน template','lodash@4.17.20','CVE-2021-23337',['trivy','grype'],'existing','อัปเกรดเป็น 4.17.21','_.template ที่รับ option จากผู้ใช้ทำให้รันโค้ดได้'),
+    F('medium','Vulnerability','lodash: prototype pollution ผ่าน zipObjectDeep','lodash@4.17.20','CVE-2020-8203',['trivy','grype'],'existing','อัปเกรดเป็น 4.17.21','ผู้โจมตีแก้ Object.prototype ได้เมื่อ input ถูกส่งเข้า zipObjectDeep'),
+    F('high','Vulnerability','axios: XSRF-TOKEN รั่วไปยัง host อื่น','axios@1.5.0','CVE-2023-45857',['trivy','grype'],'new','อัปเกรดเป็น 1.6.0','axios ส่ง header X-XSRF-TOKEN ไปกับทุก request รวมถึง host ภายนอก'),
+    F('high','Vulnerability','ws: request ที่มี header จำนวนมากทำให้ server ล่ม','ws@8.13.0','CVE-2024-37890',['trivy'],'existing','อัปเกรดเป็น 8.17.1','DoS จากจำนวน header เกิน server.maxHeadersCount'),
+    F('medium','Vulnerability','braces: ใช้หน่วยความจำไม่จำกัด','braces@3.0.2','CVE-2024-4068',['trivy','grype'],'existing','อัปเกรดเป็น 3.0.3','input ที่มีวงเล็บไม่ปิดจำนวนมากทำให้ใช้หน่วยความจำสูง'),
+    F('high','Security hotspot','ใช้ dangerouslySetInnerHTML กับข้อมูลจาก API','src/components/ReceiptView.tsx:44','typescript.react.security.audit.react-dangerouslysetinnerhtml',['semgrep','sonarqube'],'existing','sanitize ด้วย DOMPurify ก่อน render หรือ render เป็น text','ข้อมูล note ของใบเสร็จมาจากผู้ใช้ อาจมี script แฝง',[42,['  return (','    <section className="receipt">','      <div dangerouslySetInnerHTML={{ __html: receipt.note }} />','    </section>','  )']]),
+    F('medium','Bug','Promise ไม่ได้ await ใน try block','src/api/client.ts:58','typescript:S6544',['sonarqube'],'existing','await หรือ return promise นั้น','error จาก promise จะไม่ถูก catch'),
+    F('medium','Misconfiguration','nginx container รันด้วย root','Dockerfile:12','CKV_DOCKER_3',['checkov','trivy'],'existing','ใช้ nginxinc/nginx-unprivileged','process ใน container รันด้วยสิทธิ์ root'),
+    F('low','Code smell','โค้ดซ้ำ 52 บรรทัดในหน้า checkout','src/pages/checkout/Summary.tsx:30','common-ts:DuplicatedBlocks',['sonarqube'],'existing','แยกเป็น component','ซ้ำกับ src/pages/checkout/Review.tsx'),
+    F('low','Code smell','Cognitive complexity ของฟังก์ชันเป็น 19 (เกณฑ์ 15)','src/hooks/useCart.ts:22','typescript:S3776',['sonarqube'],'new','แยก reducer ย่อย','ฟังก์ชันซับซ้อนเกินเกณฑ์'),
+    F('info','Code smell','TODO ค้างอยู่: "remove legacy coupon flow"','src/pages/checkout/Coupon.tsx:9','typescript:S1135',['sonarqube'],'existing','ปิดงานหรือเปิด ticket','พบ comment TODO'),
+    F('medium','Vulnerability','semver: ReDoS ใน range parser','semver@7.5.1','CVE-2022-25883',['trivy'],'fixed','อัปเกรดแล้วเป็น 7.5.4','ปิดแล้ว')
+  ],
+  java: [
+    F('critical','Vulnerability','spring-beans: RCE ผ่าน data binding (Spring4Shell)','org.springframework:spring-beans@5.3.17','CVE-2022-22965',['trivy','depcheck'],'existing','อัปเกรดเป็น 5.3.18','data binding บน JDK 9+ ทำให้เข้าถึง ClassLoader ได้'),
+    F('high','Vulnerability','spring-webmvc: path traversal ใน functional web framework','org.springframework:spring-webmvc@5.3.17','CVE-2024-38816',['depcheck','trivy'],'new','อัปเกรดเป็น 5.3.40 หรือ 6.1.13','อ่านไฟล์นอก static resource directory ได้'),
+    F('high','Vulnerability','commons-text: variable interpolation ทำให้รันโค้ดได้','org.apache.commons:commons-text@1.9','CVE-2022-42889',['trivy','depcheck'],'existing','อัปเกรดเป็น 1.10.0','StringSubstitutor ค่าเริ่มต้นรองรับ script lookup'),
+    F('medium','Vulnerability','netty-handler: SniHandler จองหน่วยความจำ 16MB ได้','io.netty:netty-handler@4.1.89.Final','CVE-2023-34462',['trivy'],'existing','อัปเกรดเป็น 4.1.94.Final','client ส่ง ClientHello ปลอมเพื่อให้ server จองหน่วยความจำ'),
+    F('high','Secret','รหัสผ่านฐานข้อมูลอยู่ใน application-dev.yml','src/main/resources/application-dev.yml:18','generic-api-key',['gitleaks'],'existing','ย้ายไป secret manager แล้ว rotate รหัสผ่าน','พบ password ของ datasource ใน config'),
+    F('high','Security hotspot','XML parser เปิด external entity (XXE)','src/main/java/th/ledger/StatementParser.java:31','java:S2755',['sonarqube','semgrep'],'existing','ตั้ง XMLConstants.FEATURE_SECURE_PROCESSING และปิด DTD','อ่านไฟล์ในเครื่องหรือเรียก URL ภายในผ่าน XML ได้'),
+    F('medium','Bug','Resource ไม่ถูกปิดเมื่อเกิด exception','src/main/java/th/ledger/ExportJob.java:77','java:S2095',['sonarqube'],'existing','ใช้ try-with-resources','file handle รั่วเมื่อ export ล้มเหลว'),
+    F('medium','Misconfiguration','Pod ไม่ได้ตั้ง runAsNonRoot','deploy/k8s/worker.yaml:24','CKV_K8S_23',['checkov'],'new','ตั้ง securityContext.runAsNonRoot: true','container อาจรันเป็น root'),
+    F('low','Code smell','String literal ซ้ำ 4 ครั้ง','src/main/java/th/ledger/Posting.java:40','java:S1192',['sonarqube'],'existing','ประกาศเป็น constant','ค่าซ้ำหลายที่'),
+    F('info','Code smell','TODO ค้างอยู่','src/main/java/th/ledger/Reconcile.java:12','java:S1135',['sonarqube'],'existing','ปิดงานหรือเปิด ticket','พบ comment TODO')
+  ],
+  py: [
+    F('high','Vulnerability','jinja2: xmlattr filter รับ key ที่มีช่องว่าง (XSS)','jinja2@3.1.3','CVE-2024-34064',['trivy'],'existing','อัปเกรดเป็น 3.1.4','attribute injection ผ่าน xmlattr'),
+    F('high','Vulnerability','flask: session cookie ถูก cache ข้ามผู้ใช้','flask@2.2.2','CVE-2023-30861',['trivy'],'existing','อัปเกรดเป็น 2.2.5','proxy อาจ cache Set-Cookie ของผู้ใช้หนึ่งให้อีกคน'),
+    F('high','Security hotspot','subprocess ใช้ shell=True กับชื่อไฟล์จากผู้ใช้','app/export.py:41','python:S4721',['semgrep','sonarqube'],'new','ส่ง argument เป็น list และ shell=False','command injection ผ่านชื่อไฟล์'),
+    F('medium','Secret','Django SECRET_KEY อยู่ในโค้ด','hr_portal/settings.py:23','django-secret-key',['gitleaks'],'existing','อ่านจาก environment variable','ใครมี key ปลอม session ได้'),
+    F('medium','Misconfiguration','Container รันด้วย user root','Dockerfile:1','CKV_DOCKER_3',['checkov'],'existing','เพิ่มคำสั่ง USER','process รันเป็น root'),
+    F('low','Code smell','Cognitive complexity 21 (เกณฑ์ 15)','app/leave/views.py:88','python:S3776',['sonarqube'],'existing','แยกฟังก์ชัน','ฟังก์ชันซับซ้อนเกินเกณฑ์')
+  ]
+};
+
+/* history */
+function sevCounts(list) { const c = [0,0,0,0,0]; list.forEach(f => c[SEV.indexOf(f.sev)]++); return c; }
+// Open findings per severity: one stacked bar + a count for every level. clickable = buttons that filter the list
+function sevBreak(c, clickable) {
+  const tot = c.reduce((a, b) => a + b, 0);
+  const bar = tot ? SEV.map((s, i) => c[i] ? `<span class="s-${s}" style="flex:${c[i]}" title="${SEVL[s]} ${c[i]}"></span>` : '').join('') : '';
+  const items = SEV.map((s, i) => {
+    const inner = `<span class="dot s-${s}"></span>${SEVL[s]}<span class="n">${c[i]}</span>`;
+    return clickable && c[i] ? `<button class="it" data-sevgo="${s}" title="ดูเฉพาะ ${SEVL[s]}">${inner}</button>` : `<span class="it ${c[i] ? '' : 'zero'}">${inner}</span>`;
+  }).join('');
+  return `<div class="sevbar" role="img" aria-label="${SEV.map((s, i) => SEVL[s] + ' ' + c[i]).join(', ')}">${bar}</div><div class="sevlegend">${items}</div>`;
+}
+const sum = a => a.reduce((x, y) => x + y, 0);
+const HIST = {};
+function buildHistory(repo) {
+  const r = rng(hashStr(repo.id));
+  const base = SETS[repo.set];
+  const open = base.filter(f => f.status !== 'fixed');
+  let counts = sevCounts(open);
+  let date = new Date(repo.lastAt);
+  const out = [];
+  const branches = ['main','main','main','develop','feature/refund-v2','fix/settlement-rounding'];
+  for (let i = 0; i < repo.scans; i++) {
+    const num = repo.lastNum - i;
+    let newN, fixedN;
+    if (i === 0) { newN = base.filter(f => f.status === 'new').length; fixedN = base.filter(f => f.status === 'fixed').length; }
+    else { newN = Math.floor(r() * 3); fixedN = 1 + Math.floor(r() * 4); }
+    const tv = r();
+    const trigger = i === 0 ? repo.trig : tv < .6 ? 'ci' : tv < .85 ? 'schedule' : 'manual';
+    const d = new Date(date);
+    if (trigger === 'schedule' && i > 0) { d.setHours(2, 0); }
+    const runs = repo.tools.map(t => {
+      let status = 'ok', note = '';
+      if (t === 'depcheck' && repo.set === 'go') { status = 'skipped'; note = 'ไม่พบ manifest ที่รองรับ'; }
+      if (i === 4 && t === 'sonarqube') { status = 'failed'; note = 'Compute engine timeout หลัง 10 นาที'; }
+      const dd = { sonarqube: 80, trivy: 30, semgrep: 45, gitleaks: 5, depcheck: 90, checkov: 18, grype: 26 }[t];
+      return { tool: t, status, dur: status === 'skipped' ? 0 : Math.round(dd * (.8 + r() * .6)), note };
+    });
+    out.push({
+      id: repo.id + '-' + num, repo: repo.id, num, date: d,
+      sha: Math.floor(r() * 0xfffffff).toString(16).padStart(7, '0'),
+      branch: i === 0 ? repo.branch : (trigger === 'schedule' ? repo.branch : branches[Math.floor(r() * branches.length)]),
+      trigger, runs, duration: Math.max(...runs.map(x => x.dur)) + 14 + Math.floor(r() * 20),
+      counts: counts.slice(), newN, fixedN, latest: i === 0
+    });
+    const prev = counts.slice();
+    if (i === 0) base.forEach(f => { const k = SEV.indexOf(f.sev); if (f.status === 'new') prev[k]--; if (f.status === 'fixed') prev[k]++; });
+    else {
+      const pick = () => { const v = r(); return v < .06 ? 0 : v < .25 ? 1 : v < .6 ? 2 : v < .9 ? 3 : 4; };
+      for (let j = 0; j < newN; j++) { const k = pick(); if (prev[k] > 0) prev[k]--; }
+      for (let j = 0; j < fixedN; j++) prev[pick()]++;
+    }
+    counts = prev.map(v => Math.max(0, v));
+    date = new Date(date.getTime() - (1 + r() * 2) * 86400000);
+    date.setHours(9 + Math.floor(r() * 9), Math.floor(r() * 60));
+  }
+  return out;
+}
+REPOS.forEach(r => { HIST[r.id] = buildHistory(r); });
+const repoById = id => REPOS.find(r => r.id === id);
+const scanById = id => { for (const k in HIST) { const s = HIST[k].find(x => x.id === id); if (s) return s; } return null; };
+function findingsFor(scan) {
+  const repo = repoById(scan.repo);
+  const base = SETS[repo.set];
+  if (scan.latest) return base.map(f => ({ ...f, since: f.status === 'new' ? scan.num : scan.num - 3 - (hashStr(f.id) & 7) }));
+  const pool = base.filter(f => f.status !== 'new').map(f => ({ ...f, status: 'existing', since: scan.num - 2 }));
+  const left = scan.counts.slice();
+  return pool.filter(f => { const k = SEV.indexOf(f.sev); if (left[k] > 0) { left[k]--; return true; } return false; });
+}
+
+/* ---------- state ---------- */
+const S = {
+  user: store.get('auth', null),
+  setupDone: store.get('setup', false),
+  installed: store.get('installed', ['sonarqube','trivy','semgrep','gitleaks','checkov','grype']),
+  schedule: store.get('schedule', { on: true, time: '03:00', db: true }),
+  users: [
+    { u: 'admin', role: 'ADMIN', active: true, last: 'เมื่อสักครู่', env: true },
+    { u: 'anupat.p', role: 'QA', active: true, last: '6 พ.ย. 2569 09:52' },
+    { u: 'narunart.k', role: 'QA', active: true, last: 'ยังไม่เคย', pending: true },
+    { u: 'satang.b', role: 'DEVELOPER', active: true, last: '6 พ.ย. 2569 17:28' }
+  ],
+  toolState: {},
+  ci: { tools: null, gate: true, tab: 'github' },
+  token: 'shp_live_8Kq2vXn4TzR7mWb9Lc3Hs6Pd1Fy5Jg0a3f9a',
+  showToken: false,
+  running: {},
+  fs: { scan: null },
+  gitOpen: false,
+  toolsOpen: false
+};
+const MARK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M7 12h10"/><path d="M7 8h4M7 16h6" opacity=".55"/></svg>';
+const trigL = { ci: ['git-pull-request', 'CI'], manual: ['play', 'สั่งเอง'], schedule: ['calendar-clock', 'ตามเวลา'] };
+const latest = id => (HIST[id] || [])[0];
+const toolShort = t => TOOL[t].name.replace('OWASP ', '');
+
+/* ---------- theme ---------- */
+const THEME = {
+  get: () => store.get('theme', 'system'),
+  apply() { const t = THEME.get(); if (t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); }
+};
+THEME.apply();
+
+/* ---------- repo status ---------- */
+function repoStatus(r) {
+  const l = latest(r.id);
+  if (!l) return { k: 'none', t: 'ยังไม่สแกน' };
+  const c = l.counts;
+  if (c[0]) return { k: 'crit', t: `มี Critical ${c[0]}` };
+  if (c[1]) return { k: 'high', t: `มี High ${c[1]}` };
+  return { k: 'ok', t: 'ผ่าน' };
+}
+const statusPill = r => { const s = repoStatus(r); return `<span class="status st-${s.k}"><span class="dot"></span>${s.t}</span>`; };
+const statusDot = r => `<span class="dot sd-${repoStatus(r).k}" title="${repoStatus(r).t}"></span>`;
+
+/* ---------- shell ---------- */
+function shell(_crumbs, body) {
+  const u = S.user || 'admin';
+  const h = location.hash || '#projects';
+  const cur = (h.match(/^#(?:repo|connect)\/([^/]+)/) || [])[1];
+  const sw = cur ? repoById(cur) : null;
+  const navA = (href, label, on) => `<a class="nav-a ${on ? 'on' : ''}" href="${href}" ${on ? 'aria-current="page"' : ''}>${label}</a>`;
+  return `<header class="top"><div class="top-in">
+    <a class="brand" href="#projects">${MARK}ScanHub</a>
+    <div class="pop-wrap"><button class="switcher" data-pop="swPop" aria-haspopup="true" aria-expanded="false"><span>${sw ? esc(sw.id) : 'ไปที่ repo'}</span><i data-lucide="chevrons-up-down"></i></button>
+      <div class="pop" id="swPop" hidden>${PROJECTS.map(p => `<div class="pop-label">${esc(p.name)}</div>${REPOS.filter(r => r.project === p.id).map(r => `<a class="pop-row ${r.id === cur ? 'on' : ''}" href="#repo/${r.id}"><span>${esc(r.id)}</span>${statusDot(r)}</a>`).join('')}`).join('')}</div></div>
+    <nav class="nav">${navA('#projects', 'โปรเจกต์', /^#(projects|repo|connect)/.test(h))}${navA('#settings', 'ตั้งค่า', h.startsWith('#settings'))}${navA('#users', 'ผู้ใช้', h.startsWith('#users'))}</nav>
+    <div class="pop-wrap"><button class="userbtn" data-pop="mePop" aria-haspopup="true" aria-expanded="false" aria-label="เมนูผู้ใช้"><span class="avatar">${esc(u.slice(0, 2).toUpperCase())}</span><span class="hide-sm">${esc(u)}</span><i data-lucide="chevron-down"></i></button>
+      <div class="pop pop-r" id="mePop" hidden>
+        <div class="pop-me"><div>${esc(u)}</div><div class="small t3">ADMIN</div></div>
+        <div class="pop-label">ธีม</div>
+        <div class="seg">${[['system', 'ตามระบบ'], ['light', 'สว่าง'], ['dark', 'มืด']].map(([k, l]) => `<button data-theme-set="${k}" class="${THEME.get() === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+        <hr><button class="pop-row" id="logout"><span>ออกจากระบบ</span><i data-lucide="log-out"></i></button>
+      </div></div>
+  </div></header>
+  <main class="wrap enter">${body}</main>`;
+}
+function closePops(except) { $$('.pop').forEach(p => { if (p.id !== except) { p.hidden = true; const b = $(`[data-pop="${p.id}"]`); if (b) b.setAttribute('aria-expanded', 'false'); } }); }
+document.addEventListener('click', e => { if (!e.target.closest('.pop-wrap')) closePops(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePops(); closeModal(); } });
+function bindPops() {
+  $$('[data-pop]').forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    const p = $('#' + b.dataset.pop); const show = p.hidden;
+    closePops(b.dataset.pop); p.hidden = !show; b.setAttribute('aria-expanded', String(show));
+  });
+}
+function bindShell() {
+  bindPops();
+  $$('[data-theme-set]').forEach(b => b.onclick = () => { store.set('theme', b.dataset.themeSet); THEME.apply(); render(); });
+  const lo = $('#logout'); if (lo) lo.onclick = () => { S.user = null; store.del('auth'); location.hash = '#login'; };
+}
+
+/* ---------- modal ---------- */
+function closeModal() { const l = $('#layer'); if (!l.innerHTML) return; $$('.scrim,.modal', l).forEach(e => e.classList.remove('show')); setTimeout(() => { l.innerHTML = ''; }, 200); }
+function modal(title, inner, okLabel, onOk) {
+  const l = $('#layer');
+  l.innerHTML = `<div class="scrim"></div><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="card"><div class="m-head"><h2>${esc(title)}</h2></div><form id="mForm" novalidate><div class="m-body">${inner}<div class="err" id="mErr"></div></div><div class="m-foot"><button type="button" class="btn btn-ghost" id="mCancel">ยกเลิก</button><button class="btn btn-primary" type="submit">${okLabel}</button></div></form></div></div>`;
+  requestAnimationFrame(() => $$('.scrim,.modal', l).forEach(e => e.classList.add('show')));
+  icons();
+  $('.scrim', l).onclick = closeModal; $('#mCancel').onclick = closeModal;
+  $('#mForm').onsubmit = e => { e.preventDefault(); const r = onOk(); if (typeof r === 'string') { $('#mErr').textContent = r; return; } closeModal(); };
+  const f = $('input,select', l); if (f) f.focus();
+}
+
+/* ---------- projects ---------- */
+function viewProjects() {
+  const totalNew = REPOS.reduce((a, r) => a + (latest(r.id) ? latest(r.id).newN : 0), 0);
+  const body = `<div class="head"><div><h1>โปรเจกต์</h1><p class="t2">${REPOS.length} repo ใน ${PROJECTS.length} โปรเจกต์ · สแกนล่าสุดพบปัญหาใหม่รวม ${totalNew} รายการ</p></div>
+    <div class="actions"><button class="btn btn-ghost" id="newProj"><i data-lucide="folder-plus"></i>สร้างโปรเจกต์</button><button class="btn btn-primary" id="newRepo"><i data-lucide="plus"></i>เพิ่ม repo</button></div></div>
+    ${(() => {
+      const ls = REPOS.map(r => latest(r.id)).filter(Boolean);
+      const c = [0, 0, 0, 0, 0]; ls.forEach(l => l.counts.forEach((v, i) => c[i] += v));
+      const tot = c.reduce((a, b) => a + b, 0);
+      const withCrit = ls.filter(l => l.counts[0] > 0).length, clean = ls.filter(l => !l.counts[0] && !l.counts[1]).length;
+      return `<section class="card overview">
+        <div class="ov-top">
+          <div><div class="k">ยังเปิดอยู่ทั้งหมด</div><div class="v">${tot}</div></div>
+          <div><div class="k">repo ที่มี Critical</div><div class="v">${withCrit}<span class="of"> / ${ls.length}</span></div></div>
+          <div><div class="k">repo ที่ผ่าน</div><div class="v">${clean}<span class="of"> / ${ls.length}</span></div><div class="d">ไม่มี Critical และ High</div></div>
+        </div>
+        <div class="sevblock">${sevBreak(c, false)}</div>
+      </section>`;
+    })()}
+    ${PROJECTS.map(p => { const rs = REPOS.filter(r => r.project === p.id); return `<section class="group"><div class="group-h"><h2>${esc(p.name)}</h2><span class="small t3">${rs.length} repo</span></div>
+      <div class="card list">${rs.length ? rs.map(r => { const l = latest(r.id); return `<a class="repo-row" href="#repo/${r.id}">
+        <div class="rr-name"><span class="nm">${esc(r.id)}</span><span class="small t3">${esc(r.lang)}</span></div>
+        <div class="rr-st">${l && l.newN ? `<span class="newtag">ใหม่ +${l.newN}</span>` : ''}${statusPill(r)}</div>
+        <div class="rr-time small t3">${l ? rel(l.date) : 'รอเชื่อมต่อ'}</div>
+        <i data-lucide="chevron-right" class="t3"></i></a>`; }).join('') : `<div class="empty small">ยังไม่มี repo · <button class="linkbtn" data-addto="${p.id}">เพิ่ม repo</button></div>`}</div></section>`; }).join('')}`;
+  return shell(null, body);
+}
+function addRepoModal(pid) {
+  modal('เพิ่ม repo', `
+    <div class="field"><label for="mrP">โปรเจกต์</label><select class="select" id="mrP">${PROJECTS.map(p => `<option value="${p.id}" ${p.id === pid ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div>
+    <div class="field"><label for="mrN">ชื่อ repo</label><input class="input mono" id="mrN" placeholder="เช่น payment-gateway" autocomplete="off"></div>
+    <div class="field"><label for="mrL">ภาษาหลัก</label><select class="select" id="mrL">${['Go', 'TypeScript', 'Java', 'Kotlin', 'Node.js', 'Python', 'อื่นๆ'].map(x => `<option>${x}</option>`).join('')}</select></div>
+    <p class="hint" style="margin:0">ขั้นต่อไปจะได้ token และโค้ดสำหรับเชื่อมกับ CI</p>`, 'เพิ่มแล้วไปเชื่อมต่อ', () => {
+    const n = $('#mrN').value.trim();
+    if (!/^[a-z0-9._-]{2,60}$/.test(n)) return 'ใช้ได้เฉพาะ a-z 0-9 . _ - อย่างน้อย 2 ตัว';
+    if (repoById(n)) return 'มี repo ชื่อนี้แล้ว';
+    REPOS.push({ id: n, project: $('#mrP').value, lang: $('#mrL').value, branch: 'main', set: 'go', lastNum: 0, scans: 0, lastAt: NOW, trig: 'ci', tools: S.installed.slice() });
+    HIST[n] = [];
+    setTimeout(() => { location.hash = '#connect/' + n; toast(`เพิ่ม ${esc(n)} แล้ว`); }, 0);
+  });
+}
+function bindProjects() {
+  $('#newRepo').onclick = () => addRepoModal('payment');
+  $$('[data-addto]').forEach(b => b.onclick = () => addRepoModal(b.dataset.addto));
+  $('#newProj').onclick = () => modal('สร้างโปรเจกต์', `<div class="field"><label for="mpN">ชื่อโปรเจกต์</label><input class="input" id="mpN" placeholder="เช่น Loan Origination" autocomplete="off"></div>`, 'สร้าง', () => {
+    const n = $('#mpN').value.trim(); if (n.length < 2) return 'ตั้งชื่ออย่างน้อย 2 ตัวอักษร';
+    PROJECTS.push({ id: 'p' + Date.now(), name: n });
+    setTimeout(() => { render(); toast(`สร้างโปรเจกต์ ${esc(n)} แล้ว`); }, 0);
+  });
+}
+
+/* ---------- findings data per scan ---------- */
+function findingsD(scan) {
+  const repo = repoById(scan.repo), base = SETS[repo.set];
+  if (scan.latest) return base.map(f => ({ ...f, since: f.status === 'new' ? scan.num : scan.num - 3 - (hashStr(f.id) & 7) }));
+  const pool = base.filter(f => f.status !== 'new').slice().sort((a, b) => (hashStr(a.id + scan.num) >>> 0) - (hashStr(b.id + scan.num) >>> 0));
+  const left = scan.counts.slice(), open = [], rest = [];
+  pool.forEach(f => { const k = SEV.indexOf(f.sev); if (left[k] > 0) { left[k]--; open.push(f); } else rest.push(f); });
+  const out = open.map((f, i) => ({ ...f, status: i < scan.newN ? 'new' : 'existing', since: i < scan.newN ? scan.num : scan.num - 2 - (hashStr(f.id) & 3) }));
+  rest.slice(0, scan.fixedN).forEach(f => out.push({ ...f, status: 'fixed', since: scan.num - 4 }));
+  return out;
+}
+function resetFS(scanId) {
+  S.fs = { scan: scanId, view: 'focus', q: '', sev: new Set(SEV), cat: '', tool: '', group: 'none', panel: false, open: new Set(), runs: false };
+}
+
+/* ---------- repo ---------- */
+function repoHead(repo, sub) {
+  const p = PROJECTS.find(x => x.id === repo.project);
+  const run = S.running[repo.id];
+  return `<div class="crumb small"><a href="#projects">${esc(p.name)}</a>${sub ? ` <span class="sep">/</span> <a href="#repo/${repo.id}">${esc(repo.id)}</a>` : ''}</div>
+    <div class="head"><div><h1>${sub || esc(repo.id)}</h1><div class="meta t2"><span>${esc(repo.lang)}</span><span class="sep">·</span><span class="mono small"><i data-lucide="git-branch"></i>${esc(repo.branch)}</span><span class="sep">·</span>${statusPill(repo)}</div></div>
+    <div class="actions">${sub ? `<a class="btn" href="#repo/${repo.id}"><i data-lucide="arrow-left"></i>กลับไปผลสแกน</a>` : `<a class="btn" href="#connect/${repo.id}"><i data-lucide="plug"></i>เชื่อมต่อ CI</a><button class="btn btn-primary" id="scanNow" ${run ? 'disabled' : ''}><i data-lucide="${run ? 'loader' : 'play'}" class="${run ? 'spin' : ''}"></i>${run ? 'กำลังสแกน' : 'สแกนตอนนี้'}</button>`}</div></div>`;
+}
+// Small fixed-size trend: drawn at its real pixel size so lines and dots never scale up
+function spark(scans, cur, repoId) {
+  const n = scans.length, W = 320, H = 64, p = 6;
+  const tot = scans.map(s => sum(s.counts)), ch = scans.map(s => s.counts[0] + s.counts[1]);
+  const max = Math.max(10, ...tot);
+  const x = i => p + (n === 1 ? (W - 2 * p) / 2 : i * (W - 2 * p) / (n - 1));
+  const y = v => p + (H - 2 * p) * (1 - v / max);
+  const path = arr => arr.map((v, i) => { if (i === 0) return `M${x(0)},${y(v)}`; const x0 = x(i - 1), x1 = x(i), mx = (x0 + x1) / 2; return `C${mx},${y(arr[i - 1])} ${mx},${y(v)} ${x1},${y(v)}`; }).join('');
+  const ci = scans.findIndex(s => s.id === cur.id);
+  const step = (W - 2 * p) / Math.max(1, n - 1);
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="แนวโน้มปัญหาที่เปิดอยู่ ${n} สแกนล่าสุด">
+    <path class="ch-area" d="${path(tot)}L${x(n - 1)},${H - p}L${x(0)},${H - p}Z" opacity=".5"/>
+    <path class="ch-tot" d="${path(tot)}"/>
+    <path class="ch-acc" d="${path(ch)}"/>
+    ${ci >= 0 ? `<circle class="ch-pt cur" cx="${x(ci)}" cy="${y(ch[ci])}" r="3.5"/>` : ''}
+    ${scans.map((s, i) => `<a href="#repo/${repoId}/${s.num}"><rect class="ch-hit" x="${x(i) - step / 2}" y="0" width="${step}" height="${H}"/><title>สแกน #${s.num} · ${fmt(s.date)} · Critical+High ${ch[i]} · ทั้งหมด ${tot[i]}</title></a>`).join('')}
+  </svg>`;
+}
+// One short line about what to fix first; the numbers row already says new / fixed / open
+function focusLine(nw, open) {
+  const ch = open.filter(f => f.sev === 'critical' || f.sev === 'high').length;
+  if (!ch) return 'ไม่มี Critical หรือ High ที่เปิดอยู่';
+  const nCH = nw.filter(f => f.sev === 'critical' || f.sev === 'high').length;
+  return `ควรแก้ก่อน Critical + High ${ch} รายการ${nCH ? ` · เป็นของใหม่ ${nCH}` : ''}`;
+}
+function viewRepo(id, num) {
+  const repo = repoById(id); if (!repo) return viewNotFound();
+  const hist = HIST[id] || [];
+  if (!hist.length) return shell(null, repoHead(repo) + `<div class="card empty-big"><i data-lucide="scan-line"></i><h2>ยังไม่มีผลสแกน</h2><p class="t2">เชื่อม repo นี้กับ CI แล้วทุก push จะสแกนและส่งผลมาที่นี่ หรือกดสแกนตอนนี้</p><div class="actions" style="justify-content:center"><a class="btn btn-primary" href="#connect/${id}"><i data-lucide="plug"></i>เชื่อมต่อ CI</a></div></div>`);
+  const scan = (num && hist.find(s => String(s.num) === String(num))) || hist[0];
+  const prev = hist[hist.indexOf(scan) + 1];
+  if (S.fs.scan !== scan.id) resetFS(scan.id);
+  const list = findingsD(scan);
+  const open = list.filter(f => f.status !== 'fixed'), nw = list.filter(f => f.status === 'new'), fx = list.filter(f => f.status === 'fixed');
+  const ok = scan.runs.filter(r => r.status === 'ok'), other = scan.runs.filter(r => r.status !== 'ok');
+  const openPrev = prev ? sum(prev.counts) : null;
+  const body = `${repoHead(repo)}
+    <div class="card scanbar">
+      <div class="sb-main"><span class="ttl">สแกน #${scan.num}</span>${scan.latest ? '<span class="small t3">ล่าสุด</span>' : `<a class="small linkacc" href="#repo/${id}">ไปที่สแกนล่าสุด</a>`}
+        <span class="sb-meta small">${fmt(scan.date)} <span class="kc">${scan.sha}</span> ${trigL[scan.trigger][1]} <span class="sep">·</span> <span class="mono">${esc(scan.branch)}</span> <span class="sep">·</span> ${dur(scan.duration)}</span></div>
+      <div class="pop-wrap"><button class="btn btn-sm" data-pop="histPop" aria-haspopup="true" aria-expanded="false"><i data-lucide="history"></i>ประวัติ <span class="mono t3">${hist.length}</span></button>
+        <div class="pop pop-r pop-hist" id="histPop" hidden><div class="pop-label">ประวัติการสแกน</div>${hist.map(s => `<a class="hist-row ${s.id === scan.id ? 'on' : ''}" href="#repo/${id}/${s.num}"><span class="mono small t3">#${s.num}</span><span>${rel(s.date)}</span><span class="kc">${s.sha}</span><span class="mono small hd">+${s.newN} <span class="pos">−${s.fixedN}</span></span></a>`).join('')}</div></div>
+    </div>
+    <section class="card sum">
+      <div class="sum-top">
+      <div class="nums">
+        <div><div class="k">ยังเปิดอยู่</div><div class="v">${open.length}</div><div class="d">${openPrev == null ? 'สแกนแรกของ repo' : `${openPrev > open.length ? 'ลดลง ' + (openPrev - open.length) : openPrev < open.length ? 'เพิ่มขึ้น ' + (open.length - openPrev) : 'เท่าเดิม'} เทียบกับ #${prev.num}`}</div></div>
+        <div><div class="k">ใหม่</div><div class="v">${nw.length}</div><div class="d">${prev ? 'ไม่พบในสแกน #' + prev.num : '—'}</div></div>
+        <div><div class="k">แก้แล้ว</div><div class="v ${fx.length ? 'pos' : ''}">${fx.length}</div><div class="d">${prev ? 'มีในสแกน #' + prev.num + ' แต่ไม่พบแล้ว' : '—'}</div></div>
+      </div>
+      <div class="spark">
+        <div class="spark-head"><span>แนวโน้ม ${hist.length} สแกน</span><span class="legend"><span><i style="background:var(--acc)"></i>Critical + High</span><span><i style="background:var(--t3)"></i>ทั้งหมด</span></span></div>
+        ${spark(hist.slice().reverse(), scan, id)}
+        <div class="spark-x"><span>${fmtDay(hist[hist.length - 1].date)}</span><span>${fmtDay(hist[0].date)}</span></div>
+      </div>
+      </div>
+      <div class="sevblock"><div class="sevblock-h"><span>ยังเปิดอยู่ตามความรุนแรง</span><span class="small t3">${focusLine(nw, open)}</span></div>${sevBreak(sevCounts(open), true)}</div>
+      <button class="runline" id="runBtn" aria-expanded="${S.fs.runs}"><i data-lucide="${other.some(r => r.status === 'failed') ? 'circle-alert' : 'circle-check'}" class="${other.some(r => r.status === 'failed') ? 'neg' : 'pos'}"></i><span>${ok.length} scanner ทำงานสำเร็จ${other.map(r => ` · ${toolShort(r.tool)} ${r.status === 'failed' ? '<span class="neg">ล้มเหลว</span>' : 'ข้าม'}`).join('')}</span><i data-lucide="chevron-down" class="chev"></i></button>
+      <div class="runs" ${S.fs.runs ? '' : 'hidden'}>${scan.runs.map(r => `<div class="run ${r.status}"><i data-lucide="${r.status === 'ok' ? 'check' : r.status === 'failed' ? 'x' : 'minus'}"></i><span>${TOOL[r.tool].name}</span><span class="mono">${r.status === 'skipped' ? 'ข้าม' : dur(r.dur)}</span>${r.note ? `<span class="run-note">${esc(r.note)}</span>` : ''}</div>`).join('')}</div>
+    </section>
+    <section class="findings">
+      <div class="f-head"><h2>ผลการสแกน</h2><span class="small t3">รวมจาก ${scan.runs.filter(r => r.status === 'ok').length} scanner เป็นรายการเดียว ปัญหาเดียวกันที่หลายตัวเจอจะแสดงครั้งเดียว</span></div>
+      <div class="f-ctl">
+        <div class="seg" id="fViews" role="tablist" aria-label="มุมมอง"></div>
+        <label class="search"><i data-lucide="search"></i><span class="sr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">ค้นหา</span><input class="input" id="fQ" placeholder="ค้นหา" value="${esc(S.fs.q)}" autocomplete="off"></label>
+        <button class="btn btn-sm" id="fBtn" aria-expanded="${S.fs.panel}"><i data-lucide="sliders-horizontal"></i>ตัวกรอง<span class="mono" id="fCnt"></span></button>
+      </div>
+      <div class="card fpanel" id="fPanel" ${S.fs.panel ? '' : 'hidden'}></div>
+      <div class="card list" id="fList"></div>
+    </section>`;
+  return shell(null, body);
+}
+
+/* ---------- findings list ---------- */
+let CUR = { list: [], scan: null };
+const viewOk = (f, v) => v === 'fixed' ? f.status === 'fixed' : f.status === 'fixed' ? false : v === 'focus' ? (f.status === 'new' || f.sev === 'critical' || f.sev === 'high') : true;
+function filtersActive() { return (S.fs.sev.size < SEV.length ? 1 : 0) + (S.fs.cat ? 1 : 0) + (S.fs.tool ? 1 : 0) + (S.fs.group !== 'none' ? 1 : 0); }
+function applyFilters() {
+  const q = S.fs.q.toLowerCase();
+  return CUR.list.filter(f => viewOk(f, S.fs.view) && S.fs.sev.has(f.sev) && (!S.fs.cat || f.cat === S.fs.cat) && (!S.fs.tool || f.tools.includes(S.fs.tool)) && (!q || (f.title + ' ' + f.loc + ' ' + f.rule + ' ' + f.cat).toLowerCase().includes(q)))
+    .sort((a, b) => SEV.indexOf(a.sev) - SEV.indexOf(b.sev) || (b.status === 'new') - (a.status === 'new'));
+}
+function codeBlock(f) {
+  if (!f.code) return '';
+  const [start, lines] = f.code, hl = +(f.loc.split(':')[1] || 0);
+  return `<div class="code"><div class="code-bar"><span>${esc(f.loc.split(':')[0])}</span></div><pre>${lines.map((l, i) => { const ln = start + i; const t = `<span class="ln">${ln}</span>${esc(l.replace(/\t/g, '  '))}`; return ln === hl ? `<span class="hl">${t}</span>` : t; }).join('\n')}</pre></div>`;
+}
+function refLinks(f) {
+  const out = [];
+  if (/^CVE-/.test(f.rule)) out.push([`https://nvd.nist.gov/vuln/detail/${f.rule}`, 'NVD ' + f.rule]);
+  if (f.tools.includes('semgrep') && !/^CVE/.test(f.rule)) out.push(['https://semgrep.dev/r?q=' + encodeURIComponent(f.rule), 'Semgrep rule']);
+  if (f.tools.includes('sonarqube') && !/^CVE/.test(f.rule)) out.push(['https://rules.sonarsource.com/', 'Sonar rule ' + f.rule.split(':').pop()]);
+  if (f.tools.includes('checkov')) out.push(['https://www.checkov.io/5.Policy%20Index/all.html', 'Checkov ' + f.rule]);
+  if (f.tools.includes('gitleaks')) out.push(['https://github.com/gitleaks/gitleaks', 'Gitleaks rule ' + f.rule]);
+  return out.length ? out.map(([h, t]) => `<a href="${h}" target="_blank" rel="noopener" class="linkacc">${esc(t)}</a>`).join('') : '<span class="t3">—</span>';
+}
+function fRow(f) {
+  const o = S.fs.open.has(f.id);
+  return `<div class="f ${o ? 'open' : ''} ${f.status === 'fixed' ? 'is-fixed' : ''}">
+    <button class="f-row" data-tog="${f.id}" aria-expanded="${o}">
+      <span class="sev c-${f.sev}"><span class="dot s-${f.sev}"></span>${SEVL[f.sev]}</span>
+      <span class="f-main"><span class="f-title">${esc(f.title)}</span><span class="f-sub"><span class="mono">${esc(f.loc)}</span><span class="sep">·</span><span>${f.tools.map(toolShort).join(', ')}</span></span></span>
+      <span class="f-st">${f.status === 'new' ? '<span class="st-new">ใหม่</span>' : f.status === 'fixed' ? '<span class="pos">แก้แล้ว</span>' : ''}</span>
+      <i data-lucide="chevron-down" class="f-chev"></i></button>
+    ${o ? `<div class="f-detail"><p>${esc(f.desc)}</p>${codeBlock(f)}
+      <div class="fix"><i data-lucide="wrench"></i><div><div class="k">วิธีแก้</div>${esc(f.fix)}</div></div>
+      <dl class="kv"><dt>Rule</dt><dd class="mono small">${esc(f.rule)}</dd><dt>ประเภท</dt><dd>${f.cat}</dd>
+        <dt>พบโดย</dt><dd>${f.tools.map(t => TOOL[t].name).join(', ')}${f.tools.length > 1 ? ' <span class="t3 small">· รวมเป็นรายการเดียว</span>' : ''}</dd>
+        <dt>พบครั้งแรก</dt><dd>สแกน #${f.since}</dd><dt>อ้างอิง</dt><dd class="refs">${refLinks(f)}</dd></dl>
+      ${f.status === 'fixed' ? '' : `<div class="f-act"><button class="btn btn-sm" data-fp="${f.id}"><i data-lucide="flag"></i>ทำเครื่องหมาย false positive</button><button class="btn btn-sm btn-ghost" data-cp="${f.id}"><i data-lucide="link"></i>คัดลอกลิงก์</button></div>`}</div>` : ''}
+  </div>`;
+}
+function renderViews() {
+  const n = v => CUR.list.filter(f => viewOk(f, v)).length;
+  $('#fViews').innerHTML = [['focus', 'ต้องดู'], ['all', 'ทั้งหมด'], ['fixed', 'แก้แล้ว']].map(([k, l]) => `<button role="tab" aria-selected="${S.fs.view === k}" class="${S.fs.view === k ? 'on' : ''}" data-view="${k}">${l} <span class="n">${n(k)}</span></button>`).join('');
+  $$('[data-view]').forEach(b => b.onclick = () => { S.fs.view = b.dataset.view; renderViews(); renderList(); });
+  $('#fViews').title = 'ต้องดู = ปัญหาใหม่ และ Critical/High ที่ยังเปิดอยู่';
+}
+function renderPanel() {
+  const base = CUR.list.filter(f => viewOk(f, S.fs.view));
+  const cats = CATS.filter(c => CUR.list.some(f => f.cat === c));
+  const tools = TOOLS.filter(t => CUR.list.some(f => f.tools.includes(t.id)));
+  $('#fPanel').innerHTML = `
+    <div class="fp-row"><span class="k">ความรุนแรง</span><div class="chips">${SEV.map(s => `<button class="chip ${S.fs.sev.has(s) ? 'on' : ''}" data-sev="${s}" aria-pressed="${S.fs.sev.has(s)}"><span class="dot s-${s}"></span>${SEVL[s]} <span class="mono t3">${base.filter(f => f.sev === s).length}</span></button>`).join('')}</div></div>
+    <div class="fp-row"><span class="k">ประเภท</span><select class="select select-sm" id="fCat" aria-label="ประเภท"><option value="">ทุกประเภท</option>${cats.map(c => `<option ${S.fs.cat === c ? 'selected' : ''}>${c}</option>`).join('')}</select>
+      <span class="k" style="width:auto">Scanner</span><select class="select select-sm" id="fTool" aria-label="Scanner"><option value="">ทุก scanner</option>${tools.map(t => `<option value="${t.id}" ${S.fs.tool === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}</select></div>
+    <div class="fp-row"><span class="k">จัดกลุ่ม</span><div class="seg">${[['none', 'ไม่จัดกลุ่ม'], ['sev', 'ความรุนแรง'], ['file', 'ไฟล์'], ['tool', 'Scanner']].map(([k, l]) => `<button class="${S.fs.group === k ? 'on' : ''}" data-group="${k}">${l}</button>`).join('')}</div>
+      <button class="linkbtn" id="fClear" style="margin-left:auto">ล้างตัวกรอง</button></div>`;
+  $$('[data-sev]').forEach(b => b.onclick = () => { const s = b.dataset.sev; S.fs.sev.has(s) ? S.fs.sev.delete(s) : S.fs.sev.add(s); if (!S.fs.sev.size) S.fs.sev = new Set(SEV); refresh(); });
+  $('#fCat').onchange = e => { S.fs.cat = e.target.value; refresh(); };
+  $('#fTool').onchange = e => { S.fs.tool = e.target.value; refresh(); };
+  $$('[data-group]').forEach(b => b.onclick = () => { S.fs.group = b.dataset.group; refresh(); });
+  $('#fClear').onclick = () => { S.fs.sev = new Set(SEV); S.fs.cat = ''; S.fs.tool = ''; S.fs.group = 'none'; S.fs.q = ''; $('#fQ').value = ''; refresh(); };
+  const c = filtersActive();
+  $('#fCnt').textContent = c ? ' ' + c : '';
+  $('#fBtn').classList.toggle('is-act', !!c);
+}
+function renderList() {
+  const items = applyFilters();
+  const el = $('#fList');
+  if (!items.length) {
+    const focusEmpty = S.fs.view === 'focus' && !S.fs.q && !filtersActive();
+    el.innerHTML = focusEmpty
+      ? `<div class="empty"><p style="margin:0 0 12px">ไม่มีอะไรต้องดูตอนนี้ ไม่มีปัญหาใหม่ และไม่มี Critical หรือ High ที่เปิดอยู่</p><button class="btn btn-sm" data-view-go="all">ดูทั้งหมด</button></div>`
+      : `<div class="empty"><p style="margin:0 0 12px">${S.fs.view === 'fixed' && !S.fs.q ? 'สแกนนี้ไม่มีรายการที่แก้แล้ว' : 'ไม่พบรายการที่ตรงกับตัวกรอง'}</p>${filtersActive() || S.fs.q ? '<button class="btn btn-sm" id="fClear2">ล้างตัวกรอง</button>' : ''}</div>`;
+    const g = $('[data-view-go]', el); if (g) g.onclick = () => { S.fs.view = 'all'; renderViews(); renderList(); };
+    const c2 = $('#fClear2'); if (c2) c2.onclick = () => { S.fs.sev = new Set(SEV); S.fs.cat = ''; S.fs.tool = ''; S.fs.group = 'none'; S.fs.q = ''; $('#fQ').value = ''; refresh(); };
+    return;
+  }
+  let html = '';
+  if (S.fs.group === 'none') html = items.map(fRow).join('');
+  else {
+    const groups = new Map();
+    const put = (k, f) => { if (!groups.has(k)) groups.set(k, []); groups.get(k).push(f); };
+    items.forEach(f => {
+      if (S.fs.group === 'sev') put(SEVL[f.sev], f);
+      else if (S.fs.group === 'file') put(f.loc.includes('@') ? 'Dependencies' : f.loc.split(':')[0], f);
+      else f.tools.forEach(t => put(TOOL[t].name, f));
+    });
+    groups.forEach((fs, k) => { html += `<div class="g-h"><span>${S.fs.group === 'file' && k !== 'Dependencies' ? `<span class="mono">${esc(k)}</span>` : esc(k)}</span><span class="mono">${fs.length}</span></div>` + fs.map(fRow).join(''); });
+  }
+  el.innerHTML = html;
+  $$('[data-tog]', el).forEach(b => b.onclick = () => { const id = b.dataset.tog; S.fs.open.has(id) ? S.fs.open.delete(id) : S.fs.open.add(id); renderList(); });
+  $$('[data-fp]', el).forEach(b => b.onclick = () => toast('ส่งให้ QA ตรวจแล้ว · รายการนี้จะถูกซ่อนเมื่ออนุมัติ'));
+  $$('[data-cp]', el).forEach(b => b.onclick = () => copy(location.href));
+  icons();
+}
+function refresh() { renderViews(); renderPanel(); renderList(); }
+function bindRepo(id, num) {
+  const repo = repoById(id);
+  const sn = $('#scanNow');
+  if (sn) sn.onclick = () => {
+    S.running[id] = true; render(); toast('เข้าคิวสแกนแล้ว · ผลจะแสดงที่หน้านี้เมื่อเสร็จ');
+    setTimeout(() => { S.running[id] = false; if (location.hash.startsWith('#repo/' + id)) render(); toast('ต้นแบบนี้จำลองการสแกนเท่านั้น ยังไม่มีผลใหม่'); }, 3200);
+  };
+  const hist = HIST[id] || []; if (!hist.length) return;
+  const scan = (num && hist.find(s => String(s.num) === String(num))) || hist[0];
+  CUR = { list: findingsD(scan), scan };
+  refresh();
+  $('#fQ').oninput = e => { S.fs.q = e.target.value; renderList(); };
+  $('#fBtn').onclick = e => { S.fs.panel = !S.fs.panel; $('#fPanel').hidden = !S.fs.panel; e.currentTarget.setAttribute('aria-expanded', S.fs.panel); };
+  $$('[data-sevgo]').forEach(b => b.onclick = () => {
+    S.fs.view = 'all'; S.fs.sev = new Set([b.dataset.sevgo]); refresh();
+    $('.findings').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  $('#runBtn').onclick = e => { S.fs.runs = !S.fs.runs; $('.runs').hidden = !S.fs.runs; e.currentTarget.setAttribute('aria-expanded', S.fs.runs); };
+  void repo;
+}
+
+/* ---------- login + setup (shared with design A) ---------- */
+function viewLogin() {
+  return `<div class="auth"><div class="auth-card enter">
+    <div class="brand" style="padding:0">${MARK}ScanHub</div>
+    <h1>เข้าสู่ระบบ</h1>
+    <p class="t2" style="margin:0 0 24px">ผลสแกนจาก SonarQube, Trivy, Semgrep และ scanner อื่นของทุก repo ในที่เดียว</p>
+    <form id="loginForm" novalidate>
+      <div class="field"><label for="lu">ชื่อผู้ใช้</label><input class="input" id="lu" autocomplete="username" placeholder="เช่น somchai.s"></div>
+      <div class="field" style="margin-top:16px"><label for="lp">รหัสผ่าน</label><input class="input" id="lp" type="password" autocomplete="current-password"></div>
+      <div class="err" id="lerr" style="margin-top:8px"></div>
+      <button class="btn btn-primary" style="width:100%;height:40px;margin-top:8px" type="submit">เข้าสู่ระบบ</button>
+    </form>
+    <p class="small t3" style="margin-top:16px">ไม่มีการสมัครเอง ขอบัญชีได้จาก admin</p>
+  </div></div>`;
+}
+function bindLogin() {
+  $('#loginForm').onsubmit = e => {
+    e.preventDefault();
+    const u = $('#lu').value.trim(), p = $('#lp').value;
+    if (!u || !p) { $('#lerr').textContent = 'กรอกชื่อผู้ใช้และรหัสผ่าน'; return; }
+    S.user = u; store.set('auth', u);
+    location.hash = S.setupDone ? '#projects' : '#setup';
+  };
+  $('#lu').focus();
+}
+
+/* ---------- setup ---------- */
+const W = { step: 1, pick: new Set(['sonarqube','trivy','semgrep','gitleaks']), sched: { on: true, time: '03:00', db: true }, prog: {}, timer: null };
+function viewSetup() {
+  const steps = ['เลือก scanner', 'อัปเดตอัตโนมัติ', 'ติดตั้ง'];
+  let body = '';
+  if (W.step === 1) body = `
+    <h2 style="font-size:20px;font-weight:500;margin:0">เลือก scanner ที่จะติดตั้ง</h2>
+    <p class="t2" style="margin:4px 0 20px">เลือกได้หลายตัว ผลของทุกตัวจะถูกรวมเป็นรายการเดียวในแต่ละ scan เพิ่มหรือลบภายหลังได้ที่หน้าตั้งค่า</p>
+    <div class="toolpick">${TOOLS.map(t => `<button class="tp ${W.pick.has(t.id) ? 'is-on' : ''}" data-pick="${t.id}" aria-pressed="${W.pick.has(t.id)}"><span class="check"><i data-lucide="check"></i></span><span><span class="nm">${t.name}</span> <span class="mono small t3">${t.ver}</span><div class="ds">${t.desc}</div></span></button>`).join('')}</div>`;
+  if (W.step === 2) body = `
+    <h2 style="font-size:20px;font-weight:500;margin:0">อัปเดต scanner อัตโนมัติ</h2>
+    <p class="t2" style="margin:4px 0 20px">ScanHub จะอัปเดตเวอร์ชันของ scanner และฐานข้อมูลช่องโหว่ทุกวัน เพื่อให้ผลสแกนใช้ข้อมูล CVE ล่าสุดเสมอ</p>
+    <div class="card card-pad">
+      <div class="row-line"><div><div class="lbl2">อัปเดตทุกวัน</div><div class="small t3">เวลาไทย (Asia/Bangkok)</div></div><button class="switch" id="wOn" role="switch" aria-checked="${W.sched.on}" aria-label="อัปเดตทุกวัน"></button></div>
+      <div class="row-line"><div><div class="lbl2">เวลา</div><div class="small t3">แนะนำช่วงที่ไม่มี pipeline รัน</div></div><input class="input mono" id="wTime" type="time" value="${W.sched.time}" style="width:140px"></div>
+      <div class="row-line"><div><div class="lbl2">อัปเดตฐานข้อมูลช่องโหว่ด้วย</div><div class="small t3">Trivy DB, Grype DB, NVD feed ของ Dependency-Check</div></div><button class="switch" id="wDb" role="switch" aria-checked="${W.sched.db}" aria-label="อัปเดตฐานข้อมูลช่องโหว่"></button></div>
+    </div>`;
+  if (W.step === 3) {
+    const all = [...W.pick];
+    const done = all.every(id => (W.prog[id] || 0) >= 1);
+    body = `
+    <h2 style="font-size:20px;font-weight:500;margin:0">${done ? 'ติดตั้งเสร็จแล้ว' : 'กำลังติดตั้ง'}</h2>
+    <p class="t2" style="margin:4px 0 20px">${all.length} scanner · อัปเดต${W.sched.on ? 'ทุกวันเวลา ' + W.sched.time : ' ปิดอยู่'}${W.sched.db && W.sched.on ? ' รวมฐานข้อมูลช่องโหว่' : ''}</p>
+    <div class="card card-pad">${all.map(id => { const p = W.prog[id] || 0; return `<div class="inst"><span>${TOOL[id].name}</span><span class="prog ${p >= 1 ? 'done' : ''}"><i style="transform:scaleX(${p})"></i></span><span class="small ${p >= 1 ? 'pos' : 't3'} mono" style="text-align:right">${p >= 1 ? 'v' + TOOL[id].ver : p > 0 ? 'กำลังดึง image' : 'รอคิว'}</span></div>`; }).join('')}</div>`;
+  }
+  const allDone = W.step === 3 && [...W.pick].every(id => (W.prog[id] || 0) >= 1);
+  return `<div class="setup enter">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div class="brand" style="padding:0">${MARK}ScanHub</div><span class="small t3">ตั้งค่าครั้งแรก</span></div>
+    <div class="steps">${steps.map((s, i) => `<div class="stepper ${i + 1 < W.step ? 'done' : i + 1 === W.step ? 'cur' : ''}"><i></i>${i + 1}. ${s}</div>`).join('')}</div>
+    ${body}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:24px">
+      <span class="small t3">${W.step === 1 ? `เลือกแล้ว ${W.pick.size} จาก ${TOOLS.length}` : 'เปลี่ยนได้ทุกเมื่อที่หน้าตั้งค่า'}</span>
+      <div class="actions">
+        ${W.step === 2 ? '<button class="btn btn-ghost" id="wBack">ย้อนกลับ</button>' : ''}
+        ${W.step < 3 ? `<button class="btn btn-primary" id="wNext" ${W.step === 1 && !W.pick.size ? 'disabled' : ''}>${W.step === 2 ? 'ติดตั้ง' : 'ถัดไป'}</button>` : `<button class="btn btn-primary" id="wDone" ${allDone ? '' : 'disabled'}>เข้าสู่ ScanHub</button>`}
+      </div>
+    </div>
+  </div>`;
+}
+function bindSetup() {
+  $$('[data-pick]').forEach(b => b.onclick = () => { const id = b.dataset.pick; W.pick.has(id) ? W.pick.delete(id) : W.pick.add(id); render(); });
+  const on = $('#wOn'); if (on) on.onclick = () => { W.sched.on = !W.sched.on; on.setAttribute('aria-checked', W.sched.on); };
+  const db = $('#wDb'); if (db) db.onclick = () => { W.sched.db = !W.sched.db; db.setAttribute('aria-checked', W.sched.db); };
+  const tm = $('#wTime'); if (tm) tm.onchange = () => W.sched.time = tm.value || '03:00';
+  const bk = $('#wBack'); if (bk) bk.onclick = () => { W.step--; render(); };
+  const nx = $('#wNext'); if (nx) nx.onclick = () => { W.step++; render(); if (W.step === 3) runInstall(); };
+  const dn = $('#wDone'); if (dn) dn.onclick = () => {
+    S.setupDone = true; S.installed = [...W.pick]; S.schedule = { ...W.sched };
+    store.set('setup', true); store.set('installed', S.installed); store.set('schedule', S.schedule);
+    location.hash = '#projects';
+  };
+}
+function runInstall() {
+  const ids = [...W.pick]; let i = 0;
+  clearInterval(W.timer);
+  W.timer = setInterval(() => {
+    const id = ids[i];
+    if (!id) { clearInterval(W.timer); render(); return; }
+    W.prog[id] = Math.min(1, (W.prog[id] || 0) + .25 + Math.random() * .25);
+    if (W.prog[id] >= 1) i++;
+    if (location.hash === '#setup') render();
+  }, 380);
+}
+
+/* ---------- CI snippets (shared with design A) ---------- */
+const CI = [
+  ['github', 'GitHub Actions', '.github/workflows/scanhub.yml'],
+  ['gitlab', 'GitLab CI', '.gitlab-ci.yml'],
+  ['jenkins', 'Jenkinsfile', 'Jenkinsfile'],
+  ['azure', 'Azure Pipelines', 'azure-pipelines.yml'],
+  ['bitbucket', 'Bitbucket Pipelines', 'bitbucket-pipelines.yml'],
+  ['cli', 'CLI', 'terminal']
+];
+function snippet(kind, repo) {
+  const tools = S.ci.tools.join(',');
+  const gate = S.ci.gate;
+  const D = '$';
+  const args = (br, sha, ind) => [`--repo ${repo}`, `--tools ${tools}`, `--branch "${br}"`, `--commit "${sha}"`].concat(gate ? ['--fail-on new:critical,new:high'] : []).map(a => ind + a).join(' \\\n');
+  if (kind === 'github') return `name: ScanHub
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  scanhub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Gitleaks ต้องใช้ git history
+      - name: Scan and upload to ScanHub
+        env:
+          SCANHUB_URL: ${SERVER}
+          SCANHUB_TOKEN: ${D}{{ secrets.SCANHUB_TOKEN }}
+        run: |
+          docker run --rm -v "${D}PWD:/src" \\
+            -e SCANHUB_URL -e SCANHUB_TOKEN \\
+            ghcr.io/scanhub/cli:1 scan \\
+${args(`${D}{{ github.head_ref || github.ref_name }}`, `${D}{{ github.sha }}`, '              ')}`;
+  if (kind === 'gitlab') return `scanhub:
+  stage: test
+  image: ghcr.io/scanhub/cli:1
+  variables:
+    GIT_DEPTH: 0          # Gitleaks ต้องใช้ git history
+    SCANHUB_URL: ${SERVER}
+    # SCANHUB_TOKEN ตั้งไว้ที่ Settings > CI/CD > Variables (masked)
+  script:
+    - >
+      scanhub scan
+${args(`${D}CI_COMMIT_REF_NAME`, `${D}CI_COMMIT_SHA`, '      ').replace(/ \\\n/g, '\n')}
+  rules:
+    - if: ${D}CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: ${D}CI_COMMIT_BRANCH == ${D}CI_DEFAULT_BRANCH`;
+  if (kind === 'jenkins') return `pipeline {
+  agent any
+  environment {
+    SCANHUB_URL   = '${SERVER}'
+    SCANHUB_TOKEN = credentials('scanhub-${repo}')   // Secret text ใน Jenkins credentials
+  }
+  stages {
+    stage('ScanHub') {
+      steps {
+        sh '''
+          docker run --rm -v "${D}WORKSPACE:/src" \\
+            -e SCANHUB_URL -e SCANHUB_TOKEN \\
+            ghcr.io/scanhub/cli:1 scan \\
+${args(`${D}BRANCH_NAME`, `${D}GIT_COMMIT`, '              ')}
+        '''
+      }
+    }
+  }
+}`;
+  if (kind === 'azure') return `trigger:
+  branches:
+    include: [main, develop]
+pr:
+  branches:
+    include: ['*']
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+    fetchDepth: 0
+  - script: |
+      docker run --rm -v "${D}(Build.SourcesDirectory):/src" \\
+        -e SCANHUB_URL=${SERVER} \\
+        -e SCANHUB_TOKEN=${D}(SCANHUB_TOKEN) \\
+        ghcr.io/scanhub/cli:1 scan \\
+${args(`${D}(Build.SourceBranchName)`, `${D}(Build.SourceVersion)`, '          ')}
+    displayName: ScanHub scan`;
+  if (kind === 'bitbucket') return `image: atlassian/default-image:4
+
+definitions:
+  steps:
+    - step: &scanhub
+        name: ScanHub scan
+        services: [docker]
+        clone:
+          depth: full
+        script:
+          # ตั้ง SCANHUB_TOKEN เป็น secured variable ของ repo
+          - >
+            docker run --rm -v "${D}BITBUCKET_CLONE_DIR:/src"
+            -e SCANHUB_URL=${SERVER} -e SCANHUB_TOKEN
+            ghcr.io/scanhub/cli:1 scan
+${args(`${D}BITBUCKET_BRANCH`, `${D}BITBUCKET_COMMIT`, '            ').replace(/ \\\n/g, '\n')}
+
+pipelines:
+  default:
+    - step: *scanhub
+  pull-requests:
+    '**':
+      - step: *scanhub`;
+  return `# สแกนในเครื่องแล้วส่งผลขึ้น ScanHub
+export SCANHUB_URL=${SERVER}
+export SCANHUB_TOKEN=<repo token>
+
+docker run --rm -v "${D}PWD:/src" \\
+  -e SCANHUB_URL -e SCANHUB_TOKEN \\
+  ghcr.io/scanhub/cli:1 scan \\
+${args(`${D}(git rev-parse --abbrev-ref HEAD)`, `${D}(git rev-parse HEAD)`, '    ')}
+
+# หรือส่งไฟล์ผลที่มีอยู่แล้ว (SARIF หรือ JSON ของ scanner)
+curl -fsS -X POST "${D}SCANHUB_URL/api/v1/repos/${repo}/scans" \\
+  -H "Authorization: Bearer ${D}SCANHUB_TOKEN" \\
+  -F tool=trivy \\
+  -F branch="${D}(git rev-parse --abbrev-ref HEAD)" \\
+  -F commit="${D}(git rev-parse HEAD)" \\
+  -F file=@trivy-results.sarif`;
+}
+const hlCode = s => esc(s).split('\n').map(l => /^\s*(#|\/\/)/.test(l) ? `<span class="cm">${l}</span>` : l.replace(/(\s)(#|\/\/)(\s.*)$/, '$1<span class="cm">$2$3</span>')).join('\n');
+
+/* ---------- connect (3 steps) ---------- */
+const CI_ICON = { github: 'github', gitlab: 'gitlab', jenkins: 'server-cog', azure: 'cloud', bitbucket: 'git-branch', cli: 'terminal' };
+const CI_SECRET = {
+  github: 'Settings › Secrets and variables › Actions',
+  gitlab: 'Settings › CI/CD › Variables (เลือก Masked)',
+  jenkins: 'Manage Jenkins › Credentials (ชนิด Secret text)',
+  azure: 'Pipelines › Library › Variable group (ตั้งเป็น secret)',
+  bitbucket: 'Repository settings › Repository variables (เลือก Secured)',
+  cli: 'export ในเครื่อง หรือเก็บใน password manager'
+};
+function viewConnect(id) {
+  const repo = repoById(id); if (!repo) return viewNotFound();
+  if (!S.ci.tools) S.ci.tools = S.installed.slice();
+  S.ci.tools = S.ci.tools.filter(t => S.installed.includes(t));
+  const cur = CI.find(c => c[0] === S.ci.tab);
+  const tok = S.showToken ? S.token : S.token.slice(0, 9) + '•'.repeat(20) + S.token.slice(-4);
+  const step = (n, t, inner) => `<section class="step"><div class="step-n">${n}</div><div class="step-b"><h2>${t}</h2>${inner}</div></section>`;
+  const body = `${repoHead(repo, 'เชื่อมต่อ CI')}
+    <p class="t2" style="margin:-8px 0 32px;max-width:720px">ทำครั้งเดียว หลังจากนั้นทุก push จะสแกนด้วย scanner ที่ติดตั้งไว้ แล้วส่งผลมาที่ repo <b>${esc(repo.id)}</b> ใน ScanHub</p>
+    <div class="steps-v">
+      ${step(1, 'เลือก CI ที่ใช้', `<div class="ci-grid" role="radiogroup" aria-label="CI">${CI.map(c => `<button class="ci ${S.ci.tab === c[0] ? 'on' : ''}" data-ci="${c[0]}" role="radio" aria-checked="${S.ci.tab === c[0]}"><i data-lucide="${CI_ICON[c[0]]}"></i><span>${c[1]}</span></button>`).join('')}</div>`)}
+      ${step(2, 'เพิ่ม token เป็น secret', `<div class="tokrow"><input class="input mono" readonly value="${tok}" aria-label="Repo token">
+          <button class="btn" id="tokShow" aria-label="${S.showToken ? 'ซ่อน token' : 'แสดง token'}"><i data-lucide="${S.showToken ? 'eye-off' : 'eye'}"></i></button>
+          <button class="btn" id="tokCopy"><i data-lucide="copy"></i>คัดลอก</button></div>
+        <p class="hint" style="margin:8px 0 0;max-width:720px">${S.ci.tab === 'cli' ? 'ตั้งเป็น environment variable' : 'เพิ่ม secret'} ชื่อ <code>SCANHUB_TOKEN</code> ที่ ${CI_SECRET[S.ci.tab]} · token นี้ส่งผลได้เฉพาะ repo นี้ · <button class="linkbtn" id="tokNew">สร้าง token ใหม่</button></p>`)}
+      ${step(3, S.ci.tab === 'cli' ? 'รันคำสั่งนี้' : 'วางโค้ดนี้ใน pipeline', `
+        <div class="gate"><div><div style="font-weight:500">ให้ build fail เมื่อพบ Critical หรือ High ใหม่</div><div class="small t3">ผลยังถูกส่งขึ้น ScanHub ตามปกติ</div></div><button class="switch" id="gate" role="switch" aria-checked="${S.ci.gate}" aria-label="ให้ build fail เมื่อพบ Critical หรือ High ใหม่"></button></div>
+        <div class="code"><div class="code-bar"><span>${cur[2]}</span><button class="btn btn-sm btn-ghost" id="copySnip"><i data-lucide="copy"></i>คัดลอก</button></div><pre id="snip">${hlCode(snippet(S.ci.tab, repo.id))}</pre></div>
+        <p class="small t3" style="margin:12px 0 0">สแกนด้วย ${S.ci.tools.length ? S.ci.tools.map(toolShort).join(', ') : '<span class="neg">ยังไม่ได้เลือก scanner</span>'} · <button class="linkbtn" id="toolsTog">${S.toolsOpen ? 'ซ่อน' : 'เปลี่ยน'}</button></p>
+        <div class="toolchips" ${S.toolsOpen ? '' : 'hidden'}>${S.installed.map(t => `<button class="tchip ${S.ci.tools.includes(t) ? 'is-on' : ''}" data-ct="${t}" aria-pressed="${S.ci.tools.includes(t)}"><span class="check"><i data-lucide="check"></i></span>${TOOL[t].name}</button>`).join('')}</div>`)}
+    </div>
+    <div class="alt"><button class="linkbtn" id="gitTog"><i data-lucide="${S.gitOpen ? 'chevron-down' : 'chevron-right'}"></i>หรือให้ ScanHub ดึงจาก Git URL เอง</button></div>
+    <section class="card card-pad gitbox" ${S.gitOpen ? '' : 'hidden'}>
+      <p class="t2" style="margin:0 0 16px">ไม่ต้องแก้ pipeline เหมาะกับ repo ที่ยังไม่มี CI</p>
+      <div class="grid" style="grid-template-columns:2fr 1fr">
+        <div class="field"><label for="gu">Git URL</label><input class="input mono" id="gu" value="git@gitlab.example.co.th:${repo.project}/${repo.id}.git"></div>
+        <div class="field"><label for="gb">Branch</label><input class="input mono" id="gb" value="${repo.branch}"></div>
+        <div class="field"><label for="ga">การยืนยันตัวตน</label><select class="select" id="ga"><option>Deploy key (SSH)</option><option>Access token (HTTPS)</option><option>ไม่ต้องใช้ (public)</option></select></div>
+        <div class="field"><label for="gs">สแกนเมื่อ</label><select class="select" id="gs"><option>ทุกวัน 02:00</option><option>ทุก push ผ่าน webhook</option><option>ทุก push และทุกวัน 02:00</option><option>สั่งเองเท่านั้น</option></select></div>
+      </div>
+      <div class="field" style="margin-top:16px"><label>Deploy key สำหรับใส่ใน Git server (read-only)</label><div style="display:flex;gap:8px"><input class="input mono" readonly value="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFq3t0EXAMPLEkey9x scanhub@${repo.id}"><button class="btn" data-copyval="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFq3t0EXAMPLEkey9x scanhub@${repo.id}"><i data-lucide="copy"></i>คัดลอก</button></div></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px"><button class="btn" id="gTest"><i data-lucide="plug"></i>ทดสอบการเชื่อมต่อ</button><button class="btn btn-primary" id="gSave">บันทึก</button></div>
+    </section>`;
+  return shell(null, body);
+}
+function bindConnect(id) {
+  const reSnip = () => { $('#snip').innerHTML = hlCode(snippet(S.ci.tab, id)); };
+  $$('[data-ci]').forEach(b => b.onclick = () => { S.ci.tab = b.dataset.ci; render(); });
+  $('#tokShow').onclick = () => { S.showToken = !S.showToken; render(); };
+  $('#tokCopy').onclick = () => copy(S.token);
+  const tn = $('#tokNew'); let armed = false;
+  tn.onclick = () => {
+    if (!armed) { armed = true; tn.textContent = 'กดอีกครั้งเพื่อยืนยัน token เดิมจะใช้ไม่ได้'; setTimeout(() => { if (armed && document.body.contains(tn)) { armed = false; tn.textContent = 'สร้าง token ใหม่'; } }, 3500); return; }
+    const c = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    S.token = 'shp_live_' + Array.from({ length: 32 }, () => c[Math.floor(Math.random() * c.length)]).join('');
+    S.showToken = true; render(); toast('สร้าง token ใหม่แล้ว อย่าลืมอัปเดต secret ใน CI');
+  };
+  $('#gate').onclick = e => { S.ci.gate = !S.ci.gate; e.currentTarget.setAttribute('aria-checked', S.ci.gate); reSnip(); };
+  $('#copySnip').onclick = () => copy(snippet(S.ci.tab, id));
+  $('#toolsTog').onclick = () => { S.toolsOpen = !S.toolsOpen; render(); };
+  $$('[data-ct]').forEach(b => b.onclick = () => { const t = b.dataset.ct; S.ci.tools = S.ci.tools.includes(t) ? S.ci.tools.filter(x => x !== t) : S.installed.filter(x => x === t || S.ci.tools.includes(x)); render(); });
+  $('#gitTog').onclick = () => { S.gitOpen = !S.gitOpen; render(); };
+  $$('[data-copyval]').forEach(b => b.onclick = () => copy(b.dataset.copyval));
+  $('#gTest').onclick = () => { toast('กำลังทดสอบ…'); setTimeout(() => toast('เชื่อมต่อได้ · ดึง branch ' + esc($('#gb').value) + ' สำเร็จ'), 1200); };
+  $('#gSave').onclick = () => toast('บันทึกแล้ว · ' + esc($('#gs').value));
+}
+
+/* ---------- settings ---------- */
+function viewSettings() {
+  const notInst = TOOLS.filter(t => !S.installed.includes(t.id));
+  const ts = id => S.toolState[id] || {};
+  const body = `
+    <div class="head"><div><h1>ตั้งค่า</h1><p class="t2">Scanner ที่ติดตั้ง การอัปเดตอัตโนมัติ และค่าทั่วไปของ server</p></div></div>
+    <section class="sec">
+      <div class="sec-h"><h2>Scanners</h2><span class="small t3">${S.installed.length} จาก ${TOOLS.length} ติดตั้งแล้ว</span></div>
+      <div class="card list">
+        ${S.installed.map(id => { const t = TOOL[id], st = ts(id); return `<div class="tool-row">
+          <div><div><span class="nm">${t.name}</span> <span class="mono small t3">${st.ver || t.ver}</span></div><div class="small t2">${t.desc}</div></div>
+          <div class="small ${st.busy ? 't2' : 'pos'}">${st.busy ? `<i data-lucide="loader" class="spin" style="width:12px;height:12px;vertical-align:-2px"></i> ${st.busy}` : st.at ? 'อัปเดตเมื่อสักครู่' : 'พร้อมใช้งาน'}</div>
+          <div class="actions"><button class="btn btn-sm btn-ghost" data-upd="${id}" ${st.busy ? 'disabled' : ''}><i data-lucide="refresh-cw"></i>อัปเดต</button><button class="btn btn-sm btn-ghost" data-rm="${id}"><i data-lucide="trash-2"></i>ลบ</button></div></div>`; }).join('')}
+        <div class="addrow">${notInst.length ? `<select class="select select-sm" id="addSel" aria-label="เลือก scanner ที่จะติดตั้ง">${notInst.map(t => `<option value="${t.id}">${t.name} · ${t.desc}</option>`).join('')}</select><button class="btn btn-sm" id="addTool"><i data-lucide="plus"></i>ติดตั้ง</button>` : '<span class="small t3">ติดตั้งครบทุก scanner แล้ว</span>'}</div>
+      </div>
+    </section>
+    <section class="sec">
+      <div class="sec-h"><h2>อัปเดตอัตโนมัติ</h2><span class="small t3">${S.schedule.on ? 'รอบถัดไป พรุ่งนี้ ' + S.schedule.time : 'ปิดอยู่'}</span></div>
+      <div class="card card-pad">
+        <div class="row-line"><div><div class="lbl2">อัปเดต scanner ทุกวัน</div><div class="small t3">ดึงเวอร์ชันล่าสุดของ scanner ที่ติดตั้ง</div></div><button class="switch" id="sOn" role="switch" aria-checked="${S.schedule.on}" aria-label="อัปเดตทุกวัน"></button></div>
+        <div class="row-line"><div><div class="lbl2">เวลา</div><div class="small t3">Asia/Bangkok</div></div><input class="input mono" type="time" id="sTime" value="${S.schedule.time}" style="width:140px" aria-label="เวลาอัปเดต"></div>
+        <div class="row-line"><div><div class="lbl2">อัปเดตฐานข้อมูลช่องโหว่ด้วย</div><div class="small t3">Trivy DB, Grype DB, NVD feed</div></div><button class="switch" id="sDb" role="switch" aria-checked="${S.schedule.db}" aria-label="อัปเดตฐานข้อมูลช่องโหว่"></button></div>
+        <details class="logd"><summary><i data-lucide="chevron-right"></i>รอบล่าสุด 8 พ.ย. 2569 ${S.schedule.time} · <span class="pos">สำเร็จ ${S.installed.length}/${S.installed.length}</span> · ดูบันทึก</summary>
+          <div class="log">${S.installed.map((id, i) => `<div><span class="t3">${S.schedule.time}:${pad(4 + i * 7)}</span> ${TOOL[id].name.padEnd(10)} ${TOOL[id].ver} <span class="ok">ok</span></div>`).join('')}${S.schedule.db ? `<div><span class="t3">${S.schedule.time}:58</span> trivy-db   2026-11-08 <span class="ok">ok</span></div><div><span class="t3">${S.schedule.time}:59</span> grype-db   v5 2026-11-08 <span class="ok">ok</span></div>` : ''}<div class="t3">7 พ.ย. 2569 ${S.schedule.time} · Semgrep 1.95.0 → 1.96.0</div><div class="t3">6 พ.ย. 2569 ${S.schedule.time} · <span class="bad">Checkov ดึง image ไม่สำเร็จ ลองใหม่ 03:15 สำเร็จ</span></div></div></details>
+      </div>
+    </section>
+    <section class="sec">
+      <div class="sec-h"><h2>ทั่วไป</h2></div>
+      <div class="card card-pad">
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <div class="field"><label for="gUrl">Server URL</label><input class="input mono" id="gUrl" value="${SERVER}"><span class="hint">ใช้ในโค้ดสำหรับ CI และลิงก์ในการแจ้งเตือน</span></div>
+          <div class="field"><label for="gRet">เก็บประวัติการสแกน</label><select class="select" id="gRet"><option>90 วัน</option><option selected>180 วัน</option><option>1 ปี</option><option>ไม่ลบ</option></select><span class="hint">สแกนล่าสุดของแต่ละ repo จะถูกเก็บไว้เสมอ</span></div>
+        </div>
+        <div class="note" style="margin-top:16px"><i data-lucide="lock"></i><div>บัญชี admin อ่านจาก <code>SCANHUB_ADMIN_USER</code> และ <code>SCANHUB_ADMIN_PASSWORD</code> ทุกครั้งที่ start server แก้จากหน้านี้ไม่ได้</div></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:20px"><button class="btn btn-primary" id="saveGen">บันทึก</button></div>
+      </div>
+    </section>`;
+  return shell(null, body);
+}
+
+function bindSettings() {
+  const save = () => { store.set('installed', S.installed); store.set('schedule', S.schedule); };
+  $$('[data-upd]').forEach(b => b.onclick = () => {
+    const id = b.dataset.upd; S.toolState[id] = { busy: 'กำลังอัปเดต' }; render();
+    setTimeout(() => { S.toolState[id] = { at: Date.now() }; if (location.hash === '#settings') render(); toast(TOOL[id].name + ' เป็นเวอร์ชันล่าสุดแล้ว'); }, 1600);
+  });
+  $$('[data-rm]').forEach(b => { let armed = false; b.onclick = () => {
+    if (!armed) { armed = true; b.innerHTML = '<i data-lucide="trash-2"></i>ยืนยันลบ'; icons(); setTimeout(() => { if (document.body.contains(b)) { armed = false; b.innerHTML = '<i data-lucide="trash-2"></i>ลบ'; icons(); } }, 3000); return; }
+    const id = b.dataset.rm; S.installed = S.installed.filter(x => x !== id); save(); render(); toast('ลบ ' + TOOL[id].name + ' แล้ว · ประวัติผลสแกนเดิมยังอยู่');
+  }; });
+  const add = $('#addTool'); if (add) add.onclick = () => {
+    const id = $('#addSel').value; S.installed.push(id); S.toolState[id] = { busy: 'กำลังติดตั้ง' }; save(); render();
+    setTimeout(() => { S.toolState[id] = { at: Date.now() }; if (location.hash === '#settings') render(); toast('ติดตั้ง ' + TOOL[id].name + ' แล้ว'); }, 2000);
+  };
+  $('#sOn').onclick = e => { S.schedule.on = !S.schedule.on; e.currentTarget.setAttribute('aria-checked', S.schedule.on); save(); toast(S.schedule.on ? 'เปิดอัปเดตอัตโนมัติ' : 'ปิดอัปเดตอัตโนมัติ'); };
+  $('#sDb').onclick = e => { S.schedule.db = !S.schedule.db; e.currentTarget.setAttribute('aria-checked', S.schedule.db); save(); };
+  $('#sTime').onchange = e => { S.schedule.time = e.target.value || '03:00'; save(); render(); toast('อัปเดตทุกวันเวลา ' + S.schedule.time); };
+  $('#saveGen').onclick = () => toast('บันทึกแล้ว');
+}
+
+/* ---------- users ---------- */
+const ROLES = ['ADMIN', 'SA', 'QA', 'DEVELOPER'];
+const PERMS = [
+  ['ดูผลสแกนและประวัติ', [1, 1, 1, 1]],
+  ['สั่งสแกน', [1, 1, 1, 1]],
+  ['ทำเครื่องหมาย false positive / ยอมรับความเสี่ยง', [1, 1, 1, 0]],
+  ['สร้างและแก้ project, repo', [1, 1, 0, 0]],
+  ['ดูและสร้าง repo token', [1, 1, 0, 1]],
+  ['จัดการ scanner และการอัปเดต', [1, 1, 0, 0]],
+  ['จัดการผู้ใช้', [1, 0, 0, 0]]
+];
+function viewUsers() {
+  const body = `
+    <div class="page-head"><div><h1>ผู้ใช้</h1><p>ไม่มีการสมัครเอง — ADMIN เพิ่มสมาชิกที่นี่ ผู้ใช้ใหม่ต้องเปลี่ยนรหัสผ่านชั่วคราวตอน login ครั้งแรก การปิดใช้งานไม่ลบประวัติ และมีผลทันที</p></div></div>
+    <section class="card card-pad">
+      <h2 style="margin-bottom:16px"><i data-lucide="user-plus" style="color:var(--t3)"></i>เพิ่มผู้ใช้</h2>
+      <form class="users-form" id="uform" novalidate>
+        <div class="field"><label for="nu">ชื่อผู้ใช้</label><input class="input" id="nu" placeholder="เช่น somchai.s" autocomplete="off"></div>
+        <div class="field"><label for="np">รหัสผ่านชั่วคราว</label><input class="input" id="np" type="text" placeholder="อย่างน้อย 8 ตัวอักษร" autocomplete="off"></div>
+        <div class="field"><label for="nr">Role</label><select class="select" id="nr">${ROLES.map(r => `<option ${r === 'SA' ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
+        <button class="btn btn-primary" style="height:40px" type="submit"><i data-lucide="user-plus"></i>เพิ่มผู้ใช้</button>
+      </form>
+      <div class="err" id="uerr" style="margin-top:8px"></div>
+      <div style="border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:4px" class="table-wrap">
+        <table class="table"><thead><tr><th>ชื่อผู้ใช้</th><th>สถานะ</th><th>Role</th><th class="hide-sm">เข้าใช้ล่าสุด</th><th class="r">จัดการ</th></tr></thead><tbody>
+        ${S.users.map((u, i) => `<tr>
+          <td><div class="uname"><span class="avatar">${esc(u.u.slice(0, 2).toUpperCase())}</span><div><div>${esc(u.u)}${u.env ? ' <span class="t3 small">(คุณ)</span> <span class="lock"><i data-lucide="lock"></i>ตั้งค่าจาก env</span>' : ''}</div>${u.pending ? '<div class="cell-sub">รอเปลี่ยนรหัสผ่านชั่วคราว</div>' : ''}</div></div></td>
+          <td>${u.active ? '<span class="pill pill-ok">ใช้งาน</span>' : '<span class="pill pill-off">ปิดใช้งาน</span>'}</td>
+          <td><select class="select select-sm" style="width:144px" data-role="${i}" ${u.env ? 'disabled' : ''} aria-label="Role ของ ${esc(u.u)}">${ROLES.map(r => `<option ${u.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select></td>
+          <td class="hide-sm t2 num">${esc(u.last)}</td>
+          <td class="r" style="white-space:nowrap">${u.env ? '' : `<button class="link-act" data-reset="${i}"><i data-lucide="key-round"></i>รีเซ็ตรหัสผ่าน</button> <button class="btn ${u.active ? 'btn-danger' : ''} btn-sm" data-act="${i}"><i data-lucide="power"></i>${u.active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}</button>`}</td></tr>`).join('')}
+        </tbody></table>
+      </div>
+      <details class="perm" style="margin-top:16px"><summary><i data-lucide="chevron-right"></i>สิทธิ์ของแต่ละ role</summary>
+        <div class="table-wrap" style="border-top:1px solid var(--line)"><table class="table"><thead><tr><th>สิทธิ์</th>${ROLES.map(r => `<th style="text-align:center">${r}</th>`).join('')}</tr></thead><tbody>
+        ${PERMS.map(([n, v]) => `<tr><td>${n}</td>${v.map(x => `<td style="text-align:center">${x ? '<i data-lucide="check" class="yes"></i>' : '<span class="no">—</span>'}</td>`).join('')}</tr>`).join('')}
+        </tbody></table></div></details>
+    </section>`;
+  return shell([['ผู้ใช้', '#users']], body);
+}
+function bindUsers() {
+  $('#uform').onsubmit = e => {
+    e.preventDefault();
+    const u = $('#nu').value.trim(), p = $('#np').value, r = $('#nr').value, err = $('#uerr');
+    if (!/^[a-z0-9._-]{3,32}$/.test(u)) { err.textContent = 'ชื่อผู้ใช้ใช้ได้เฉพาะ a-z 0-9 . _ - ยาว 3 ถึง 32 ตัว'; return; }
+    if (S.users.some(x => x.u === u)) { err.textContent = 'มีชื่อผู้ใช้นี้แล้ว'; return; }
+    if (p.length < 8) { err.textContent = 'รหัสผ่านชั่วคราวต้องมีอย่างน้อย 8 ตัวอักษร'; return; }
+    S.users.push({ u, role: r, active: true, last: 'ยังไม่เคย', pending: true });
+    render(); toast(`เพิ่ม ${esc(u)} แล้ว · ต้องเปลี่ยนรหัสผ่านตอน login ครั้งแรก`);
+  };
+  $$('[data-role]').forEach(s => s.onchange = () => { const u = S.users[+s.dataset.role]; u.role = s.value; toast(`เปลี่ยน role ของ ${esc(u.u)} เป็น ${s.value} แล้ว`); });
+  $$('[data-act]').forEach(b => b.onclick = () => { const u = S.users[+b.dataset.act]; u.active = !u.active; render(); toast(`${u.active ? 'เปิด' : 'ปิด'}ใช้งาน ${esc(u.u)} แล้ว`); });
+  $$('[data-reset]').forEach(b => b.onclick = () => {
+    const u = S.users[+b.dataset.reset]; const c = 'abcdefghjkmnpqrstuvwxyz23456789';
+    const t = Array.from({ length: 10 }, () => c[Math.floor(Math.random() * c.length)]).join('');
+    u.pending = true; render(); toast(`รหัสชั่วคราวของ ${esc(u.u)}: <span class="mono">${t}</span>`);
+  });
+}
+
+/* ---------- router ---------- */
+function viewNotFound() { return shell(null, `<div class="card empty-big"><h2>ไม่พบหน้านี้</h2><p class="t2">ลิงก์อาจไม่ถูกต้อง</p><a class="btn" href="#projects">กลับไปหน้าโปรเจกต์</a></div>`); }
+function render() {
+  const [name, arg, arg2] = (location.hash.slice(1) || 'projects').split('/');
+  if (!S.user && name !== 'login') { location.replace('#login'); return; }
+  if (S.user && !S.setupDone && name !== 'setup' && name !== 'login') { location.replace('#setup'); return; }
+  const app = $('#app');
+  const views = {
+    login: [viewLogin, bindLogin], setup: [viewSetup, bindSetup], projects: [viewProjects, bindProjects],
+    repo: [() => viewRepo(arg, arg2), () => bindRepo(arg, arg2)],
+    connect: [() => viewConnect(arg), () => bindConnect(arg)],
+    settings: [viewSettings, bindSettings], users: [viewUsers, bindUsers]
+  };
+  const v = views[name];
+  const y = window.scrollY, same = render._last === location.hash;
+  if (!v || ((name === 'repo' || name === 'connect') && !repoById(arg))) { app.innerHTML = viewNotFound(); bindShell(); icons(); render._last = location.hash; return; }
+  app.innerHTML = v[0]();
+  if (same) { const m = $('.wrap.enter'); if (m) m.classList.remove('enter'); }
+  if ($('.top')) bindShell();
+  v[1]();
+  icons();
+  window.scrollTo(0, same ? y : (name === 'repo' && render._lastRepo === arg ? y : 0));
+  render._last = location.hash; render._lastRepo = name === 'repo' ? arg : null;
+}
+window.addEventListener('hashchange', () => { closeModal(); render(); });
+render();
+</script>
+</body>
+</html>

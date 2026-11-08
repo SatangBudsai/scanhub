@@ -1,0 +1,28 @@
+# ScanHub for the E2E suite: the normal image, a test admin, its own volume and project name.
+# Started and removed by e2e/global-setup.js. The scanner DB cache volume is kept between runs.
+name: scanhub-e2e
+
+services:
+  scanhub:
+    image: scanhub:latest
+    ports:
+      - "${E2E_PORT:-18080}:8080"
+    volumes:
+      - e2e-data:/data
+      - scanner-cache:/data/cache
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      SCANHUB_ADMIN_USER: admin
+      SCANHUB_ADMIN_PASSWORD: e2e-admin-pass-2026
+      SCANHUB_URL: http://localhost:${E2E_PORT:-18080}
+      # SonarQube from env: the settings page shows it locked. Nothing scans with it (setup leaves it off).
+      SONAR_URL: http://host.docker.internal:${FAKE_GIT_PORT:-18181}/sonar
+      SONAR_TOKEN: squ_e2e_fake_token
+      TZ: Asia/Bangkok
+
+volumes:
+  e2e-data:
+  scanner-cache:
+    external: true
+    name: scanhub-e2e-cache

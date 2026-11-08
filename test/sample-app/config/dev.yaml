@@ -1,0 +1,15 @@
+# Intentionally insecure sample used to test ScanHub. These keys are fake.
+app:
+  name: payment-api
+  port: 8080
+
+database:
+  host: localhost
+  user: payment
+  password: "s3cr3t-dev-password"
+
+aws:
+  region: ap-southeast-1
+  bucket: payment-exports
+  access_key_id: AKIAZ7Q3WLTRBNK4MPDX
+  secret_access_key: "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"

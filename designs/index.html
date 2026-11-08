@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ScanHub ดีไซน์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #141415; --card: #19191b; --raised: #232325;
+    --line: rgba(237,237,237,.08);
+    --t1: #ededed; --t2: #a1a1a6; --t3: #85858b;
+    --accent: #8fb4ff;
+    --ease: cubic-bezier(0.22,1,0.36,1);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--t1);
+    font: 400 15px/22px "IBM Plex Sans Thai", system-ui, sans-serif;
+  }
+  main { max-width: 1120px; margin: 0 auto; padding: 64px 24px 96px; }
+  h1 { font-size: 32px; line-height: 1.15; font-weight: 500; margin: 0 0 12px; }
+  .lead { color: var(--t2); max-width: 40rem; margin: 0 0 40px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .d { background: #141415; flex-direction: column; }
+  .d .top { height: 16px; border-bottom: 1px solid var(--line); background: #141415; display: flex; align-items: center; gap: 6px; padding: 0 12px; }
+  .d .top i { display: block; width: 18px; height: 4px; border-radius: 2px; background: #2b2b2e; }
+  .d .col { width: 72%; margin: 12px auto; display: flex; flex-direction: column; gap: 0; border: 1px solid var(--line); border-radius: 6px; background: #19191b; overflow: hidden; }
+  .d .r { height: 18px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-top: 1px solid var(--line); }
+  .d .r:first-child { border-top: 0; }
+  .d .r i { display: block; height: 4px; border-radius: 2px; background: #2b2b2e; }
+  .d .r b { margin-left: auto; width: 22px; height: 6px; border-radius: 3px; background: rgba(229,72,77,.35); }
+  .d .r b.ok { background: rgba(76,195,138,.35); }
+  .rec { color: var(--t3); font-family: "IBM Plex Sans Thai", sans-serif; margin-left: 8px; }
+  a.opt {
+    display: flex; flex-direction: column; gap: 16px;
+    padding: 20px; border-radius: 16px; background: var(--card);
+    border: 1px solid var(--line); color: inherit; text-decoration: none;
+    transition: background-color 160ms var(--ease), border-color 160ms var(--ease);
+  }
+  a.opt:hover { background: var(--raised); border-color: rgba(237,237,237,.14); }
+  a.opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .thumb { height: 148px; border-radius: 8px; border: 1px solid var(--line); overflow: hidden; display: flex; }
+  .key { font: 500 12px/16px "JetBrains Mono", monospace; color: var(--t3); }
+  h2 { font-size: 18px; font-weight: 500; margin: 0; }
+  .opt p { margin: 0; color: var(--t2); font-size: 14px; line-height: 20px; }
+  ul { margin: 0; padding: 0 0 0 16px; color: var(--t2); font-size: 13px; line-height: 20px; }
+  .go { margin-top: auto; color: var(--t1); font-size: 14px; }
+  /* thumbnails: plain wireframes of each layout */
+  .a { background: #141415; }
+  .a .side { width: 28%; background: #0f0f10; border-right: 1px solid var(--line); padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .a .side i, .c i { display: block; height: 6px; border-radius: 2px; background: #2b2b2e; }
+  .a .body { flex: 1; padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+  .a .row { height: 10px; border-radius: 2px; background: #1e1e20; display: flex; overflow: hidden; }
+  .a .row b { width: 20%; background: #2b2b2e; }
+  .a .row b:first-child { width: 6%; background: #e5484d; opacity: .7; }
+  .b { background: #fafafa; flex-direction: column; }
+  .b .top { height: 16px; border-bottom: 1px solid rgba(0,0,0,.08); background: #fff; }
+  .b .col { width: 70%; margin: 10px auto; display: flex; flex-direction: column; gap: 6px; }
+  .b .col i { display: block; height: 6px; border-radius: 2px; background: #e4e4e7; }
+  .b .col .card { height: 34px; border-radius: 4px; background: #fff; border: 1px solid rgba(0,0,0,.08); }
+  .b .col .t { width: 60%; height: 10px; background: #d4d4d8; }
+  .c { background: #0b0d14; }
+  .c .rail { width: 8%; background: #07080d; border-right: 1px solid var(--line); }
+  .c .p1 { width: 22%; border-right: 1px solid var(--line); padding: 8px; display: flex; flex-direction: column; gap: 4px; background: #0b0d14; }
+  .c .p2 { width: 26%; border-right: 1px solid var(--line); padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .c .p2 svg { height: 28px; width: 100%; }
+  .c .p3 { flex: 1; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .c .p3 i { background: #1a1e28; height: 8px; }
+  .c i { background: #1a1e28; }
+  .note { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--t3); font-size: 13px; line-height: 20px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } main { padding: 40px 16px 64px; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="key">ScanHub</div>
+  <h1>เลือกดีไซน์</h1>
+  <p class="lead">4 แบบนี้มีหน้าครบเหมือนกัน (login, ตั้งค่าครั้งแรก, โปรเจกต์ › repo, ประวัติการสแกน, ผลรวมทุก tool, เชื่อมต่อ CI/CD, ตั้งค่า, ผู้ใช้) และใช้ข้อมูลตัวอย่างชุดเดียวกัน ต่างกันที่การจัดวางและวิธีอ่านผล ลองกดใช้งานได้ทุกหน้า</p>
+
+  <div class="grid">
+    <a class="opt" href="a-console.html">
+      <div class="thumb a" aria-hidden="true">
+        <div class="side"><i></i><i style="width:70%"></i><i style="width:80%"></i><i style="width:60%"></i></div>
+        <div class="body"><div class="row"><b></b><b></b></div><div class="row"><b></b><b></b></div><div class="row"><b></b></div><div class="row"><b></b><b></b></div><div class="row"><b></b></div></div>
+      </div>
+      <div class="key">A</div>
+      <h2>Console</h2>
+      <p>ธีมมืด ใกล้กับหน้าผู้ใช้ในรูปตัวอย่าง มี sidebar ซ้ายเป็น tree โปรเจกต์ › repo</p>
+      <ul><li>ผลการสแกนเป็นตารางแน่น กรองได้ กดดูรายละเอียดด้านขวา</li><li>เหมาะกับคนที่ดูผลทุกวันและต้องการข้อมูลเยอะในจอเดียว</li></ul>
+      <span class="go">เปิดดีไซน์ A →</span>
+    </a>
+    <a class="opt" href="b-report.html">
+      <div class="thumb b" aria-hidden="true">
+        <div class="top"></div>
+        <div class="col"><span class="t" style="display:block;border-radius:2px"></span><i style="width:90%"></i><div class="card"></div><div class="card"></div></div>
+      </div>
+      <div class="key">B</div>
+      <h2>Report</h2>
+      <p>ธีมสว่าง อ่านเหมือนรายงานความปลอดภัยจากบนลงล่าง ไม่มี sidebar</p>
+      <ul><li>สรุปเป็นประโยคเดียวว่ามีอะไรใหม่ แล้วจัดกลุ่มตามไฟล์ พร้อม code snippet</li><li>เหมาะกับการส่งต่อให้หัวหน้าหรือคนที่ไม่ได้ดูทุกวัน</li></ul>
+      <span class="go">เปิดดีไซน์ B →</span>
+    </a>
+    <a class="opt" href="c-triage.html">
+      <div class="thumb c" aria-hidden="true">
+        <div class="rail"></div>
+        <div class="p1"><i></i><i style="width:70%"></i><i style="width:80%"></i></div>
+        <div class="p2"><svg viewBox="0 0 100 28" preserveAspectRatio="none"><path d="M0 22 C20 18 30 8 50 12 S80 6 100 4" fill="none" stroke="#5cc8d6" stroke-width="1.5"/></svg><i></i><i></i><i></i></div>
+        <div class="p3"><i></i><i></i><i style="width:80%"></i><i></i><i style="width:60%"></i></div>
+      </div>
+      <div class="key">C</div>
+      <h2>Triage</h2>
+      <p>ธีมมืด 3 คอลัมน์ในจอเดียวเหมือนโปรแกรมอีเมล: repo › ประวัติสแกน › ผลลัพธ์</p>
+      <ul><li>สลับ repo หรือครั้งที่สแกนได้โดยไม่เปลี่ยนหน้า ใช้คีย์บอร์ดได้</li><li>มีเครื่องหมาย + / − แบบ git diff บอกว่าอะไรใหม่หรือแก้แล้ว</li></ul>
+      <span class="go">เปิดดีไซน์ C →</span>
+    </a>
+    <a class="opt" href="d-simple.html">
+      <div class="thumb d" aria-hidden="true">
+        <div class="top"><i></i><i style="width:28px"></i><i></i></div>
+        <div class="col"><div class="r"><i style="width:30%"></i><b></b></div><div class="r"><i style="width:24%"></i><b></b></div><div class="r"><i style="width:34%"></i><b class="ok"></b></div><div class="r"><i style="width:20%"></i><b></b></div></div>
+      </div>
+      <div class="key">D<span class="rec">แนะนำ</span></div>
+      <h2>Simple</h2>
+      <p>เรียบที่สุด หน้าน้อย แสดงเฉพาะสิ่งที่ต้องดูก่อน รายละเอียดกดขยายดู</p>
+      <ul><li>แต่ละ repo บอกสถานะคำเดียว (ผ่าน / มี Critical 2) หน้า repo รวมประวัติและผลสแกนไว้ในหน้าเดียว</li><li>เปิดมาเห็นแค่ "ต้องดู" (ปัญหาใหม่ + Critical/High) ตัวกรองซ่อนไว้ สลับธีมสว่าง/มืดได้</li></ul>
+      <span class="go">เปิดดีไซน์ D →</span>
+    </a>
+  </div>
+
+  <p class="note">นี่เป็นต้นแบบหน้าจอ ใช้ข้อมูลตัวอย่าง ยังไม่ได้ต่อ backend จริง login ด้วยชื่อและรหัสอะไรก็ได้ เมื่อเลือกแบบแล้วจะทำต่อเป็นระบบจริง (admin จาก env, ติดตั้งและอัปเดต scanner รายวัน, API สำหรับ CI/CD)<br>แนวทางดีไซน์อ้างอิง unslop by Damir Sokolovsky (@heydamir), CC BY 4.0</p>
+</main>
+</body>
+</html>
