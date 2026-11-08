@@ -19,6 +19,19 @@ class Recorder {
   async frame(page, caption, state) {
     if (!page || page.isClosed()) return;
     try {
+      // Wait for any smooth scroll to finish, or the frame catches the page mid-scroll
+      await page.evaluate(() => new Promise((done) => {
+        let last = -1, still = 0;
+        const t0 = performance.now();
+        const tick = () => {
+          const y = window.scrollY;
+          still = y === last ? still + 1 : 0;
+          last = y;
+          if (still >= 5 || performance.now() - t0 > 2000) done();
+          else requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }));
       await page.evaluate(({ caption, state }) => {
         const d = document.createElement('div');
         d.id = '__e2e_caption';

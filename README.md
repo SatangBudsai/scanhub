@@ -1,3 +1,5 @@
+![ScanHub: ผลสแกนความปลอดภัยทุก tool รวมไว้ที่เดียว รู้ทันทีว่าอะไรใหม่และอะไรแก้แล้ว](docs/media/banner.png)
+
 # ScanHub
 
 รวมผลสแกนความปลอดภัยจาก SonarQube, Trivy, Semgrep, Gitleaks, Grype, Checkov และ OWASP Dependency-Check ไว้ที่เดียว แยกตาม project › repo มีประวัติทุกครั้งที่สแกน ผลจากทุก tool รวมเป็นรายการเดียว และเทียบกับสแกนครั้งก่อนให้เห็นว่าอะไรใหม่ อะไรแก้แล้ว
