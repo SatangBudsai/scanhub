@@ -13,11 +13,13 @@ ARG SEMGREP_VERSION=
 ARG CHECKOV_VERSION=
 
 # Runtimes: git (clone), python (semgrep, checkov), java (dependency-check), PostgreSQL 16 from PGDG
-RUN apt-get update \
+# Downloads retry: builds for arm64 run under emulation in CI, where connections drop now and then.
+RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries \
+ && apt-get update \
  && apt-get install -y --no-install-recommends \
       git curl ca-certificates gnupg unzip tar python3 python3-venv python3-pip openjdk-17-jre-headless tini \
  && install -d /usr/share/postgresql-common/pgdg \
- && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+ && curl -fsSL --http1.1 --retry 6 --retry-delay 5 --retry-all-errors https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
  && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
  && mkdir -p /etc/postgresql-common && echo 'create_main_cluster = false' > /etc/postgresql-common/createcluster.conf \
  && apt-get update \

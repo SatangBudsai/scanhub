@@ -11,7 +11,7 @@ fi
 case "$ARCH" in amd64|arm64) ;; *) echo "unsupported architecture: $ARCH" >&2; exit 1 ;; esac
 echo "installing scanners for linux/$ARCH into $DEST"
 
-fetch() { curl -fsSL --retry 6 --retry-delay 5 --retry-all-errors -o "$2" "$1"; }
+fetch() { curl -fsSL --http1.1 --retry 6 --retry-delay 5 --retry-all-errors -o "$2" "$1"; }
 
 # Tag of the latest GitHub release, read from the redirect (no API rate limit)
 latest_tag() {
