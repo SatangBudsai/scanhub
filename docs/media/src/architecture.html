@@ -30,7 +30,12 @@ const NS = 'http://www.w3.org/2000/svg';
 const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
 const txt = (x, y, s, attrs, parent) => { const t = el('text', { x, y, ...attrs }, parent); t.textContent = s; return t; };
 const icon = (d, color, x, y, size, parent) => { const s = el('svg', { x, y, width: size, height: size, viewBox: '0 0 24 24' }, parent); el('path', { d, fill: color }, s); };
-const mono = (label, bg, x, y, size, parent) => { el('rect', { x, y, width: size, height: size, rx: size * 0.24, fill: bg }, parent); txt(x + size / 2, y + size * 0.66, label, { 'text-anchor': 'middle', 'font-size': size * 0.44, 'font-weight': 700, fill: '#fff' }, parent); };
+// ic: { d, c } = one-path icon, { img } = official logo file, { img, chip } = dark logo on a light chip
+const draw = (ic, x, y, size, parent) => {
+  if (!ic.img) return icon(ic.d, ic.c, x, y, size, parent);
+  if (ic.chip) { el('rect', { x: x - 6, y: y + size * 0.18, width: size + 12, height: size * 0.64, rx: 6, fill: '#eef2fb' }, parent); el('image', { href: ic.img, x: x - 2, y: y + size * 0.3, width: size + 4, height: size * 0.4 }, parent); return; }
+  el('image', { href: ic.img, x, y, width: size, height: size }, parent);
+};
 
 const I = {
   github: '{{icon:github}}', gitlab: '{{icon:gitlab}}', jenkins: '{{icon:jenkins}}', bitbucket: '{{icon:bitbucket}}',
@@ -52,7 +57,7 @@ function card(id, x, y, w, h, title, sub, icons = [], opts = {}) {
   const g = el('g', {}, nodesG);
   const r = el('rect', { x, y, width: w, height: h, rx: 14, fill: C.card, stroke: C.line, 'stroke-width': 1.5 }, g);
   let ix = x + 16;
-  icons.forEach((ic) => { ic.mono ? mono(ic.mono, ic.bg, ix, y + 16, 28, g) : icon(ic.d, ic.c, ix, y + 16, 28, g); ix += 36; });
+  icons.forEach((ic) => { draw(ic, ix, y + 16, 28, g); ix += 36; });
   const tx = icons.length ? ix + 4 : x + 18;
   txt(tx, y + (sub ? 30 : 36), title, { 'font-size': 16, 'font-weight': 650, fill: C.text }, g);
   if (sub) txt(tx, y + 50, sub, { 'font-size': 12.5, fill: C.muted }, g);
@@ -69,13 +74,13 @@ function card(id, x, y, w, h, title, sub, icons = [], opts = {}) {
   txt(60, 162, 'sends source, gets pass / block', { 'font-size': 12.5, fill: C.muted }, g);
   const list = [
     ['GitHub', { d: I.github, c: '#ffffff' }], ['GitLab', { d: I.gitlab, c: '#FC6D26' }],
-    ['Jenkins', { d: I.jenkins, c: '#D24939' }], ['Azure', { mono: 'Az', bg: '#0078D4' }],
+    ['Jenkins', { d: I.jenkins, c: '#D24939' }], ['Azure', { img: '{{img:azure-pipelines.png}}' }],
     ['Bitbucket', { d: I.bitbucket, c: '#2684FF' }], ['CLI', { d: I.bash, c: '#4EAA25' }],
   ];
   list.forEach(([name, ic], i) => {
     const x = 58 + (i % 2) * 104, y = 186 + Math.floor(i / 2) * 70;
     el('rect', { x, y, width: 94, height: 58, rx: 10, fill: '#1b2030' }, g);
-    ic.mono ? mono(ic.mono, ic.bg, x + 35, y + 7, 24, g) : icon(ic.d, ic.c, x + 35, y + 7, 24, g);
+    draw(ic, x + 35, y + 7, 24, g);
     txt(x + 47, y + 48, name, { 'font-size': 12, fill: C.muted, 'text-anchor': 'middle' }, g);
   });
 }
@@ -94,16 +99,16 @@ card('sched', 340, 470, 220, 72, 'Scheduler', 'daily scanner + DB updates');
   txt(700, 180, 'run in parallel on the same source', { 'font-size': 12.5, fill: C.muted }, g);
 }
 const tools = [
-  ['trivy', 'Trivy', { d: I.trivy, c: '#4f7bff' }], ['semgrep', 'Semgrep', { mono: 'Sg', bg: '#1f9d77' }],
-  ['gitleaks', 'Gitleaks', { mono: 'GL', bg: '#7b3fe4' }], ['grype', 'Grype', { mono: 'Gr', bg: '#1e6fd9' }],
-  ['checkov', 'Checkov', { mono: 'Ck', bg: '#6d4bd8' }], ['depcheck', 'Dependency-Check', { d: I.owasp, c: '#ffffff' }],
+  ['trivy', 'Trivy', { d: I.trivy, c: '#4f7bff' }], ['semgrep', 'Semgrep', { img: '{{img:semgrep.svg}}' }],
+  ['gitleaks', 'Gitleaks', { img: '{{img:gitleaks.svg}}' }], ['grype', 'Grype', { img: '{{img:grype.png}}' }],
+  ['checkov', 'Checkov', { img: '{{img:checkov.svg}}', chip: true }], ['depcheck', 'Dependency-Check', { d: I.owasp, c: '#ffffff' }],
 ];
 const toolPos = {};
 tools.forEach(([id, name, ic], i) => {
   const x = 618 + (i % 3) * 126, y = 198 + Math.floor(i / 3) * 102;
   const g = el('g', {}, nodesG);
   const r = el('rect', { x, y, width: 114, height: 90, rx: 12, fill: '#1b2030', stroke: '#1b2030', 'stroke-width': 1.5 }, g);
-  ic.mono ? mono(ic.mono, ic.bg, x + 39, y + 14, 36, g) : icon(ic.d, ic.c, x + 39, y + 14, 36, g);
+  draw(ic, x + 39, y + 14, 36, g);
   txt(x + 57, y + 74, name, { 'font-size': name.length > 10 ? 11 : 13, fill: C.text, 'text-anchor': 'middle' }, g);
   nodes[id] = { r, g, color: C.brand, idle: '#1b2030' };
   toolPos[id] = [x + 57, y + 45];

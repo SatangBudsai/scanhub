@@ -170,6 +170,11 @@ class Recorder {
     let gif = null;
     if (this.frames.length) {
       const file = `${slug(path.basename(info.file, '.spec.js'))}-${slug(info.title).slice(0, 40) || 'test'}-${info.testId.slice(-6)}.gif`;
+      if (process.env.E2E_DUMP_FRAMES) { // debug: keep the raw frames next to the GIF
+        const dir = path.join(GIF_DIR, file.replace(/\.gif$/, ''));
+        fs.mkdirSync(dir, { recursive: true });
+        this.frames.forEach((f, i) => fs.writeFileSync(path.join(dir, `${String(i).padStart(4, '0')}.png`), f.png));
+      }
       try {
         writeGif(this.timeline(), path.join(GIF_DIR, file), { lastDelay: 2600 });
         gif = `gifs/${file}`;

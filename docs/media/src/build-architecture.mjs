@@ -1,6 +1,5 @@
 // Builds docs/media/architecture.gif: an animated flow chart of how ScanHub works.
-// Usage: node docs/media/src/build-architecture.mjs <path-to-simple-icons/icons>
-// Logos come from the simple-icons package (CC0). Tools without an icon get a monogram tile.
+// Usage: node docs/media/src/build-architecture.mjs   (logos are in docs/media/src/logos, see its README)
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,12 +7,12 @@ import { chromium } from 'playwright';
 import { writeGif } from '../../../e2e/lib/gif.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const iconDir = process.argv[2];
-if (!iconDir) throw new Error('pass the simple-icons icons folder');
+const iconDir = path.join(here, 'logos');
 const iconPath = (slug) => fs.readFileSync(path.join(iconDir, slug + '.svg'), 'utf8').match(/ d="([^"]+)"/)[1];
 
 let html = fs.readFileSync(path.join(here, 'architecture.html'), 'utf8');
 html = html.replace(/\{\{icon:([a-z0-9]+)\}\}/g, (_, s) => iconPath(s));
+html = html.replace(/\{\{img:([\w.-]+)\}\}/g, (_, f) => `data:${f.endsWith('.png') ? 'image/png' : 'image/svg+xml'};base64,${fs.readFileSync(path.join(iconDir, f)).toString('base64')}`);
 html = html.replace('{{logo}}', fs.readFileSync(path.join(here, '../../../public/logo-dark.svg'), 'utf8'));
 
 const FRAMES = Number(process.env.FRAMES || 64);
@@ -23,7 +22,7 @@ await page.setContent(html);
 if (process.env.PREVIEW) { // PREVIEW=0.3,0.5 out-dir: write still frames only
   for (const t of process.env.PREVIEW.split(',')) {
     await page.evaluate((v) => window.setT(v), Number(t));
-    await page.screenshot({ path: path.join(process.argv[3] || '.', `arch-${t}.png`) });
+    await page.screenshot({ path: path.join(process.argv[2] || '.', `arch-${t}.png`) });
   }
   await browser.close();
   process.exit(0);

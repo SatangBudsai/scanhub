@@ -6,10 +6,42 @@ import fs from 'node:fs';
 import { PNG } from 'pngjs';
 
 const require = createRequire(import.meta.url);
-const { GIFEncoder, quantize, applyPalette } = require('gifenc');
+const { GIFEncoder, quantize } = require('gifenc');
 
 const BG = [20, 20, 21]; // page background of the dark theme
-const TOLERANCE = 18;    // summed RGB distance under which a pixel counts as unchanged
+const DRIFT = 12; // also redraw a pixel once what the viewer sees is this far (summed RGB) from the truth
+const EXACT = 96; // the most common colours of each frame (backgrounds, borders, text) are kept exact,
+                  // so a repainted background matches the untouched background around it (no ghost outlines)
+
+/** A 255-colour palette for these pixels: the top colours exactly, the rest quantized; plus an index per pixel */
+function paletteFor(sample) {
+  const counts = new Map();
+  for (let k = 0; k < sample.length; k += 4) {
+    const key = (sample[k] << 16) | (sample[k + 1] << 8) | sample[k + 2];
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  let palette;
+  if (counts.size <= 255) palette = [...counts.keys()].map((c) => [c >> 16, (c >> 8) & 255, c & 255]);
+  else {
+    const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, EXACT).map(([c]) => c);
+    const rest = quantize(sample, 255 - EXACT, { format: 'rgb565' });
+    palette = [...top.map((c) => [c >> 16, (c >> 8) & 255, c & 255]), ...rest];
+  }
+  const near = new Map(); // colour -> nearest palette index, full precision
+  const lookup = (r, g, b) => {
+    const key = (r << 16) | (g << 8) | b;
+    let best = near.get(key);
+    if (best !== undefined) return best;
+    let bd = Infinity;
+    for (let j = 0; j < palette.length; j++) {
+      const c = palette[j], d = (c[0] - r) ** 2 + (c[1] - g) ** 2 + (c[2] - b) ** 2;
+      if (d < bd) { bd = d; best = j; if (!d) break; }
+    }
+    near.set(key, best);
+    return best;
+  };
+  return { palette, lookup };
+}
 
 /** Area-average downscale of RGBA data into a w x h box, letterboxed into W x H */
 function fit(src, sw, sh, W, H) {
@@ -47,6 +79,7 @@ export function writeGif(frames, outPath, { maxWidth = 1280, delay = 1000, lastD
   const W = Math.round(first.width * scale), H = Math.round(first.height * scale);
   const N = W * H;
   const shown = new Uint8ClampedArray(N * 4); // what a viewer currently sees
+  let prev = null;                            // the previous source frame, exact
   const gif = GIFEncoder();
   let pending = null; // a frame is written once we know how long it stays
   let written = 0;
@@ -68,19 +101,23 @@ export function writeGif(frames, outPath, { maxWidth = 1280, delay = 1000, lastD
     let count = 0;
     for (let p = 0; p < N; p++) {
       const o = p * 4;
-      if (i === 0 || Math.abs(rgba[o] - shown[o]) + Math.abs(rgba[o + 1] - shown[o + 1]) + Math.abs(rgba[o + 2] - shown[o + 2]) > TOLERANCE) { changed[p] = 1; count++; }
+      // any real change is redrawn (a slow fade must not leave a ghost behind)
+      if (i === 0 || rgba[o] !== prev[o] || rgba[o + 1] !== prev[o + 1] || rgba[o + 2] !== prev[o + 2]
+        || Math.abs(rgba[o] - shown[o]) + Math.abs(rgba[o + 1] - shown[o + 1]) + Math.abs(rgba[o + 2] - shown[o + 2]) > DRIFT) { changed[p] = 1; count++; }
     }
+    prev = rgba;
     if (!count) { if (pending) pending.delay += ms; return; } // nothing new on screen: just hold longer
     flush();
     // palette from the changed pixels only, index 255 kept for "unchanged"
     const sample = new Uint8ClampedArray(count * 4);
     for (let p = 0, k = 0; p < N; p++) if (changed[p]) { sample.set(rgba.subarray(p * 4, p * 4 + 4), k); k += 4; }
-    const palette = quantize(sample, 255, { format: 'rgb565' });
+    const { palette, lookup } = paletteFor(sample);
     while (palette.length < 256) palette.push([0, 0, 0]);
-    const index = applyPalette(rgba, palette.slice(0, 255), 'rgb565');
+    const index = new Uint8Array(N);
     for (let p = 0; p < N; p++) {
       if (!changed[p]) { index[p] = 255; continue; }
-      const c = palette[index[p]], o = p * 4;
+      const o = p * 4;
+      const c = palette[index[p] = lookup(rgba[o], rgba[o + 1], rgba[o + 2])];
       shown[o] = c[0]; shown[o + 1] = c[1]; shown[o + 2] = c[2];
     }
     pending = { index, palette, delay: ms, transparent: i > 0 };

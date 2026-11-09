@@ -284,6 +284,6 @@ E2E results are in `e2e/results/index.html`, with the steps, pass/fail status an
 | `test/`, `e2e/` | test suites |
 | `docs/ARCHITECTURE.md` | full system design and API |
 | `designs/` | the 4 UI prototypes used to choose the design |
-| `docs/media/src/` | source of the architecture GIF (`node docs/media/src/build-architecture.mjs <simple-icons>/icons`) |
+| `docs/media/src/` | sources of the banner and architecture GIF (`node docs/media/src/build-banner.mjs`, `node docs/media/src/build-architecture.mjs`) |
 
 Design guidance based on [unslop](https://github.com/heydamir/unslop) by Damir Sokolovsky, CC BY 4.0
