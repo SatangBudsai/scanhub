@@ -2,65 +2,52 @@
 # Everything runs in one container: the web app, PostgreSQL and every scanner.
 # Update to the newest version:  docker compose pull  then  docker compose up -d
 #
-# ScanHub ใช้ไฟล์นี้ไฟล์เดียว แก้ 3 ค่าที่ต้องตั้ง แล้วสั่ง docker compose up -d
-# อัปเดตเวอร์ชัน: docker compose pull แล้ว docker compose up -d (เหมือนกันทั้ง Windows และ macOS)
-#
 # Lines that start with # are optional. Remove the # to use them.
-# บรรทัดที่ขึ้นต้นด้วย # เป็นค่าเสริม ลบ # ออกเพื่อเปิดใช้
 
 services:
   scanhub:
     # :latest follows every release. Pin a version (e.g. :1.1.0) to update only when you choose.
-    # :latest อัปเดตตามเวอร์ชันล่าสุด ถ้าต้องการล็อกเวอร์ชันให้ใส่เลข เช่น :1.1.0
     image: ghcr.io/satangbudsai/scanhub:latest
     ports:
-      - "8080:8080"            # change the left number to use another port / เปลี่ยนเลขซ้ายถ้าต้องการพอร์ตอื่น
+      - "8080:8080"            # change the left number to use another port
     volumes:
-      - scanhub-data:/data     # database, settings, results / ฐานข้อมูลและผลสแกนทั้งหมด
+      - scanhub-data:/data     # database, settings, results
     restart: unless-stopped
     stop_grace_period: 60s
     environment:
-      # ---- Required / ต้องตั้ง ----
+      # ---- Required ----
       # Admin login. Re-applied on every start: change it here and restart to change it.
-      # บัญชี admin ตั้งค่าใหม่ทุกครั้งที่ start (แก้ที่นี่แล้ว restart)
       SCANHUB_ADMIN_USER: ${SCANHUB_ADMIN_USER:-admin}
       # At least 8 characters. ScanHub will not start until you change it.
-      # อย่างน้อย 8 ตัว ต้องเปลี่ยนก่อน ไม่อย่างนั้นระบบจะไม่ start
       SCANHUB_ADMIN_PASSWORD: ${SCANHUB_ADMIN_PASSWORD:-change-me-please}
       # The URL people and CI use to reach ScanHub (used in CI snippets and share links)
-      # URL ที่คนและ CI ใช้เข้า ScanHub (ใช้ในโค้ด CI และลิงก์แชร์)
       SCANHUB_URL: ${SCANHUB_URL:-http://localhost:8080}
 
-      # ---- Optional / เสริม ----
+      # ---- Optional ----
       # Use an existing PostgreSQL instead of the one inside the container
-      # ใช้ PostgreSQL ที่มีอยู่แล้วแทนตัวที่อยู่ใน container
       # DATABASE_URL: postgres://scanhub:password@db.example.com:5432/scanhub
 
       # Your SonarQube server (both needed). Set here = read-only in the settings page
-      # SonarQube server ที่มีอยู่ (ต้องใส่ทั้งคู่) ถ้าตั้งที่นี่ หน้าตั้งค่าจะแก้ไม่ได้
       # SONAR_URL: https://sonarqube.example.com
       # SONAR_TOKEN: squ_xxxxxxxxxxxxxxxx
 
       # NVD API key for OWASP Dependency-Check (much faster first database download)
-      # NVD API key สำหรับ Dependency-Check (โหลดฐานข้อมูลครั้งแรกเร็วขึ้นมาก)
       # NVD_API_KEY: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
       # GitHub connection for one-click CI setup (and fewer rate limits when updating scanners)
-      # เชื่อม GitHub เพื่อตั้ง CI ให้อัตโนมัติในคลิกเดียว
       # GITHUB_TOKEN: github_pat_xxxxxxxx
-      # GitHub Enterprise only / เฉพาะ GitHub Enterprise
+      # GitHub Enterprise only
       # GITHUB_API_URL: https://github.example.com/api/v3
 
       # GitLab connection for one-click CI setup (gitlab.com or your own server)
-      # เชื่อม GitLab เพื่อตั้ง CI ให้อัตโนมัติ (gitlab.com หรือ server ของคุณเอง)
       # GITLAB_URL: https://gitlab.com
       # GITLAB_TOKEN: glpat-xxxxxxxx
 
-      # Time zone for the daily scanner update and scheduled scans / เขตเวลาของงานรายวัน
+      # Time zone for the daily scanner update and scheduled scans
       # TZ: Asia/Bangkok
-      # Scans that run at the same time / จำนวนการสแกนพร้อมกัน
+      # Scans that run at the same time
       # SCAN_CONCURRENCY: "1"
-      # Max source upload from CI, in MB / ขนาดสูงสุดของ source ที่ CI ส่งมา (MB)
+      # Max source upload from CI, in MB
       # MAX_UPLOAD_MB: "500"
 
 volumes:

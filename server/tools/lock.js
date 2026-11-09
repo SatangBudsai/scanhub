@@ -34,7 +34,7 @@ export function createToolLock() {
     try {
       if ((readers.get(id) || 0) > 0) {
         await new Promise((resolve, reject) => {
-          const t = setTimeout(() => reject(new Error('มีการสแกนที่ใช้ scanner นี้อยู่นานเกิน 30 นาที ยกเลิกการเปลี่ยนเวอร์ชัน')), timeoutMs);
+          const t = setTimeout(() => reject(new Error('A scan has been using this scanner for over 30 minutes. Version change cancelled')), timeoutMs);
           const list = idleWaiters.get(id) || [];
           list.push(() => { clearTimeout(t); resolve(); });
           idleWaiters.set(id, list);

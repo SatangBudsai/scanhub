@@ -30,7 +30,7 @@ test('other tools are not blocked, and the wait has a timeout', async () => {
   const rel = await lock.shared('grype');
   const other = await lock.shared('trivy');
   other();
-  await assert.rejects(lock.withExclusive('grype', async () => {}, 30), /30 นาที/);
+  await assert.rejects(lock.withExclusive('grype', async () => {}, 30), /30 minutes/);
   rel();
   // after the timeout the lock is usable again
   await lock.withExclusive('grype', async () => {});

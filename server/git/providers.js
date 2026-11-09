@@ -2,8 +2,8 @@
 import { sealedBox } from './sealedbox.js';
 
 export const SETUP_BRANCH = 'scanhub/setup';
-export const PR_TITLE = 'เพิ่มการสแกนด้วย ScanHub';
-const PR_BODY = 'PR นี้เพิ่มขั้นตอนสแกนด้วย ScanHub ใน CI: ส่ง source ไปสแกนที่ ScanHub ทุกครั้งที่ push และแสดงผลรวมจากทุก scanner\n\nสร้างโดย ScanHub';
+export const PR_TITLE = 'Add ScanHub scan';
+const PR_BODY = 'This PR adds a ScanHub scan step to CI: on every push the source is sent to ScanHub for scanning, and the combined results from all scanners are shown.\n\nCreated by ScanHub';
 const COMMIT_MSG = 'ci: add ScanHub scan';
 const GITLAB_FILE = '.gitlab/scanhub.yml';
 
@@ -108,7 +108,7 @@ export function gitlabJob(opts) {
 # SCANHUB_URL and SCANHUB_TOKEN (masked) are set in Settings > CI/CD > Variables.
 # Runs in every pipeline; the branches and tags that get scanned are set in ScanHub.
 scanhub:
-  stage: .pre  # มีในทุก pipeline ของ GitLab และรันก่อน stage อื่น
+  stage: .pre  # exists in every GitLab pipeline and runs before other stages
   image: curlimages/curl:latest
   script:
     - |
@@ -191,7 +191,7 @@ function github(baseUrl, token) {
       await api('PUT', `${repo}/actions/secrets/SCANHUB_TOKEN`, { encrypted_value: sealedBox(p.scanhubToken, key.key), key_id: key.key_id });
       const created = await api('POST', `${repo}/actions/variables`, { name: 'SCANHUB_URL', value: p.scanhubUrl }, [409, 422]);
       if (created.status === 409 || created.status === 422) await api('PATCH', `${repo}/actions/variables/SCANHUB_URL`, { name: 'SCANHUB_URL', value: p.scanhubUrl });
-      return 'ตั้ง secret SCANHUB_TOKEN และ variable SCANHUB_URL แล้ว';
+      return 'Set secret SCANHUB_TOKEN and variable SCANHUB_URL';
     });
 
     const target = p.mode === 'commit' ? def : SETUP_BRANCH;
@@ -208,20 +208,20 @@ function github(baseUrl, token) {
         ...(existing.status === 200 && existing.data?.sha ? { sha: existing.data.sha } : {}),
       });
       out.commitUrl = put.data?.commit?.html_url || null;
-      return `เพิ่ม ${path} ใน branch ${target}`;
+      return `Added ${path} on branch ${target}`;
     });
 
     await step('pr', async () => {
-      if (p.mode === 'commit') { return `commit ตรงเข้า ${def} แล้ว (ไม่เปิด PR)`; }
+      if (p.mode === 'commit') { return `Committed directly to ${def} (no PR)`; }
       const owner = p.fullName.split('/')[0];
       const open = (await api('GET', `${repo}/pulls?state=open&head=${enc(`${owner}:${SETUP_BRANCH}`)}`)).data || [];
       if (open.length) {
         out.prUrl = open[0].html_url;
-        return `อัปเดต PR เดิม #${open[0].number}`;
+        return `Updated existing PR #${open[0].number}`;
       }
       const pr = (await api('POST', `${repo}/pulls`, { title: PR_TITLE, head: SETUP_BRANCH, base: def, body: PR_BODY })).data;
       out.prUrl = pr.html_url;
-      return `เปิด PR #${pr.number}`;
+      return `Opened PR #${pr.number}`;
     });
     return out;
   }
@@ -265,7 +265,7 @@ function gitlab(baseUrl, token) {
     await step('secret', async () => {
       await setVariable(pid, 'SCANHUB_TOKEN', p.scanhubToken, true);
       await setVariable(pid, 'SCANHUB_URL', p.scanhubUrl, false);
-      return 'ตั้ง CI/CD variables SCANHUB_TOKEN (masked) และ SCANHUB_URL แล้ว';
+      return 'Set CI/CD variables SCANHUB_TOKEN (masked) and SCANHUB_URL';
     });
 
     const target = p.mode === 'commit' ? def : SETUP_BRANCH;
@@ -279,21 +279,21 @@ function gitlab(baseUrl, token) {
       if (merged !== null) actions.push({ action: ci.status === 404 ? 'create' : 'update', file_path: '.gitlab-ci.yml', content: merged });
       const commit = (await api('POST', `/projects/${pid}/repository/commits`, { branch: target, commit_message: COMMIT_MSG, actions })).data;
       out.commitUrl = commit?.web_url || null;
-      return `เพิ่ม ${GITLAB_FILE}${merged !== null ? ' และ include ใน .gitlab-ci.yml' : ''} ใน branch ${target}`;
+      return `Added ${GITLAB_FILE}${merged !== null ? ' and an include in .gitlab-ci.yml' : ''} on branch ${target}`;
     });
 
     await step('pr', async () => {
-      if (p.mode === 'commit') return `commit ตรงเข้า ${def} แล้ว (ไม่เปิด MR)`;
+      if (p.mode === 'commit') return `Committed directly to ${def} (no MR)`;
       const open = (await api('GET', `/projects/${pid}/merge_requests?state=opened&source_branch=${enc(SETUP_BRANCH)}`)).data || [];
       if (open.length) {
         out.prUrl = open[0].web_url;
-        return `อัปเดต MR เดิม !${open[0].iid}`;
+        return `Updated existing MR !${open[0].iid}`;
       }
       const mr = (await api('POST', `/projects/${pid}/merge_requests`, {
         source_branch: SETUP_BRANCH, target_branch: def, title: PR_TITLE, description: PR_BODY, remove_source_branch: true,
       })).data;
       out.prUrl = mr.web_url;
-      return `เปิด MR !${mr.iid}`;
+      return `Opened MR !${mr.iid}`;
     });
     return out;
   }

@@ -6,12 +6,12 @@ const USER_RE = /^[a-z0-9._-]{2,40}$/;
 
 /** Validate an array of ids that must exist in a table; returns unique numbers */
 export async function idList(db, v, table, label) {
-  if (!Array.isArray(v)) throw bad(`${label} ต้องเป็น array`);
+  if (!Array.isArray(v)) throw bad(`${label} must be an array`);
   const ids = [...new Set(v.map(Number))];
-  if (ids.some((n) => !Number.isInteger(n) || n <= 0)) throw bad(`${label} ไม่ถูกต้อง`);
+  if (ids.some((n) => !Number.isInteger(n) || n <= 0)) throw bad(`${label} is invalid`);
   if (!ids.length) return ids;
   const found = await db.all(`SELECT id FROM ${table} WHERE id = ANY(?::bigint[])`, ids);
-  if (found.length !== ids.length) throw bad(`${label} มีรายการที่ไม่มีอยู่`);
+  if (found.length !== ids.length) throw bad(`${label} contains items that do not exist`);
   return ids;
 }
 
@@ -31,7 +31,7 @@ export function userRoutes({ db }) {
 
   const load = async (id) => {
     const u = Number.isInteger(Number(id)) ? await db.get('SELECT * FROM users WHERE id = ?', Number(id)) : null;
-    if (!u) throw notFound('ไม่พบผู้ใช้');
+    if (!u) throw notFound('User not found');
     return u;
   };
 
@@ -44,10 +44,10 @@ export function userRoutes({ db }) {
     const username = String(req.body?.username || '').trim().toLowerCase();
     const password = String(req.body?.password || '');
     const role = normalizeRole(req.body?.role || 'VIEWER');
-    if (!USER_RE.test(username)) throw bad('ชื่อผู้ใช้ใช้ได้เฉพาะ a-z 0-9 . _ - ยาว 2–40 ตัว');
-    if (password.length < 8) throw bad('รหัสผ่านชั่วคราวต้องมีอย่างน้อย 8 ตัวอักษร');
-    if (!ROLES.includes(role)) throw bad('role ไม่ถูกต้อง');
-    if (await db.get('SELECT id FROM users WHERE username = ?', username)) throw new HttpError(409, 'มีชื่อผู้ใช้นี้แล้ว');
+    if (!USER_RE.test(username)) throw bad('Username may use only a-z 0-9 . _ - and be 2–40 characters');
+    if (password.length < 8) throw bad('Temporary password must be at least 8 characters');
+    if (!ROLES.includes(role)) throw bad('Invalid role');
+    if (await db.get('SELECT id FROM users WHERE username = ?', username)) throw new HttpError(409, 'This username already exists');
     const { id } = await db.run(
       'INSERT INTO users (username, pass_hash, role, active, must_change, from_env, all_projects) VALUES (?, ?, ?, 1, 1, 0, 0) RETURNING id',
       username, await hashPassword(password), role,
@@ -57,10 +57,10 @@ export function userRoutes({ db }) {
 
   r.patch('/:id', ah(async (req, res) => {
     const u = await load(req.params.id);
-    if (u.from_env) throw bad('บัญชี admin ตั้งค่าจาก env แก้จากหน้านี้ไม่ได้');
+    if (u.from_env) throw bad('The admin account is set from env and cannot be changed here');
     const { active, allProjects, projectIds, groupIds } = req.body || {};
     const role = req.body?.role === undefined ? undefined : normalizeRole(req.body.role);
-    if (role !== undefined && !ROLES.includes(role)) throw bad('role ไม่ถูกต้อง');
+    if (role !== undefined && !ROLES.includes(role)) throw bad('Invalid role');
     const pids = projectIds !== undefined ? await idList(db, projectIds, 'projects', 'projectIds') : null;
     const gids = groupIds !== undefined ? await idList(db, groupIds, 'groups', 'groupIds') : null;
     await db.tx(async (q) => {
@@ -84,9 +84,9 @@ export function userRoutes({ db }) {
 
   r.post('/:id/reset-password', ah(async (req, res) => {
     const u = await load(req.params.id);
-    if (u.from_env) throw bad('รหัสผ่าน admin ตั้งค่าจาก env แก้จากหน้านี้ไม่ได้');
+    if (u.from_env) throw bad('The admin password is set from env and cannot be changed here');
     const password = String(req.body?.password || '');
-    if (password.length < 8) throw bad('รหัสผ่านชั่วคราวต้องมีอย่างน้อย 8 ตัวอักษร');
+    if (password.length < 8) throw bad('Temporary password must be at least 8 characters');
     await db.run('UPDATE users SET pass_hash = ?, must_change = 1 WHERE id = ?', await hashPassword(password), u.id);
     await db.run('DELETE FROM sessions WHERE user_id = ?', u.id);
     res.json(await view(await load(u.id)));

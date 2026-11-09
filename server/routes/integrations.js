@@ -39,7 +39,7 @@ export async function syncEnvIntegrations(db) {
 
 export async function integrationClient(db, id) {
   const i = Number.isInteger(Number(id)) ? await db.get('SELECT * FROM integrations WHERE id = ?', Number(id)) : null;
-  if (!i) throw notFound('ไม่พบการเชื่อมต่อ');
+  if (!i) throw notFound('Connection not found');
   return { row: i, token: await decrypt(db, i.token_enc), api: provider(i.type, i.base_url, await decrypt(db, i.token_enc)) };
 }
 
@@ -50,7 +50,7 @@ export function integrationRoutes({ db }) {
 
   const load = async (id) => {
     const i = Number.isInteger(Number(id)) ? await db.get('SELECT * FROM integrations WHERE id = ?', Number(id)) : null;
-    if (!i) throw notFound('ไม่พบการเชื่อมต่อ');
+    if (!i) throw notFound('Connection not found');
     return i;
   };
 
@@ -61,29 +61,29 @@ export function integrationRoutes({ db }) {
 
   r.post('/integrations', admin, ah(async (req, res) => {
     const b = req.body || {};
-    if (!TYPES.includes(b.type)) throw bad('type ต้องเป็น github หรือ gitlab');
+    if (!TYPES.includes(b.type)) throw bad('type must be github or gitlab');
     const name = String(b.name || '').trim();
-    if (name.length < 2 || name.length > 60) throw bad('ชื่อการเชื่อมต่อต้องยาว 2–60 ตัวอักษร');
+    if (name.length < 2 || name.length > 60) throw bad('Connection name must be 2–60 characters');
     const base = String(b.baseUrl || DEFAULT_BASE[b.type]).trim().replace(/\/+$/, '');
-    if (!URL_RE.test(base)) throw bad('URL ต้องขึ้นต้นด้วย http:// หรือ https://');
+    if (!URL_RE.test(base)) throw bad('URL must start with http:// or https://');
     const token = String(b.token || '').trim();
-    if (!token) throw bad('ต้องใส่ token');
+    if (!token) throw bad('Token is required');
     const { id } = await db.run('INSERT INTO integrations (type, name, base_url, token_enc) VALUES (?, ?, ?, ?) RETURNING id', b.type, name, base, await encrypt(db, token));
     res.status(201).json(view(await load(id)));
   }));
 
   r.patch('/integrations/:id', admin, ah(async (req, res) => {
     const i = await load(req.params.id);
-    if (i.from_env) throw bad('การเชื่อมต่อนี้ตั้งค่าจาก env แก้จากหน้านี้ไม่ได้');
+    if (i.from_env) throw bad('This connection is set from env and cannot be changed here');
     const b = req.body || {};
     if (b.name !== undefined) {
       const name = String(b.name).trim();
-      if (name.length < 2 || name.length > 60) throw bad('ชื่อการเชื่อมต่อต้องยาว 2–60 ตัวอักษร');
+      if (name.length < 2 || name.length > 60) throw bad('Connection name must be 2–60 characters');
       await db.run('UPDATE integrations SET name = ? WHERE id = ?', name, i.id);
     }
     if (b.baseUrl !== undefined) {
       const base = String(b.baseUrl).trim().replace(/\/+$/, '');
-      if (!URL_RE.test(base)) throw bad('URL ต้องขึ้นต้นด้วย http:// หรือ https://');
+      if (!URL_RE.test(base)) throw bad('URL must start with http:// or https://');
       await db.run('UPDATE integrations SET base_url = ? WHERE id = ?', base, i.id);
     }
     if (typeof b.token === 'string' && b.token.trim()) {
@@ -94,7 +94,7 @@ export function integrationRoutes({ db }) {
 
   r.delete('/integrations/:id', admin, ah(async (req, res) => {
     const i = await load(req.params.id);
-    if (i.from_env) throw bad('การเชื่อมต่อนี้ตั้งค่าจาก env ลบได้โดยเอาค่าออกจาก env แล้ว restart');
+    if (i.from_env) throw bad('This connection is set from env. Remove it from env and restart to delete it');
     await db.run('DELETE FROM integrations WHERE id = ?', i.id);
     res.json({ ok: true });
   }));
@@ -116,7 +116,7 @@ export function integrationRoutes({ db }) {
     try {
       res.json(await api.repos(String(req.query.q || '').slice(0, 100)));
     } catch (e) {
-      throw bad(`ดึงรายการ repo ไม่สำเร็จ: ${e.message}`);
+      throw bad(`Could not list repos: ${e.message}`);
     }
   }));
 
@@ -124,14 +124,14 @@ export function integrationRoutes({ db }) {
   r.post('/repos/:id/auto-setup', manage, ah(async (req, res) => {
     const id = Number(req.params.id);
     const repo = Number.isInteger(id) ? await db.get('SELECT * FROM repos WHERE id = ?', id) : null;
-    if (!repo) throw notFound('ไม่พบ repo');
-    await assertProject(db, req.user, repo.project_id, 'ไม่พบ repo');
+    if (!repo) throw notFound('Repo not found');
+    await assertProject(db, req.user, repo.project_id, 'Repo not found');
     const b = req.body || {};
     const remoteRepo = String(b.remoteRepo || '').trim();
-    if (!/^[\w.-]+(\/[\w.-]+)+$/.test(remoteRepo)) throw bad('remoteRepo ต้องเป็น owner/name');
+    if (!/^[\w.-]+(\/[\w.-]+)+$/.test(remoteRepo)) throw bad('remoteRepo must be owner/name');
     const mode = b.mode === 'commit' ? 'commit' : 'pr';
     const tools = b.tools == null ? null : (Array.isArray(b.tools) ? b.tools : null);
-    if (tools && tools.some((t) => !TOOL_IDS.includes(t))) throw bad('tools มี scanner ที่ไม่รู้จัก');
+    if (tools && tools.some((t) => !TOOL_IDS.includes(t))) throw bad('tools contains an unknown scanner');
     let gate;
     try { gate = validGate(b.gate || {}, json(repo.gate, {})); } catch (e) { throw bad(e.message); }
     const { row: integ, api } = await integrationClient(db, b.integrationId);
@@ -144,7 +144,7 @@ export function integrationRoutes({ db }) {
     const step = async (key, fn) => {
       if (failed) return;
       try {
-        steps.push({ key, ok: true, message: (await fn()) || 'สำเร็จ' });
+        steps.push({ key, ok: true, message: (await fn()) || 'Done' });
       } catch (e) {
         failed = true;
         steps.push({ key, ok: false, message: e.message });
@@ -159,7 +159,7 @@ export function integrationRoutes({ db }) {
         const tok = newRepoToken();
         await db.run('UPDATE repos SET token_hash = ?, token_hint = ? WHERE id = ?', tok.hash, tok.hint, repo.id);
         scanhubToken = tok.token;
-        return 'สร้าง token ใหม่ของ repo แล้ว (token เดิมใช้ไม่ได้)';
+        return 'Generated a new repo token (the old token no longer works)';
       });
       result = await api.autoSetup({
         fullName: remoteRepo, branch: b.branch ? String(b.branch) : null, mode, tools,
@@ -172,7 +172,7 @@ export function integrationRoutes({ db }) {
              git_url = COALESCE(NULLIF(git_url, ''), ?), branch = CASE WHEN ? THEN ? ELSE branch END WHERE id = ?`,
           integ.id, remoteRepo, result.webUrl || null, result.cloneUrl || null, fill, result.defaultBranch || repo.branch, repo.id,
         );
-        return `ผูก repo กับ ${remoteRepo} แล้ว (CI gate: ${gate.mode === 'block' ? 'block' : 'รายงานอย่างเดียว'})`;
+        return `Linked repo to ${remoteRepo} (CI gate: ${gate.mode === 'block' ? 'block' : 'report only'})`;
       });
     } catch (e) {
       // An error between steps (e.g. the repo lookup) counts as the next step failing.

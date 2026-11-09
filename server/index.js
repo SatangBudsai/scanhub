@@ -26,7 +26,7 @@ function fatal(msg) {
 
 if (config.adminPassword.length < 8) fatal('SCANHUB_ADMIN_PASSWORD is required and must be at least 8 characters. Set it in docker-compose.yml and start again.');
 if (config.adminPassword === 'change-me-please') {
-  fatal('SCANHUB_ADMIN_PASSWORD is still the example value. Change it in docker-compose.yml, then run docker compose up -d again. / เปลี่ยนรหัสผ่าน admin ใน docker-compose.yml ก่อน');
+  fatal('SCANHUB_ADMIN_PASSWORD is still the example value. Change it in docker-compose.yml, then run docker compose up -d again.');
 }
 if (!/^[a-z0-9._-]{2,40}$/.test(config.adminUser)) fatal('SCANHUB_ADMIN_USER may only contain a-z 0-9 . _ - (2-40 characters).');
 
@@ -38,7 +38,7 @@ async function main() {
   await syncEnvIntegrations(db);
 
   // Scans and jobs do not survive a restart
-  await db.run(`UPDATE scans SET status = 'failed', error = 'server restarted ระหว่างสแกน', finished_at = COALESCE(finished_at, now()) WHERE status IN ('queued', 'running')`);
+  await db.run(`UPDATE scans SET status = 'failed', error = 'Server restarted during the scan', finished_at = COALESCE(finished_at, now()) WHERE status IN ('queued', 'running')`);
   await db.run('DELETE FROM sessions WHERE expires_at < now()');
   cleanWorkDirs();
 
@@ -67,7 +67,7 @@ async function main() {
   app.use('/api', authed, integrationRoutes(ctx));
   app.use('/api', authed, reportRoutes(ctx));
   app.use('/api', authed, projectRoutes(ctx));
-  app.use('/api', (req, res) => res.status(404).json({ error: 'ไม่พบ API นี้' }));
+  app.use('/api', (req, res) => res.status(404).json({ error: 'API not found' }));
 
   // Share link viewer page, before the SPA fallback
   const reportFile = path.join(config.publicDir, 'report.html');
@@ -87,10 +87,10 @@ async function main() {
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
     if (err instanceof HttpError) return res.status(err.status).json({ error: err.message, ...(err.extra || {}) });
-    if (err?.type === 'entity.too.large') return res.status(413).json({ error: 'ข้อมูลใหญ่เกินกำหนด' });
-    if (err?.type === 'entity.parse.failed') return res.status(400).json({ error: 'JSON ไม่ถูกต้อง' });
+    if (err?.type === 'entity.too.large') return res.status(413).json({ error: 'Request too large' });
+    if (err?.type === 'entity.parse.failed') return res.status(400).json({ error: 'Invalid JSON' });
     console.error(err);
-    res.status(500).json({ error: 'เกิดข้อผิดพลาดในระบบ' });
+    res.status(500).json({ error: 'Internal server error' });
   });
 
   const server = app.listen(config.port, () => {

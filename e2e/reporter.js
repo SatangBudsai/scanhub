@@ -8,8 +8,8 @@ const LOGO = path.resolve(import.meta.dirname, '..', 'public', 'logo.svg');
 const stripAnsi = (s) => String(s || '').replace(/\u001b\[[0-9;]*m/g, '');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const dur = (ms) => { const s = Math.round(ms / 1000); return s >= 60 ? `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s` : `${(ms / 1000).toFixed(1)}s`; };
-const TM = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-const thDate = (d) => `${d.getDate()} ${TM[d.getMonth()]} ${d.getFullYear() + 543} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+const TM = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const fmtDate = (d) => `${d.getDate()} ${TM[d.getMonth()]} ${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
 export default class ScanHubReporter {
   onBegin(config, suite) {
@@ -54,16 +54,16 @@ export default class ScanHubReporter {
 }
 
 function card(t, i) {
-  const icon = t.status === 'passed' ? '<span class="st st-pass" title="ผ่าน"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>'
-    : t.status === 'skipped' ? '<span class="st st-skip" title="ข้าม"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></span>'
-    : '<span class="st st-fail" title="ไม่ผ่าน"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span>';
+  const icon = t.status === 'passed' ? '<span class="st st-pass" title="Passed"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>'
+    : t.status === 'skipped' ? '<span class="st st-skip" title="Skipped"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></span>'
+    : '<span class="st st-fail" title="Failed"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span>';
   const steps = (t.steps || []).map((s) => `<li class="${s.ok === false ? 'bad' : s.ok ? 'ok' : 'nr'}"><span class="si">${s.ok === false ? '✗' : s.ok ? '✓' : '·'}</span><span class="sn">${esc(s.name)}</span><span class="sd mono">${dur(s.ms || 0)}</span>${s.error ? `<div class="se">${esc(s.error)}</div>` : ''}</li>`).join('');
-  const err = t.errors.length ? `<details class="err" ${t.status === 'failed' ? 'open' : ''}><summary>ข้อผิดพลาด</summary>${t.errors.map((e) => `<pre>${esc(e.stack || e.message)}</pre>`).join('')}</details>` : '';
+  const err = t.errors.length ? `<details class="err" ${t.status === 'failed' ? 'open' : ''}><summary>Error</summary>${t.errors.map((e) => `<pre>${esc(e.stack || e.message)}</pre>`).join('')}</details>` : '';
   return `<article class="card t ${t.status}" data-status="${t.status}" id="t${i}">
     <header class="t-h">${icon}<div class="t-title"><div class="t-area small">${esc(t.area)}</div><h3>${esc(t.title)}</h3></div><span class="mono small t3">${dur(t.duration)}</span></header>
     <div class="t-body">
-      <div class="t-steps">${steps ? `<ol class="steps">${steps}</ol>` : '<p class="small t3">ไม่มีขั้นตอนที่บันทึก</p>'}${err}</div>
-      <div class="t-gif">${t.gif ? `<a href="${esc(t.gif)}" target="_blank" rel="noopener"><img src="${esc(t.gif)}" alt="ภาพเคลื่อนไหวของ ${esc(t.title)}" loading="lazy"></a>` : '<div class="nogif small t3">ไม่มีภาพ</div>'}</div>
+      <div class="t-steps">${steps ? `<ol class="steps">${steps}</ol>` : '<p class="small t3">No steps recorded</p>'}${err}</div>
+      <div class="t-gif">${t.gif ? `<a href="${esc(t.gif)}" target="_blank" rel="noopener"><img src="${esc(t.gif)}" alt="Recording of ${esc(t.title)}" loading="lazy"></a>` : '<div class="nogif small t3">No recording</div>'}</div>
     </div>
   </article>`;
 }
@@ -72,7 +72,7 @@ function page({ tests, passed, failed, skipped, total, browser, meta, logo, star
   const ok = failed === 0 && overall === 'passed';
   const areas = [...new Set(tests.map((t) => t.file))];
   return `<!doctype html>
-<html lang="th">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -146,31 +146,31 @@ h1{font-size:28px;line-height:36px;font-weight:500;margin:0}
 <header class="top"><div class="top-in">
   <span class="logo" aria-label="ScanHub">${logo}</span>
   <span class="sp"></span>
-  <div class="seg" role="tablist" aria-label="กรองผลการทดสอบ">
-    <button role="tab" class="on" data-f="all" aria-selected="true">ทั้งหมด <span class="n">${tests.length}</span></button>
-    <button role="tab" data-f="failed" aria-selected="false">ไม่ผ่าน <span class="n">${failed}</span></button>
+  <div class="seg" role="tablist" aria-label="Filter tests">
+    <button role="tab" class="on" data-f="all" aria-selected="true">All <span class="n">${tests.length}</span></button>
+    <button role="tab" data-f="failed" aria-selected="false">Failed <span class="n">${failed}</span></button>
   </div>
-  <button class="theme" id="theme" title="สลับธีม" aria-label="สลับธีม"><svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+  <button class="theme" id="theme" title="Toggle theme" aria-label="Toggle theme"><svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
 </div></header>
 <main>
-  <h1>ผลการทดสอบ E2E</h1>
-  <p class="lead">ทดสอบ ScanHub ทั้งระบบผ่านเบราว์เซอร์จริง ทุกการทดสอบมีภาพเคลื่อนไหวของแต่ละขั้นตอน</p>
-  <div class="verdict ${ok ? 'ok' : 'bad'}"><span class="dot"></span><span>${ok ? `ผ่านทั้งหมด ${passed} จาก ${tests.length} การทดสอบ` : `ไม่ผ่าน ${failed} จาก ${tests.length} การทดสอบ`}</span></div>
+  <h1>E2E test results</h1>
+  <p class="lead">End-to-end tests of ScanHub in a real browser. Every test comes with a recording of each step</p>
+  <div class="verdict ${ok ? 'ok' : 'bad'}"><span class="dot"></span><span>${ok ? `All ${passed} of ${tests.length} tests passed` : `${failed} of ${tests.length} tests failed`}</span></div>
   <section class="card sum">
-    <div><div class="k">ผ่าน</div><div class="v pos">${passed}</div></div>
-    <div><div class="k">ไม่ผ่าน</div><div class="v ${failed ? 'neg' : ''}">${failed}</div></div>
-    <div><div class="k">ข้าม</div><div class="v">${skipped}</div></div>
-    <div><div class="k">เวลารวม</div><div class="v">${dur(total)}</div></div>
+    <div><div class="k">Passed</div><div class="v pos">${passed}</div></div>
+    <div><div class="k">Failed</div><div class="v ${failed ? 'neg' : ''}">${failed}</div></div>
+    <div><div class="k">Skipped</div><div class="v">${skipped}</div></div>
+    <div><div class="k">Total time</div><div class="v">${dur(total)}</div></div>
   </section>
-  <p class="metaline"><span>${esc(thDate(started))}</span><span>ScanHub ${esc(meta.version || '—')}</span><span>${esc(browser)}</span><span>${esc(meta.baseUrl || '')}</span><span>${areas.length} ไฟล์ทดสอบ</span></p>
-  <div class="bar"><h2>การทดสอบ</h2><span class="small t3" id="shown">${tests.length} รายการ</span></div>
+  <p class="metaline"><span>${esc(fmtDate(started))}</span><span>ScanHub ${esc(meta.version || '—')}</span><span>${esc(browser)}</span><span>${esc(meta.baseUrl || '')}</span><span>${areas.length} spec files</span></p>
+  <div class="bar"><h2>Tests</h2><span class="small t3" id="shown">${tests.length} shown</span></div>
   <div class="list" id="list">${tests.map(card).join('')}</div>
-  <div class="card empty" id="none" hidden>ไม่มีการทดสอบที่ไม่ผ่าน</div>
-  <footer class="foot"><span>รายงานแบบละเอียดของ Playwright: <a href="playwright/index.html">playwright/index.html</a></span><span>สร้างโดย ScanHub E2E</span></footer>
+  <div class="card empty" id="none" hidden>No failed tests</div>
+  <footer class="foot"><span>Full Playwright report: <a href="playwright/index.html">playwright/index.html</a></span><span>Created by ScanHub E2E</span></footer>
 </main>
 <script>
 const tabs=[...document.querySelectorAll('[data-f]')],cards=[...document.querySelectorAll('.t')];
-function show(f){tabs.forEach(b=>{const on=b.dataset.f===f;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});let n=0;cards.forEach(c=>{const v=f==='all'||c.dataset.status==='failed';c.hidden=!v;if(v)n++});document.getElementById('shown').textContent=n+' รายการ';document.getElementById('none').hidden=n>0}
+function show(f){tabs.forEach(b=>{const on=b.dataset.f===f;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});let n=0;cards.forEach(c=>{const v=f==='all'||c.dataset.status==='failed';c.hidden=!v;if(v)n++});document.getElementById('shown').textContent=n+' shown';document.getElementById('none').hidden=n>0}
 tabs.forEach(b=>b.onclick=()=>show(b.dataset.f));
 let th=null;try{th=localStorage.getItem('e2e.theme')}catch(e){}
 if(th)document.documentElement.dataset.theme=th;

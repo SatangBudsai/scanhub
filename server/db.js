@@ -40,7 +40,7 @@ export async function openDb(url, { retryMs = 60000, log = console.log } = {}) {
       c.release();
       break;
     } catch (e) {
-      if (Date.now() > deadline) throw new Error(`เชื่อมต่อ PostgreSQL ไม่ได้ (${e.message}). ตรวจสอบ DATABASE_URL`);
+      if (Date.now() > deadline) throw new Error(`Cannot connect to PostgreSQL (${e.message}). Check DATABASE_URL`);
       if (attempt === 1 || attempt % 5 === 0) log(`waiting for database: ${e.message}`);
       await sleep(2000);
     }

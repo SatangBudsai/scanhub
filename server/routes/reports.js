@@ -31,7 +31,7 @@ export function reportOptions(o = {}) {
 export async function buildReport(db, scanId, rawOptions, user) {
   const options = reportOptions(rawOptions);
   const d = await loadScanDetail(db, scanId, user);
-  if (d.status !== 'done') throw new HttpError(409, 'สแกนนี้ยังไม่เสร็จ หรือสแกนไม่สำเร็จ จึงสร้างรายงานไม่ได้');
+  if (d.status !== 'done') throw new HttpError(409, 'This scan is not finished or has failed, so a report cannot be created');
   const repo = await db.get('SELECT r.name, r.lang, r.branch, p.name AS project_name FROM repos r JOIN projects p ON p.id = r.project_id WHERE r.id = ?', d.repoId);
   const newBySeverity = Object.fromEntries(SEV.map((s) => [s, 0]));
   for (const f of d.findings) if (f.status === 'new') newBySeverity[f.severity]++;
@@ -40,7 +40,7 @@ export async function buildReport(db, scanId, rawOptions, user) {
     .sort((a, b) => sevRank(a.severity) - sevRank(b.severity) || STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || a.location.localeCompare(b.location))
     .map(({ id, ...f }) => (options.includeSnippets ? f : { ...f, snippet: null }));
   return {
-    title: options.title || `รายงานผลการสแกนความปลอดภัย · ${repo.name}`,
+    title: options.title || `Security scan report · ${repo.name}`,
     preparedFor: options.preparedFor,
     generatedAt: nowIso(),
     repo: { name: repo.name, projectName: repo.project_name, lang: repo.lang, branch: repo.branch },
@@ -78,16 +78,16 @@ export function reportRoutes({ db }) {
   r.post('/scans/:id/shares', sharers, ah(async (req, res) => {
     const b = req.body || {};
     const mode = b.mode;
-    if (!['internal', 'password'].includes(mode)) throw bad('mode ต้องเป็น internal หรือ password');
+    if (!['internal', 'password'].includes(mode)) throw bad('mode must be internal or password');
     let passHash = null;
     if (mode === 'password') {
-      if (String(b.password || '').length < 8) throw bad('รหัสผ่านของลิงก์ต้องมีอย่างน้อย 8 ตัวอักษร');
+      if (String(b.password || '').length < 8) throw bad('Link password must be at least 8 characters');
       passHash = await hashPassword(b.password);
     }
     let expiresAt = null;
     if (b.expiresInDays !== undefined && b.expiresInDays !== null) {
       const n = Number(b.expiresInDays);
-      if (!Number.isInteger(n) || n < 1 || n > 365) throw bad('อายุลิงก์ต้องเป็น 1–365 วัน');
+      if (!Number.isInteger(n) || n < 1 || n > 365) throw bad('Link expiry must be 1–365 days');
       expiresAt = new Date(Date.now() + n * 864e5).toISOString();
     }
     const options = reportOptions(b.options || {});
@@ -104,16 +104,16 @@ export function reportRoutes({ db }) {
   r.get('/scans/:id/shares', sharers, ah(async (req, res) => {
     const id = Number(req.params.id);
     const pid = Number.isInteger(id) ? await projectOfScan(db, id) : null;
-    if (pid === null) throw notFound('ไม่พบผลสแกน');
-    await assertProject(db, req.user, pid, 'ไม่พบผลสแกน');
+    if (pid === null) throw notFound('Scan not found');
+    await assertProject(db, req.user, pid, 'Scan not found');
     res.json((await db.all('SELECT * FROM shares WHERE scan_id = ? ORDER BY id DESC', id)).map((s) => shareView(s)));
   }));
 
   r.delete('/shares/:id', sharers, ah(async (req, res) => {
     const id = Number(req.params.id);
     const s = Number.isInteger(id) && await db.get('SELECT id, scan_id FROM shares WHERE id = ?', id);
-    if (!s) throw notFound('ไม่พบลิงก์');
-    await assertProject(db, req.user, await projectOfScan(db, s.scan_id), 'ไม่พบลิงก์');
+    if (!s) throw notFound('Link not found');
+    await assertProject(db, req.user, await projectOfScan(db, s.scan_id), 'Link not found');
     await db.run('UPDATE shares SET revoked = 1 WHERE id = ?', id);
     res.json({ ok: true });
   }));
@@ -131,8 +131,8 @@ export function publicShareRoutes({ db }) {
 
   async function loadShare(token) {
     const s = token && token.startsWith('shs_') ? await db.get('SELECT * FROM shares WHERE token_hash = ?', sha256(token)) : null;
-    if (!s || s.revoked) throw new HttpError(404, 'ไม่พบลิงก์นี้ หรือลิงก์ถูกยกเลิกแล้ว');
-    if (s.expires_at && s.expires_at < nowIso()) throw new HttpError(410, 'ลิงก์นี้หมดอายุแล้ว');
+    if (!s || s.revoked) throw new HttpError(404, 'Link not found or revoked');
+    if (s.expires_at && s.expires_at < nowIso()) throw new HttpError(410, 'This link has expired');
     return s;
   }
 
@@ -150,12 +150,12 @@ export function publicShareRoutes({ db }) {
     const share = await loadShare(req.params.token);
     if (share.mode === 'internal') {
       const user = await sessionUser(db, req);
-      if (!user) throw new HttpError(401, 'ต้องเข้าสู่ระบบก่อนดูรายงานนี้', { code: 'LOGIN_REQUIRED' });
+      if (!user) throw new HttpError(401, 'Sign in to view this report', { code: 'LOGIN_REQUIRED' });
       if (!(await canSeeProject(db, user, await projectOfScan(db, share.scan_id)))) {
-        throw new HttpError(403, 'บัญชีนี้ไม่มีสิทธิ์เข้าถึงโปรเจกต์ของรายงานนี้', { code: 'NO_ACCESS' });
+        throw new HttpError(403, 'This account has no access to the project of this report', { code: 'NO_ACCESS' });
       }
     } else if (!(await unlocked(req, share))) {
-      throw new HttpError(401, 'ใส่รหัสผ่านเพื่อดูรายงานนี้', { code: 'PASSWORD_REQUIRED' });
+      throw new HttpError(401, 'Enter the password to view this report', { code: 'PASSWORD_REQUIRED' });
     }
     const report = await buildReport(db, share.scan_id, share.options);
     await db.run('UPDATE shares SET views = views + 1, last_viewed_at = now() WHERE id = ?', share.id);
@@ -165,15 +165,15 @@ export function publicShareRoutes({ db }) {
 
   r.post('/:token/unlock', ah(async (req, res) => {
     const share = await loadShare(req.params.token);
-    if (share.mode !== 'password') throw bad('ลิงก์นี้ไม่ได้ใช้รหัสผ่าน');
+    if (share.mode !== 'password') throw bad('This link does not use a password');
     const key = `${share.id}|${req.ip}`;
     const now = Date.now();
     const recent = (fails.get(key) || []).filter((t) => now - t < FAIL_WINDOW_MS);
-    if (recent.length >= MAX_FAILS) throw new HttpError(429, 'ใส่รหัสผิดหลายครั้งเกินไป รอ 15 นาทีแล้วลองใหม่');
+    if (recent.length >= MAX_FAILS) throw new HttpError(429, 'Too many wrong passwords. Wait 15 minutes and try again');
     if (!(await verifyPassword(String(req.body?.password || ''), share.pass_hash))) {
       recent.push(now);
       fails.set(key, recent);
-      throw new HttpError(401, 'รหัสผ่านไม่ถูกต้อง');
+      throw new HttpError(401, 'Wrong password');
     }
     fails.delete(key);
     const exp = String(now + UNLOCK_HOURS * 3600 * 1000);

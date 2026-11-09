@@ -26,7 +26,7 @@ export async function createToolManager(db, lock) {
   const row = (id) => db.get('SELECT * FROM tools WHERE id = ?', id);
   for (const t of CATALOG) await db.run('INSERT INTO tools (id) VALUES (?) ON CONFLICT (id) DO NOTHING', t.id);
   // Jobs do not survive a restart
-  await db.run(`UPDATE tools SET status = 'idle', error = 'งานถูกยกเลิกเพราะ server restart' WHERE status IN ('installing', 'updating', 'removing')`);
+  await db.run(`UPDATE tools SET status = 'idle', error = 'Task cancelled because the server restarted' WHERE status IN ('installing', 'updating', 'removing')`);
 
   // Versions of the built-in scanners, written by the image build
   let manifest = {};
@@ -104,7 +104,7 @@ export async function createToolManager(db, lock) {
         if (config.githubToken) headers.Authorization = `Bearer ${config.githubToken}`;
         const res = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, { headers });
         if (!res.ok) {
-          const e = new Error(`GitHub API ${res.status}${res.status === 403 ? ' (rate limit: ตั้ง GITHUB_TOKEN ได้)' : ''}`);
+          const e = new Error(`GitHub API ${res.status}${res.status === 403 ? ' (rate limit: set GITHUB_TOKEN)' : ''}`);
           e.permanent = res.status === 404;
           throw e;
         }
@@ -141,7 +141,7 @@ export async function createToolManager(db, lock) {
     return retry(async () => {
       const res = await fetch(url, { headers: { 'User-Agent': 'scanhub' }, redirect: 'follow' });
       if (!res.ok || !res.body) {
-        const e = new Error(`ดาวน์โหลดไม่สำเร็จ ${res.status}: ${url}`);
+        const e = new Error(`Download failed ${res.status}: ${url}`);
         e.permanent = res.status === 404;
         throw e;
       }
@@ -154,7 +154,7 @@ export async function createToolManager(db, lock) {
     const r = archive.endsWith('.zip')
       ? await runCmd('unzip', ['-q', '-o', archive, '-d', into])
       : await runCmd('tar', ['-xzf', archive, '-C', into]);
-    if (r.code !== 0) throw new Error(`แตกไฟล์ไม่สำเร็จ: ${tail(r.stderr)}`);
+    if (r.code !== 0) throw new Error(`Extract failed: ${tail(r.stderr)}`);
   }
 
   async function detectVersion(item, bin) {
@@ -196,15 +196,15 @@ export async function createToolManager(db, lock) {
     } else {
       const venv = path.join(staging, 'venv');
       const r1 = await runCmd('python3', ['-m', 'venv', venv], { timeoutMs: 600000 });
-      if (r1.code !== 0) throw new Error(`สร้าง venv ไม่สำเร็จ: ${tail(r1.stderr)}`);
+      if (r1.code !== 0) throw new Error(`venv creation failed: ${tail(r1.stderr)}`);
       const r2 = await runCmd(path.join(venv, 'bin', 'pip'), ['install', '--quiet', '--disable-pip-version-check', '--no-cache-dir', `${item.pkg}==${latest.version}`], { timeoutMs: 1800000 });
-      if (r2.code !== 0) throw new Error(`pip install ไม่สำเร็จ: ${tail(r2.stderr)}`);
+      if (r2.code !== 0) throw new Error(`pip install failed: ${tail(r2.stderr)}`);
     }
     const bin = toolBinIn(staging, item);
-    if (!bin) throw new Error(`ไม่พบไฟล์ ${item.binName} ในไฟล์ที่ติดตั้ง`);
+    if (!bin) throw new Error(`${item.binName} not found in the installed files`);
     chmodAll(path.dirname(bin));
     if (item.source === 'sonar') chmodAll(path.join(path.dirname(path.dirname(bin)), 'jre', 'bin'));
-    if (!(await detectVersion(item, bin))) throw new Error('ติดตั้งแล้วแต่รันคำสั่งตรวจเวอร์ชันไม่ผ่าน จึงไม่เปลี่ยนเวอร์ชัน');
+    if (!(await detectVersion(item, bin))) throw new Error('Installed, but the version check failed, so the version was not changed');
   }
 
   /** Swap <id>.new into DATA_DIR/tools/<id>; restore the old dir if the new one does not run there */
@@ -219,7 +219,7 @@ export async function createToolManager(db, lock) {
       if (item.source === 'pip') relocateVenv(final, staging, final);
       const bin = toolBinIn(final, item);
       const version = bin && await detectVersion(item, bin);
-      if (!version) throw new Error('เวอร์ชันใหม่รันไม่ได้หลังย้ายเข้าที่');
+      if (!version) throw new Error('The new version does not run after being moved into place');
       rmrf(old);
       return { bin, version };
     } catch (e) {
@@ -231,7 +231,7 @@ export async function createToolManager(db, lock) {
 
   /** Install the latest version as an override, unless the version in use is already the latest */
   async function updateOverride(item) {
-    if (process.platform !== 'linux') throw new Error('อัปเดต scanner ได้เฉพาะใน Linux container (docker)');
+    if (process.platform !== 'linux') throw new Error('Scanners can only be updated in the Linux container (docker)');
     const current = await row(item.id);
     const inUse = overrideBin(current) ? current.version : (imageBin(item) ? current.image_version : null);
     const latest = await resolveLatest(item);
@@ -256,7 +256,7 @@ export async function createToolManager(db, lock) {
   const ACTIVE = { install: 'installing', update: 'updating', reset: 'removing', remove: 'removing' };
   function job(id, action) {
     const item = toolById(id);
-    if (!item) throw new Error('ไม่รู้จัก scanner นี้');
+    if (!item) throw new Error('Unknown scanner');
     const queued = setStatus(id, ACTIVE[action], null);
     return enqueue(async () => {
       await queued;
@@ -266,17 +266,17 @@ export async function createToolManager(db, lock) {
           // Built in: just enable. Not in the image (local dev): download it.
           if (!(await installedBin(id))) await updateOverride(item);
           await db.run('UPDATE tools SET enabled = 1 WHERE id = ?', id);
-          msg = 'เปิดใช้งานแล้ว';
+          msg = 'Enabled';
         } else if (action === 'update') {
           const r = await updateOverride(item);
-          msg = r.unchanged ? `เป็นเวอร์ชันล่าสุดแล้ว (${r.version})` : `อัปเดตแล้ว ${r.from ? `${r.from} → ` : ''}${r.version}`;
+          msg = r.unchanged ? `Already the latest version (${r.version})` : `Updated ${r.from ? `${r.from} → ` : ''}${r.version}`;
         } else if (action === 'reset') {
           await dropOverride(id);
-          msg = 'กลับไปใช้เวอร์ชันที่มากับ image';
+          msg = 'Back to the version in the image';
         } else {
           await dropOverride(id);
           await db.run('UPDATE tools SET enabled = 0 WHERE id = ?', id);
-          msg = 'ปิดใช้งานและลบเวอร์ชันที่อัปเดตไว้แล้ว';
+          msg = 'Disabled and removed the updated version';
         }
         await setStatus(id, 'idle', null);
         await log(id, action, true, msg);
@@ -285,7 +285,7 @@ export async function createToolManager(db, lock) {
         const msg = String(e.message || e);
         // A failed update keeps the version in use working
         const usable = await installedBin(id);
-        await setStatus(id, usable ? 'idle' : 'error', usable ? `${action === 'update' ? 'อัปเดต' : 'ทำรายการ'}ไม่สำเร็จ ใช้เวอร์ชันเดิมต่อ: ${msg}` : msg);
+        await setStatus(id, usable ? 'idle' : 'error', usable ? `${action === 'update' ? 'Update' : 'Action'} failed, still using the current version: ${msg}` : msg);
         await log(id, action, false, msg);
         return { ok: false, error: msg };
       }
@@ -293,9 +293,9 @@ export async function createToolManager(db, lock) {
   }
 
   async function setEnabled(id, on) {
-    if (!toolById(id)) throw new Error('ไม่รู้จัก scanner นี้');
+    if (!toolById(id)) throw new Error('Unknown scanner');
     await db.run('UPDATE tools SET enabled = ? WHERE id = ?', on ? 1 : 0, id);
-    await log(id, on ? 'enable' : 'disable', true, on ? 'เปิดใช้งาน' : 'ปิดใช้งาน');
+    await log(id, on ? 'enable' : 'disable', true, on ? 'Enabled' : 'Disabled');
   }
 
   /** Setup: enable exactly these tools */
@@ -318,7 +318,7 @@ export async function createToolManager(db, lock) {
       let r;
       try { r = await item.updateDb.call(item, { bin, ctx: { nvdApiKey } }); } finally { release(); }
       const ok = r.code === 0;
-      await log(item.id, 'update-db', ok, ok ? 'อัปเดตฐานข้อมูลช่องโหว่แล้ว' : tail(r.stderr || r.stdout) || `exit ${r.code}`);
+      await log(item.id, 'update-db', ok, ok ? 'Vulnerability database updated' : tail(r.stderr || r.stdout) || `exit ${r.code}`);
       results.push({ id: item.id, ok });
     }
     return results;
@@ -335,8 +335,8 @@ export async function createToolManager(db, lock) {
       const schedule = await db.getSetting('schedule', {});
       const dbRes = schedule?.updateDb === false ? [] : await enqueue(updateDbs);
       const failed = targets.filter((t, i) => !res[i].ok).map((t) => t.name).concat(dbRes.filter((d) => !d.ok).map((d) => `${toolById(d.id).name} DB`));
-      const summary = targets.length === 0 ? 'ยังไม่มี scanner ที่เปิดใช้งาน'
-        : failed.length ? `ไม่สำเร็จ: ${failed.join(', ')}` : `ตรวจและอัปเดต ${targets.length} scanner สำเร็จ`;
+      const summary = targets.length === 0 ? 'No scanners enabled'
+        : failed.length ? `Failed: ${failed.join(', ')}` : `Checked and updated ${targets.length} scanners`;
       const run = { at: new Date().toISOString(), ok: failed.length === 0, summary };
       await db.setSetting('lastUpdateRun', run);
       return run;

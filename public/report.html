@@ -1,15 +1,15 @@
 <!doctype html>
-<html lang="th">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="no-referrer">
-<title>รายงานผลการสแกน · ScanHub</title>
-<link rel="icon" href="/favicon.ico?v=scanline-v2" sizes="16x16 32x32 48x48">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=scanline-v2">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=scanline-v2">
-<script src="/brand.js?v=scanline-v2"></script>
+<title>Scan report · ScanHub</title>
+<link rel="icon" href="/favicon.ico?v=merge-v1" sizes="16x16 32x32 48x48">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=merge-v1">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=merge-v1">
+<script src="/brand.js?v=merge-v1"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -49,11 +49,16 @@ svg.ic{width:16px;height:16px;stroke:currentColor;stroke-width:1.5;fill:none;str
 .brand{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:500;color:var(--t1)}
 .brand-lockup{display:inline-flex;align-items:center;gap:9px;white-space:nowrap;color:var(--t1);line-height:1}
 .brand-lockup .brand-mark{display:block;width:24px;height:24px;flex:none;color:var(--acc-text)}
-.brand-lockup .brand-name{font:600 17px/24px var(--sans);letter-spacing:-.35px}
+.brand-lockup .brand-name{display:flex;align-items:center;font-size:17px;line-height:24px}
+.brand-lockup .brand-wordmark{display:block;width:5.292em;height:.8em;flex:none}
+.brand-lockup .merge-primary{fill:var(--brand-primary,#0646f5)}
+.brand-lockup .merge-signal{fill:var(--brand-signal,#00b8dc)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--brand-primary:#8fb4ff;--brand-signal:#22d3ee}}
+:root[data-theme="dark"]{--brand-primary:#8fb4ff;--brand-signal:#22d3ee}
 .state .brand-mark{width:30px;height:30px}
 .state .brand-name{font-size:22px;line-height:30px;letter-spacing:-.5px}
 .report-brand{color:var(--t1);margin-bottom:20px;break-inside:avoid}
-.report-brand .brand-lockup{display:inline-flex}
+.report-brand .brand-lockup{display:inline-flex;--brand-primary:#0646f5;--brand-signal:#00b8dc}
 .toolbar .sp{flex:1}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 14px;border-radius:8px;background:var(--card);border:1px solid var(--line2);color:var(--t1);white-space:nowrap;transition:background-color .14s var(--ease),transform .12s var(--ease)}
 .btn:hover{background:var(--raised);text-decoration:none}
@@ -154,6 +159,7 @@ td:last-child,th:last-child{padding-right:0}
   .toolbar-in{padding:0 16px;gap:8px}.toolbar .lbl{display:none}
   .scan-tbl{display:block;overflow-x:auto}
 }
+@media screen and (max-width:380px){.toolbar .pdf-label{display:none}}
 /* print has its own fixed layout: the A4 content box is ~690px wide, so no screen breakpoint may leak in */
 @media print{
   html,body{background:#fff;font-size:10.5pt;line-height:1.55}
@@ -189,7 +195,7 @@ td:last-child,th:last-child{padding-right:0}
 .sheet{--bg:#ececee;--card:#ffffff;--raised:#f4f4f5;--sunk:#f7f7f8;--topbar:rgba(236,236,238,.92);--field:#ffffff;--line:rgba(23,23,23,.08);--line2:rgba(23,23,23,.14);--line3:rgba(23,23,23,.24);--t1:#171717;--t2:#525252;--t3:#737373;--acc:#3b6fd8;--acc-hover:#335fbd;--acc-ink:#ffffff;--acc-soft:rgba(59,111,216,.07);--acc-line:rgba(59,111,216,.35);--acc-text:#2f5fc4;--pos:#16a34a;--ct-crit:#b91c1c;color-scheme:light;color:var(--t1);background:var(--card)}
 .toolbar{background:var(--topbar)}
 .btn{box-shadow:none}
-@media print{html:root,html:root[data-theme]{--bg:#ececee;--card:#ffffff;--raised:#f4f4f5;--sunk:#f7f7f8;--topbar:rgba(236,236,238,.92);--field:#ffffff;--line:rgba(23,23,23,.08);--line2:rgba(23,23,23,.14);--line3:rgba(23,23,23,.24);--t1:#171717;--t2:#525252;--t3:#737373;--acc:#3b6fd8;--acc-hover:#335fbd;--acc-ink:#ffffff;--acc-soft:rgba(59,111,216,.07);--acc-line:rgba(59,111,216,.35);--acc-text:#2f5fc4;--pos:#16a34a;--ct-crit:#b91c1c;color-scheme:light;}}
+@media print{html:root,html:root[data-theme]{--brand-primary:#0646f5;--brand-signal:#00b8dc;--bg:#ececee;--card:#ffffff;--raised:#f4f4f5;--sunk:#f7f7f8;--topbar:rgba(236,236,238,.92);--field:#ffffff;--line:rgba(23,23,23,.08);--line2:rgba(23,23,23,.14);--line3:rgba(23,23,23,.24);--t1:#171717;--t2:#525252;--t3:#737373;--acc:#3b6fd8;--acc-hover:#335fbd;--acc-ink:#ffffff;--acc-soft:rgba(59,111,216,.07);--acc-line:rgba(59,111,216,.35);--acc-text:#2f5fc4;--pos:#16a34a;--ct-crit:#b91c1c;color-scheme:light;}}
 </style>
 <style id="pageStyle">@page{size:A4;margin:16mm 14mm}</style>
 </head>
@@ -197,10 +203,10 @@ td:last-child,th:last-child{padding-right:0}
 <div class="toolbar" id="toolbar" hidden><div class="toolbar-in">
   <a class="brand" href="/" id="home" aria-label="ScanHub"></a>
   <span class="sp"></span>
-  <button class="btn" id="dl" aria-label="ดาวน์โหลด HTML" title="ดาวน์โหลดเป็นไฟล์ HTML"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span class="lbl">ดาวน์โหลด HTML</span></button>
-  <button class="btn btn-primary" id="pdf"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2"/><rect x="6" y="14" width="12" height="7"/></svg>บันทึกเป็น PDF</button>
+  <button class="btn" id="dl" aria-label="Download HTML" title="Download as HTML"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span class="lbl">Download HTML</span></button>
+  <button class="btn btn-primary" id="pdf" aria-label="Save as PDF"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2"/><rect x="6" y="14" width="12" height="7"/></svg><span class="pdf-label">Save as PDF</span></button>
 </div></div>
-<div id="root"><div class="loading"><svg class="ic spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/></svg>กำลังโหลดรายงาน</div></div>
+<div id="root"><div class="loading"><svg class="ic spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/></svg>Loading report</div></div>
 
 <script>
 try { const t = JSON.parse(localStorage.getItem('scanhub.theme') || '"system"'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
@@ -208,11 +214,11 @@ try { const t = JSON.parse(localStorage.getItem('scanhub.theme') || '"system"');
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pad = n => String(n).padStart(2, '0');
-const TM = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-const TMF = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const TM = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const TMF = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const toD = v => { if (!v) return null; const d = new Date(v); return isNaN(d) ? null : d; };
-const fmt = v => { const d = toD(v); return d ? `${d.getDate()} ${TM[d.getMonth()]} ${d.getFullYear() + 543} ${pad(d.getHours())}:${pad(d.getMinutes())}` : '—'; };
-const fmtLong = v => { const d = toD(v); return d ? `${d.getDate()} ${TMF[d.getMonth()]} ${d.getFullYear() + 543}` : '—'; };
+const fmt = v => { const d = toD(v); return d ? `${d.getDate()} ${TM[d.getMonth()]} ${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}` : '—'; };
+const fmtLong = v => { const d = toD(v); return d ? `${d.getDate()} ${TMF[d.getMonth()]} ${d.getFullYear()}` : '—'; };
 const dur = ms => { if (ms == null) return '—'; const s = Math.round(ms / 1000); return s >= 3600 ? `${Math.floor(s / 3600)}h ${pad(Math.floor(s % 3600 / 60))}m` : s >= 60 ? `${Math.floor(s / 60)}m ${pad(s % 60)}s` : `${s}s`; };
 const sum = a => (a || []).reduce((x, y) => x + (y || 0), 0);
 const safeUrl = u => { try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : null; } catch (e) { return null; } };
@@ -221,8 +227,8 @@ const SEVL = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low',
 const SEVP = { critical: 'C', high: 'H', medium: 'M', low: 'L', info: 'I' };
 const TOOLNAME = { sonarqube: 'SonarQube', trivy: 'Trivy', semgrep: 'Semgrep', gitleaks: 'Gitleaks', 'dependency-check': 'OWASP Dependency-Check', checkov: 'Checkov', grype: 'Grype' };
 const toolName = id => TOOLNAME[id] || String(id);
-const TRIG = { ci: 'CI', manual: 'สั่งสแกนเอง', schedule: 'ตามเวลา', upload: 'ส่งผลจาก CI' };
-const RUNST = { ok: 'สำเร็จ', failed: 'ล้มเหลว', skipped: 'ข้าม' };
+const TRIG = { ci: 'CI', manual: 'Manual scan', schedule: 'Scheduled', upload: 'Uploaded from CI' };
+const RUNST = { ok: 'succeeded', failed: 'Failed', skipped: 'skipped' };
 const ICON = {
   lock: '<svg class="ic icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
   user: '<svg class="ic icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
@@ -244,7 +250,7 @@ let REPORT = null;
 async function getJson(url, opts) {
   let r;
   try { r = await fetch(url, { credentials: 'same-origin', ...opts }); }
-  catch (e) { return { status: 0, data: { error: 'เชื่อมต่อ server ไม่ได้' } }; }
+  catch (e) { return { status: 0, data: { error: 'Cannot reach the server' } }; }
   let data = null; try { data = await r.json(); } catch (e) {}
   return { status: r.status, data: data || {} };
 }
@@ -254,69 +260,69 @@ async function load() {
     if (status === 200 && data.report) return showReport(data.report);
     if (status === 401 && data.code === 'PASSWORD_REQUIRED') return showPassword();
     if (status === 401) return showLogin(`/s/${SHARE}`);
-    if (status === 403 && data.code === 'NO_ACCESS') return showState(ICON.lock, 'บัญชีนี้ไม่มีสิทธิ์ดูโปรเจกต์นี้', 'ติดต่อ admin เพื่อขอสิทธิ์ในโปรเจกต์นี้ หรือออกจากระบบแล้วเข้าด้วยบัญชีที่มีสิทธิ์');
-    if (status === 404) return showState(ICON.alert, 'ไม่พบลิงก์นี้', 'ลิงก์อาจพิมพ์ไม่ครบ หรือถูกยกเลิกแล้ว ติดต่อผู้ที่ส่งลิงก์ให้คุณเพื่อขอลิงก์ใหม่');
-    if (status === 410) return showState(ICON.clock, 'ลิงก์หมดอายุแล้ว', 'ลิงก์รายงานนี้หมดอายุแล้ว ติดต่อผู้ที่ส่งลิงก์ให้คุณเพื่อขอลิงก์ใหม่');
-    return showState(ICON.alert, 'เปิดรายงานไม่สำเร็จ', data.error || 'ลองใหม่อีกครั้ง', true);
+    if (status === 403 && data.code === 'NO_ACCESS') return showState(ICON.lock, 'This account cannot view this project', 'Ask an admin for access to this project, or sign out and sign in with an account that has access');
+    if (status === 404) return showState(ICON.alert, 'Link not found', 'The link may be incomplete or revoked. Ask whoever sent it for a new link');
+    if (status === 410) return showState(ICON.clock, 'Link expired', 'This report link has expired. Ask whoever sent it for a new link');
+    return showState(ICON.alert, 'Could not open the report', data.error || 'Try again', true);
   }
   const scan = QS.get('scan');
-  if (!scan) return showState(ICON.alert, 'ไม่ได้ระบุสแกน', 'เปิดรายงานจากหน้า repo ใน ScanHub แล้วกด "รายงาน"');
+  if (!scan) return showState(ICON.alert, 'No scan specified', 'Open the report from a repo page in ScanHub and click "Report"');
   const p = new URLSearchParams();
   REPORT_KEYS.forEach(k => { if (QS.has(k)) p.set(k, QS.get(k)); });
   const { status, data } = await getJson(`/api/scans/${encodeURIComponent(scan)}/report?${p}`);
   if (status === 200) return showReport(data);
   if (status === 401) return showLogin(location.pathname + location.search);
-  if (status === 404) return showState(ICON.alert, 'ไม่พบสแกนนี้', 'สแกนอาจถูกลบตามระยะเวลาเก็บประวัติแล้ว');
-  return showState(ICON.alert, 'เปิดรายงานไม่สำเร็จ', data.error || 'ลองใหม่อีกครั้ง', true);
+  if (status === 404) return showState(ICON.alert, 'Scan not found', 'The scan may have been removed by the history retention policy');
+  return showState(ICON.alert, 'Could not open the report', data.error || 'Try again', true);
 }
 
 /* ---------- states ---------- */
 function showState(icon, title, text, retry) {
   $('#toolbar').hidden = true;
-  $('#root').innerHTML = `<div class="state">${MARK}<div style="margin-top:32px">${icon}</div><h1>${esc(title)}</h1><p>${esc(text)}</p>${retry ? '<button class="btn" id="retry">ลองอีกครั้ง</button>' : ''}</div>`;
+  $('#root').innerHTML = `<div class="state">${MARK}<div style="margin-top:32px">${icon}</div><h1>${esc(title)}</h1><p>${esc(text)}</p>${retry ? '<button class="btn" id="retry">Try again</button>' : ''}</div>`;
   const r = $('#retry'); if (r) r.onclick = () => location.reload();
 }
 function showLogin(next) {
   $('#toolbar').hidden = true;
-  $('#root').innerHTML = `<div class="state">${MARK}<div style="margin-top:32px">${ICON.user}</div><h1>ต้อง login</h1><p>รายงานนี้เปิดได้เฉพาะผู้ใช้ ScanHub เข้าสู่ระบบแล้วจะกลับมาที่รายงานนี้</p><a class="btn btn-primary" href="/#login?next=${encodeURIComponent(next)}">เข้าสู่ระบบ</a></div>`;
+  $('#root').innerHTML = `<div class="state">${MARK}<div style="margin-top:32px">${ICON.user}</div><h1>Sign-in required</h1><p>This report is for ScanHub users only. After signing in you will return here</p><a class="btn btn-primary" href="/#login?next=${encodeURIComponent(next)}">Sign in</a></div>`;
 }
 function showPassword() {
   $('#toolbar').hidden = true;
-  $('#root').innerHTML = `<div class="state">${MARK}<div style="margin-top:32px">${ICON.lock}</div><h1>รายงานนี้ล็อกด้วยรหัสผ่าน</h1><p>ใส่รหัสผ่านที่ได้รับพร้อมลิงก์</p>
-    <form id="pw" novalidate><div class="field"><label for="pwi">รหัสผ่าน</label><input class="input" id="pwi" type="password" autocomplete="off"></div>
-    <div class="err" id="pwe"></div><button class="btn btn-primary" style="width:100%;height:40px" id="pwb">เปิดรายงาน</button></form></div>`;
+  $('#root').innerHTML = `<div class="state">${MARK}<div style="margin-top:32px">${ICON.lock}</div><h1>This report is password-protected</h1><p>Enter the password you received with the link</p>
+    <form id="pw" novalidate><div class="field"><label for="pwi">Password</label><input class="input" id="pwi" type="password" autocomplete="off"></div>
+    <div class="err" id="pwe"></div><button class="btn btn-primary" style="width:100%;height:40px" id="pwb">Open report</button></form></div>`;
   $('#pwi').focus();
   $('#pw').onsubmit = async e => {
     e.preventDefault();
-    const v = $('#pwi').value; if (!v) { $('#pwe').textContent = 'กรอกรหัสผ่าน'; return; }
+    const v = $('#pwi').value; if (!v) { $('#pwe').textContent = 'Enter the password'; return; }
     $('#pwb').disabled = true; $('#pwe').textContent = '';
     const { status, data } = await getJson(`/api/share/${encodeURIComponent(SHARE)}/unlock`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: v }) });
     if (status === 200) return load();
     $('#pwb').disabled = false; $('#pwi').select();
-    $('#pwe').textContent = status === 429 ? 'ใส่รหัสผิดหลายครั้งเกินไป รอ 15 นาทีแล้วลองใหม่' : status === 401 ? 'รหัสผ่านไม่ถูกต้อง' : status === 404 || status === 410 ? 'ลิงก์นี้ใช้ไม่ได้แล้ว' : (data.error || 'ลองใหม่อีกครั้ง');
+    $('#pwe').textContent = status === 429 ? 'Too many wrong attempts. Wait 15 minutes and try again' : status === 401 ? 'Incorrect password' : status === 404 || status === 410 ? 'This link no longer works' : (data.error || 'Try again');
   };
 }
 
 /* ---------- report ---------- */
 function summarySentence(r) {
   const s = r.summary || {}, c = s.counts || [], open = s.openCount != null ? s.openCount : sum(c);
-  let t = open ? `การสแกนครั้งนี้พบปัญหาที่ยังเปิดอยู่ ${open} รายการ` : 'การสแกนครั้งนี้ไม่พบปัญหาที่ยังเปิดอยู่';
-  if ((c[0] || 0) + (c[1] || 0)) t += ` เป็นระดับ Critical ${c[0] || 0} และ High ${c[1] || 0} รายการ ซึ่งควรแก้ไขเป็นลำดับแรก`;
-  else if (open) t += ' ไม่มีระดับ Critical หรือ High';
+  let t = open ? `This scan found ${open} open ${open === 1 ? 'finding' : 'findings'}.` : 'This scan found no open findings';
+  if ((c[0] || 0) + (c[1] || 0)) t += ` ${c[0] || 0} Critical and ${c[1] || 0} High should be fixed first.`;
+  else if (open) t += ' None are Critical or High.';
   if (r.prev) {
-    t += ` เมื่อเทียบกับการสแกนครั้งก่อน (#${esc(r.prev.num)}) พบปัญหาใหม่ ${s.newCount || 0} รายการ และแก้ไขแล้ว ${s.fixedCount || 0} รายการ`;
+    t += ` Compared with the previous scan (#${esc(r.prev.num)}), ${s.newCount || 0} new and ${s.fixedCount || 0} fixed.`;
     const nb = s.newBySeverity || {}, nch = (nb.critical || 0) + (nb.high || 0);
-    if (nch) t += ` โดยปัญหาใหม่ระดับ Critical และ High มี ${nch} รายการ`;
+    if (nch) t += ` ${nch} of the new findings are Critical or High.`;
   }
   return t;
 }
 function scopeText(o) {
   o = o || {};
   const min = o.minSeverity || 'low';
-  const parts = [min === 'info' ? 'แสดงทุกระดับความรุนแรง' : min === 'critical' ? 'แสดงเฉพาะระดับ Critical' : `แสดงระดับ ${SEVL[min] || min} ขึ้นไป`];
-  parts.push(o.includeFixed ? 'รวมรายการที่แก้แล้วเทียบกับสแกนก่อนหน้า' : 'ไม่รวมรายการที่แก้แล้ว');
-  if (o.includeSnippets === false) parts.push('ไม่แสดงโค้ด');
-  return 'ขอบเขตรายการด้านล่าง: ' + parts.join(' · ') + ' ตัวเลขสรุปด้านบนนับทุกระดับ';
+  const parts = [min === 'info' ? 'Shows all severities' : min === 'critical' ? 'Shows Critical only' : `Shows ${SEVL[min] || min} and above`];
+  parts.push(o.includeFixed ? 'includes findings fixed since the previous scan' : 'excludes fixed findings');
+  if (o.includeSnippets === false) parts.push('no code snippets');
+  return 'Scope of the list below: ' + parts.join(' · ') + '; summary figures above count all severities';
 }
 function codeBlock(f) {
   const sn = f.snippet; if (!sn || !sn.lines || !sn.lines.length) return '';
@@ -327,23 +333,23 @@ function refsList(f) {
   const urls = [...new Set((f.refs || []).map(safeUrl).filter(Boolean))];
   if (!urls.length) (f.rules || []).forEach(r => { if (/^CVE-\d+-\d+$/i.test(r.id)) urls.push(`https://nvd.nist.gov/vuln/detail/${r.id}`); else if (/^GHSA-/i.test(r.id)) urls.push(`https://github.com/advisories/${r.id}`); });
   if (!urls.length) return '';
-  return `<ul class="refs"><li class="k">อ้างอิง</li>${urls.slice(0, 6).map(u => `<li><a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></li>`).join('')}</ul>`;
+  return `<ul class="refs"><li class="k">References</li>${urls.slice(0, 6).map(u => `<li><a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></li>`).join('')}</ul>`;
 }
 function findingHtml(f, id, withCode) {
   const tools = f.tools || [];
   return `<article class="finding">
-    <div class="f-top"><span class="f-id">${id}</span><span class="f-title">${esc(f.title)}</span>${f.status === 'new' ? '<span class="tag tag-new">ใหม่</span>' : f.status === 'fixed' ? '<span class="tag tag-fixed">แก้แล้ว</span>' : '<span></span>'}</div>
+    <div class="f-top"><span class="f-id">${id}</span><span class="f-title">${esc(f.title)}</span>${f.status === 'new' ? '<span class="tag tag-new">New</span>' : f.status === 'fixed' ? '<span class="tag tag-fixed">Fixed</span>' : '<span></span>'}</div>
     <div class="f-body">
       <dl class="f-meta">
-        <dt>ประเภท</dt><dd>${esc(f.category)}</dd>
-        <dt>ตำแหน่ง</dt><dd class="mono small">${esc(f.location)}</dd>
+        <dt>Category</dt><dd>${esc(f.category)}</dd>
+        <dt>Location</dt><dd class="mono small">${esc(f.location)}</dd>
         ${(f.rules || []).length ? `<dt>Rule</dt><dd class="mono small">${f.rules.map(r => esc(r.id)).filter((v, i, a) => a.indexOf(v) === i).join(', ')}</dd>` : ''}
-        <dt>พบโดย</dt><dd>${esc(tools.map(toolName).join(', ') || '—')}</dd>
-        ${f.firstSeenNum ? `<dt>พบครั้งแรก</dt><dd>สแกน #${esc(f.firstSeenNum)}</dd>` : ''}
+        <dt>Found by</dt><dd>${esc(tools.map(toolName).join(', ') || '—')}</dd>
+        ${f.firstSeenNum ? `<dt>First seen</dt><dd>Scan #${esc(f.firstSeenNum)}</dd>` : ''}
       </dl>
       ${f.description ? `<p class="f-desc">${esc(f.description)}</p>` : ''}
       ${withCode ? codeBlock(f) : ''}
-      ${f.fix ? `<div class="fix"><div class="k">วิธีแก้</div>${esc(f.fix)}</div>` : ''}
+      ${f.fix ? `<div class="fix"><div class="k">How to fix</div>${esc(f.fix)}</div>` : ''}
       ${refsList(f)}
     </div>
   </article>`;
@@ -352,55 +358,55 @@ function showReport(r) {
   REPORT = r;
   const s = r.summary || {}, c = s.counts || [0, 0, 0, 0, 0], sc = r.scan || {}, repo = r.repo || {}, o = r.options || {};
   const open = s.openCount != null ? s.openCount : sum(c), total = sum(c);
-  const title = r.title || `รายงานผลการสแกน ${repo.name || ''}`.trim();
+  const title = r.title || `Scan report ${repo.name || ''}`.trim();
   document.title = `${title} · ScanHub`;
   const withCode = o.includeSnippets !== false;
   const groups = SEV.map(sv => [sv, (r.findings || []).filter(f => f.severity === sv)]).filter(g => g[1].length);
   const runs = r.runs || [];
-  const footText = `สร้างโดย ScanHub · ${fmt(r.generatedAt)}`;
-  $('#pageStyle').textContent = `@page{size:A4;margin:16mm 14mm;@bottom-left{content:"${footText.replace(/["\\]/g, '')}";font:400 8pt 'IBM Plex Sans Thai',sans-serif;color:#737373}@bottom-right{content:"หน้า " counter(page) " / " counter(pages);font:400 8pt 'IBM Plex Sans Thai',sans-serif;color:#737373}}`;
+  const footText = `Created by ScanHub · ${fmt(r.generatedAt)}`;
+  $('#pageStyle').textContent = `@page{size:A4;margin:16mm 14mm;@bottom-left{content:"${footText.replace(/["\\]/g, '')}";font:400 8pt 'IBM Plex Sans Thai',sans-serif;color:#737373}@bottom-right{content:"Page " counter(page) " / " counter(pages);font:400 8pt 'IBM Plex Sans Thai',sans-serif;color:#737373}}`;
   $('#toolbar').hidden = false;
   $('#root').innerHTML = `<div class="page"><main class="sheet">
     <header>
       <div class="report-brand">${ScanHubBrand.logo}</div>
-      <div class="eyebrow">${ICON.shield}รายงานผลการตรวจสอบความปลอดภัยของซอร์สโค้ด</div>
+      <div class="eyebrow">${ICON.shield}Source code security scan report</div>
       <h1>${esc(title)}</h1>
-      ${r.preparedFor ? `<p class="prepared">จัดทำให้ ${esc(r.preparedFor)}</p>` : ''}
+      ${r.preparedFor ? `<p class="prepared">Prepared for ${esc(r.preparedFor)}</p>` : ''}
       <dl class="metagrid">
         <div class="span2"><dt>Repository</dt><dd>${esc(repo.projectName ? repo.projectName + ' / ' : '')}${esc(repo.name)}${repo.lang ? ` <span class="t3">· ${esc(repo.lang)}</span>` : ''}</dd></div>
-        <div><dt>วันที่สแกน</dt><dd>${fmtLong(sc.finishedAt || sc.startedAt)}</dd></div>
-        <div><dt>การสแกน</dt><dd>#${esc(sc.num)} · ${esc(TRIG[sc.trigger] || sc.trigger || '—')}</dd></div>
+        <div><dt>Scan date</dt><dd>${fmtLong(sc.finishedAt || sc.startedAt)}</dd></div>
+        <div><dt>Scan</dt><dd>#${esc(sc.num)} · ${esc(TRIG[sc.trigger] || sc.trigger || '—')}</dd></div>
         <div><dt>Branch</dt><dd class="mono small">${esc(sc.branch || repo.branch || '—')}</dd></div>
         <div><dt>Commit</dt><dd class="mono small">${esc(sc.commit ? String(sc.commit).slice(0, 12) : '—')}</dd></div>
       </dl>
     </header>
 
     <section class="block">
-      <h2>บทสรุป</h2>
+      <h2>Summary</h2>
       <p class="summary-text">${summarySentence(r)}</p>
       <div class="nums">
-        <div><div class="k">ยังเปิดอยู่</div><div class="v">${open}</div><div class="d">ทุกระดับความรุนแรง</div></div>
-        <div><div class="k">พบใหม่</div><div class="v">${s.newCount || 0}</div><div class="d">${r.prev ? `ไม่พบในสแกน #${esc(r.prev.num)}` : 'สแกนแรกของ repo'}</div></div>
-        <div><div class="k">แก้แล้ว</div><div class="v ${s.fixedCount ? 'pos' : ''}">${s.fixedCount || 0}</div><div class="d">${r.prev ? `มีในสแกน #${esc(r.prev.num)} แต่ไม่พบแล้ว` : '—'}</div></div>
+        <div><div class="k">Open</div><div class="v">${open}</div><div class="d">all severities</div></div>
+        <div><div class="k">New</div><div class="v">${s.newCount || 0}</div><div class="d">${r.prev ? `Not in scan #${esc(r.prev.num)}` : 'First scan of the repo'}</div></div>
+        <div><div class="k">Fixed</div><div class="v ${s.fixedCount ? 'pos' : ''}">${s.fixedCount || 0}</div><div class="d">${r.prev ? `In scan #${esc(r.prev.num)} but gone now` : '—'}</div></div>
       </div>
       <div class="sevbar" role="img" aria-label="${SEV.map((v, i) => SEVL[v] + ' ' + (c[i] || 0)).join(', ')}">${total ? SEV.map((v, i) => c[i] ? `<span class="s-${v}" style="flex:${c[i]}"></span>` : '').join('') : ''}</div>
       <div class="sevlegend">${SEV.map((v, i) => `<span class="it ${c[i] ? '' : 'zero'}"><span class="dot s-${v}"></span>${SEVL[v]}<span class="n">${c[i] || 0}</span></span>`).join('')}</div>
     </section>
 
     <section class="block">
-      <h2>ตัวสแกนที่ใช้</h2>
-      <table class="scan-tbl"><thead><tr><th>Scanner</th><th>สถานะ</th><th class="r">พบ</th><th class="r">เวลา</th><th>หมายเหตุ</th></tr></thead><tbody>
-      ${runs.length ? runs.map(x => `<tr><td>${esc(toolName(x.tool))}</td><td class="st-${esc(x.status)}">${esc(RUNST[x.status] || x.status)}</td><td class="r mono">${x.status === 'ok' && x.count != null ? esc(x.count) : '—'}</td><td class="r mono">${x.status === 'skipped' ? '—' : dur(x.durationMs)}</td><td class="t2">${esc(x.note || '')}</td></tr>`).join('') : '<tr><td colspan="5" class="t3">ไม่มีข้อมูล</td></tr>'}
+      <h2>Scanners used</h2>
+      <table class="scan-tbl"><thead><tr><th>Scanner</th><th>Status</th><th class="r">Found</th><th class="r">Time</th><th>Notes</th></tr></thead><tbody>
+      ${runs.length ? runs.map(x => `<tr><td>${esc(toolName(x.tool))}</td><td class="st-${esc(x.status)}">${esc(RUNST[x.status] || x.status)}</td><td class="r mono">${x.status === 'ok' && x.count != null ? esc(x.count) : '—'}</td><td class="r mono">${x.status === 'skipped' ? '—' : dur(x.durationMs)}</td><td class="t2">${esc(x.note || '')}</td></tr>`).join('') : '<tr><td colspan="5" class="t3">No data</td></tr>'}
       </tbody></table>
-      <p class="scope">ผลจากทุก scanner ถูกรวมเป็นรายการเดียว ปัญหาเดียวกันที่หลาย scanner พบจะแสดงครั้งเดียว · ${esc(scopeText(o))}</p>
+      <p class="scope">Results from all scanners are merged into one list. A finding reported by several scanners appears once · ${esc(scopeText(o))}</p>
     </section>
 
     ${groups.length ? groups.map(([sv, fs]) => `<section class="sev-group">
-      <div class="sev-h"><h2 class="c-${sv}"><span class="dot s-${sv}"></span>${SEVL[sv]}</h2><span class="cnt">${fs.length} รายการ</span></div>
+      <div class="sev-h"><h2 class="c-${sv}"><span class="dot s-${sv}"></span>${SEVL[sv]}</h2><span class="cnt">${fs.length} ${fs.length === 1 ? 'finding' : 'findings'}</span></div>
       ${fs.map((f, i) => findingHtml(f, `${SEVP[sv]}-${i + 1}`, withCode)).join('')}
-    </section>`).join('') : '<section class="block"><h2>รายการปัญหา</h2><p class="none">ไม่พบปัญหาในขอบเขตของรายงานนี้</p></section>'}
+    </section>`).join('') : '<section class="block"><h2>Findings</h2><p class="none">No findings within the scope of this report</p></section>'}
 
-    <footer class="foot"><span>${esc(footText)}</span><span>${esc(repo.name)} · สแกน #${esc(sc.num)}</span></footer>
+    <footer class="foot"><span>${esc(footText)}</span><span>${esc(repo.name)} · Scan #${esc(sc.num)}</span></footer>
   </main></div>`;
 }
 

@@ -11,7 +11,7 @@ export class HttpError extends Error {
 }
 
 export const bad = (msg) => new HttpError(400, msg);
-export const notFound = (msg = 'ไม่พบข้อมูล') => new HttpError(404, msg);
+export const notFound = (msg = 'Not found') => new HttpError(404, msg);
 
 // Wrap an async route so thrown errors reach the error handler
 export const ah = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);

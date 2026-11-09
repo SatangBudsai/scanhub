@@ -25,7 +25,7 @@ export async function canSeeProject(db, user, projectId) {
 }
 
 /** 404 (not 403) so a hidden project looks like it does not exist */
-export async function assertProject(db, user, projectId, message = 'ไม่พบข้อมูล') {
+export async function assertProject(db, user, projectId, message = 'Not found') {
   if (!(await canSeeProject(db, user, projectId))) throw new HttpError(404, message);
 }
 

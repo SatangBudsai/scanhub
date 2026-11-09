@@ -65,7 +65,7 @@ export function finding(f) {
     tool: f.tool,
     severity: f.severity || 'medium',
     category: CATEGORIES.includes(f.category) ? f.category : 'Bug',
-    title: clip(f.title || f.rule || 'ไม่มีชื่อ', 300),
+    title: clip(f.title || f.rule || 'Untitled', 300),
     file: f.file || '',
     line: toLine(f.line),
     pkg: f.pkg || '',

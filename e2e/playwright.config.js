@@ -27,7 +27,9 @@ export default defineConfig({
     viewport: { width: 1280, height: 800 },
     // dark by default (E2E_THEME=light for light), 2x pixels so GIF text stays sharp
     ...LOOK,
-    locale: 'th-TH',
+    locale: 'en-US',
+    // slow actions down a little so the recorded GIFs show each click (E2E_SLOWMO=0 to turn off)
+    launchOptions: { slowMo: Number(process.env.E2E_SLOWMO ?? 200) },
     timezoneId: 'Asia/Bangkok',
     acceptDownloads: true,
     actionTimeout: 15_000,

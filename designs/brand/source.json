@@ -1,7 +1,17 @@
 {
-  "name": "Scanline",
-  "design": "An open scanning edge with three code rows. Blue mark, native semibold wordmark, optical spacing for small app navigation.",
-  "revision": "scanline-v2",
-  "lettering": "IBM Plex Sans Thai Semibold; SVG lettering converted to paths; UI uses native text in the same family.",
-  "fontSource": "https://github.com/google/fonts/tree/main/ofl/ibmplexsansthai"
+  "name": "Merge",
+  "design": "Selected concept 04: three scanner paths merge into a forward arrow. Cobalt blue, cyan signal, and geometric technical lettering.",
+  "revision": "merge-v1",
+  "markSource": "public/logo-mark.svg",
+  "wordmarkSource": "designs/brand/wordmark.svg",
+  "lettering": "Orbitron Bold, converted to paths so the app and exported reports retain identical lettering without loading a font.",
+  "fontSource": "https://github.com/google/fonts/tree/main/ofl/orbitron",
+  "fontLicense": "designs/brand/orbitron-license.txt",
+  "palette": {
+    "primary": "#0646f5",
+    "signal": "#00b8dc",
+    "darkPrimary": "#8fb4ff",
+    "darkSignal": "#22d3ee"
+  },
+  "rebuild": "node designs/brand/build.mjs"
 }

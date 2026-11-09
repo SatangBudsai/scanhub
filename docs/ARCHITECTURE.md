@@ -75,7 +75,7 @@ The creator of a project gets a direct grant automatically. Repos, scans, findin
 
 ## API
 
-All JSON. Errors: `{ "error": "Thai message" }` with 4xx/5xx. Session cookie `sh_session` (httpOnly, SameSite=Lax, 7 days). Times are ISO strings. Severity order everywhere: `critical, high, medium, low, info`; `counts` is always an array of 5 numbers in that order.
+All JSON. Errors: `{ "error": "message" }` with 4xx/5xx. Session cookie `sh_session` (httpOnly, SameSite=Lax, 7 days). Times are ISO strings. Severity order everywhere: `critical, high, medium, low, info`; `counts` is always an array of 5 numbers in that order.
 
 ### Auth
 - `POST /api/auth/login` `{username, password}` -> `{user}`; 401 on bad creds or disabled user
@@ -149,7 +149,7 @@ A report is a read-only, printable view of one scan for customers. The same repo
   - `GET /api/share/:token` -> `{report, mode}` when allowed. Internal mode needs a valid session (any active user) else 401 `{code:"LOGIN_REQUIRED"}`. Password mode needs the unlock cookie else 401 `{code:"PASSWORD_REQUIRED"}`. Unknown/revoked -> 404, expired -> 410. Each successful view updates `views` and `lastViewedAt`.
   - `POST /api/share/:token/unlock` `{password}` -> `{ok:true}` and sets httpOnly cookie `sh_share_<shareId>` (HMAC-signed with a server secret stored in the db, valid 12 hours, path `/`). Wrong password -> 401. Rate limit: 5 failed attempts per share per IP per 15 minutes -> 429.
   - The login page accepts `#login?next=/s/<token>` (frontend) so internal links return to the report after login.
-- `public/report.html`: standalone printable page (A4 print CSS, light theme only for print, page breaks between severity groups, header with title / prepared for / repo / scan date / commit, summary block with severity breakdown, scanner run table, findings with fix + references + optional snippet, footer "สร้างโดย ScanHub · <generatedAt>"). Modes: `/s/<token>` (share) and `/report.html?scan=<id>&...options` (export, needs session). Buttons (hidden in print): "บันทึกเป็น PDF" (window.print) and "ดาวน์โหลด HTML" (saves the rendered page as a self-contained file). Password prompt and login prompt states for share mode.
+- `public/report.html`: standalone printable page (A4 print CSS, light theme only for print, page breaks between severity groups, header with title / prepared for / repo / scan date / commit, summary block with severity breakdown, scanner run table, findings with fix + references + optional snippet, footer "Created by ScanHub · <generatedAt>"). Modes: `/s/<token>` (share) and `/report.html?scan=<id>&...options` (export, needs session). Buttons (hidden in print): "Save as PDF" (window.print) and "Download HTML" (saves the rendered page as a self-contained file). Password prompt and login prompt states for share mode.
 
 ### CI gate (block or report only)
 
@@ -159,7 +159,7 @@ Each repo stores its gate, chosen when connecting CI and changeable later withou
 - `POST /api/v1/scan` and `/api/v1/reports` with `wait=1` apply the repo gate. `block`: 422 when matching findings exist (new ones at those severities, or all open ones for scope `open`). `report`: always 200. The query `fail_on=` still overrides for one call (kept for compatibility), and `gate=report` forces report mode for one call.
 - Response `gate` = `{mode, severities, scope, failed, matched: {critical, high, ...}, reason}`.
 - With header `Accept: text/plain` the CI endpoints return only `summaryText` as the body (same status codes), which is what the snippets use so CI logs stay readable.
-- Every response with `wait=1` also returns `summaryText`: a short multi-line plain-text summary (Thai + numbers + scan url) that the snippets print to the CI log, e.g. via `curl ... | tee` (the snippets print the body on both success and failure).
+- Every response with `wait=1` also returns `summaryText`: a short multi-line plain-text summary (text + numbers + scan url) that the snippets print to the CI log, e.g. via `curl ... | tee` (the snippets print the body on both success and failure).
 - Snippets and auto-setup files no longer hard-code `fail_on`; they rely on the repo gate. Auto-setup takes `gate` instead of `failOn` and saves it on the repo.
 
 ### CI API (Bearer repo token)
@@ -187,14 +187,14 @@ One `Dockerfile` builds one image that contains everything: the server, PostgreS
 
 - `DATABASE_URL` empty -> initialise `PGDATA=/data/postgres` on first run (random password stored in `/data/postgres/.scanhub-pw`, listen on 127.0.0.1 only), start PostgreSQL inside the container, wait until ready, set `DATABASE_URL` for the server. Stop PostgreSQL cleanly on SIGTERM.
 - `DATABASE_URL` set -> do not start the bundled PostgreSQL.
-- `SONAR_URL` + `SONAR_TOKEN` set -> SonarQube is configured from env on start (shown as "ตั้งค่าจาก env" in settings, the form is read-only for those fields). Not set -> the settings form is used.
+- `SONAR_URL` + `SONAR_TOKEN` set -> SonarQube is configured from env on start (shown as "Set from env" in settings, the form is read-only for those fields). Not set -> the settings form is used.
 - `NVD_API_KEY` set -> used by Dependency-Check, same read-only rule.
 
-Scanners: the setup wizard and settings *enable / disable* tools (instant, works offline) because they are already in the image. "Update" installs a newer version into `DATA_DIR/tools/<id>` (atomic, see below) which then takes precedence over the built-in one; "ใช้เวอร์ชันที่มากับ image" removes the override. `GET /api/tools` adds `{enabled, source: "image"|"updated", imageVersion}`; `installed` stays true for built-in tools. `POST /api/tools/:id/enable`, `POST /api/tools/:id/disable`, `POST /api/tools/:id/reset` (drop override). `DELETE /api/tools/:id` = disable + drop override. The sonarqube tool shows `configured=false` with `needsConfig` until URL+token exist (env or settings).
+Scanners: the setup wizard and settings *enable / disable* tools (instant, works offline) because they are already in the image. "Update" installs a newer version into `DATA_DIR/tools/<id>` (atomic, see below) which then takes precedence over the built-in one; "Use the version bundled with the image" removes the override. `GET /api/tools` adds `{enabled, source: "image"|"updated", imageVersion}`; `installed` stays true for built-in tools. `POST /api/tools/:id/enable`, `POST /api/tools/:id/disable`, `POST /api/tools/:id/reset` (drop override). `DELETE /api/tools/:id` = disable + drop override. The sonarqube tool shows `configured=false` with `needsConfig` until URL+token exist (env or settings).
 
 ### One-file setup
 
-`docker-compose.yml` is the only file a user edits. It has a single `scanhub` service (`image: ghcr.io/satangbudsai/scanhub:latest`, built and pushed by `.github/workflows/image.yml` for linux/amd64 and linux/arm64; `docker-compose.build.yml` builds it locally as `scanhub:latest` instead), one named volume for `/data`, port 8080, `restart: unless-stopped`, and every setting written inline under `environment:` with a short Thai/English comment each. Required lines are at the top (`SCANHUB_ADMIN_USER`, `SCANHUB_ADMIN_PASSWORD`, `SCANHUB_URL`); every optional one is present but commented out (`DATABASE_URL`, `SONAR_URL`, `SONAR_TOKEN`, `NVD_API_KEY`, `GITHUB_TOKEN`, `GITHUB_API_URL`, `GITLAB_URL`, `GITLAB_TOKEN`, `TZ`, `SCAN_CONCURRENCY`, `MAX_UPLOAD_MB`). No `.env` file is needed (a `.env` still works through normal compose variable substitution). `docker compose up -d` is the whole install. Running without compose: `docker run -d -p 8080:8080 -e SCANHUB_ADMIN_PASSWORD=... -e SCANHUB_URL=... -v scanhub-data:/data scanhub`.
+`docker-compose.yml` is the only file a user edits. It has a single `scanhub` service (`image: ghcr.io/satangbudsai/scanhub:latest`, built and pushed by `.github/workflows/image.yml` for linux/amd64 and linux/arm64; `docker-compose.build.yml` builds it locally as `scanhub:latest` instead), one named volume for `/data`, port 8080, `restart: unless-stopped`, and every setting written inline under `environment:` with a short English comment each. Required lines are at the top (`SCANHUB_ADMIN_USER`, `SCANHUB_ADMIN_PASSWORD`, `SCANHUB_URL`); every optional one is present but commented out (`DATABASE_URL`, `SONAR_URL`, `SONAR_TOKEN`, `NVD_API_KEY`, `GITHUB_TOKEN`, `GITHUB_API_URL`, `GITLAB_URL`, `GITLAB_TOKEN`, `TZ`, `SCAN_CONCURRENCY`, `MAX_UPLOAD_MB`). No `.env` file is needed (a `.env` still works through normal compose variable substitution). `docker compose up -d` is the whole install. Running without compose: `docker run -d -p 8080:8080 -e SCANHUB_ADMIN_PASSWORD=... -e SCANHUB_URL=... -v scanhub-data:/data scanhub`.
 
 ## Git providers and one-click CI setup
 
@@ -209,7 +209,7 @@ Connections to GitHub (github.com or Enterprise) and GitLab (gitlab.com or self-
   1. `token`: rotate the ScanHub repo token (the old one stops working)
   2. `secret`: GitHub: Actions secret `SCANHUB_TOKEN` (sealed box with the repo public key; use `tweetnacl` + `blakejs` or `libsodium-wrappers`) and Actions variable `SCANHUB_URL`. GitLab: project CI/CD variables `SCANHUB_TOKEN` (masked) and `SCANHUB_URL`.
   3. `file`: GitHub: `.github/workflows/scanhub.yml`. GitLab: `.gitlab/scanhub.yml`, plus `include: - local: .gitlab/scanhub.yml` added to `.gitlab-ci.yml` (created if missing; existing content kept, the include is added only once). The files use the same curl pattern as the snippets but read `SCANHUB_URL` / `SCANHUB_TOKEN` from the variables.
-  4. `pr`: mode `pr` (default) pushes branch `scanhub/setup` and opens (or updates) a PR / MR titled "เพิ่มการสแกนด้วย ScanHub". Mode `commit` commits straight to the default branch.
+  4. `pr`: mode `pr` (default) pushes branch `scanhub/setup` and opens (or updates) a PR / MR titled "Add ScanHub scan". Mode `commit` commits straight to the default branch.
   5. `link`: saves `remote = {integrationId, fullName}` on the repo and fills `gitUrl` / `branch` if empty.
   A failed step stops the rest; earlier steps are not rolled back, the response says what was done.
 - Repos linked to a connection use its token for `git clone` (scheduled / manual scans of private repos). `repo` gains `remote: {integrationId, fullName, webUrl} | null`.

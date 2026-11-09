@@ -40,12 +40,12 @@ export async function readSettings(db) {
 }
 
 export function validSchedule(s, current = DEFAULT_SCHEDULE) {
-  if (s == null || typeof s !== 'object') throw new Error('schedule ไม่ถูกต้อง');
+  if (s == null || typeof s !== 'object') throw new Error('Invalid schedule');
   const out = { ...current };
   if (s.enabled !== undefined) out.enabled = !!s.enabled;
   if (s.updateDb !== undefined) out.updateDb = !!s.updateDb;
   if (s.time !== undefined) {
-    if (!TIME_RE.test(String(s.time))) throw new Error('เวลาต้องอยู่ในรูปแบบ HH:MM');
+    if (!TIME_RE.test(String(s.time))) throw new Error('Time must be in HH:MM format');
     out.time = String(s.time);
   }
   return out;

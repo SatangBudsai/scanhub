@@ -1,53 +1,53 @@
 import { test, expect, login } from '../lib/test.js';
 import { adminApi } from '../lib/api.js';
 
-test.describe('ตั้งค่าครั้งแรก', () => {
-  test('admin เลือก scanner และตั้งเวลาอัปเดตอัตโนมัติในวิซาร์ด', async ({ page, step }) => {
+test.describe('First-time setup', () => {
+  test('Admin picks scanners and an auto-update time in the wizard', async ({ page, step }) => {
     const api = await adminApi();
     const before = await api.get('/api/setup');
-    test.skip(before.done, 'instance นี้ตั้งค่าครั้งแรกไปแล้ว');
+    test.skip(before.done, 'this instance has already been set up');
 
-    await step(page, 'เปิด ScanHub ครั้งแรกแล้ว login ด้วย admin จาก env', async () => {
+    await step(page, 'Open ScanHub for the first time, sign in as the env admin', async () => {
       await page.goto('/');
       await expect(page).toHaveURL(/#login/);
       await login(page, undefined, undefined, { expectHash: /#setup/ });
-      await expect(page.getByRole('heading', { name: 'เลือก scanner ที่จะเปิดใช้' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Choose scanners to enable' })).toBeVisible();
     });
 
-    await step(page, 'scanner ที่ไม่ต้องตั้งค่าเพิ่มถูกเลือกไว้ให้ ยกเว้น SonarQube', async () => {
-      await expect(page.getByText('เลือกแล้ว 6 จาก 7')).toBeVisible();
+    await step(page, 'Scanners that need no setup are preselected, SonarQube is not', async () => {
+      await expect(page.getByText('6 of 7 selected')).toBeVisible();
       await expect(page.locator('[data-pick="sonarqube"]')).toHaveAttribute('aria-pressed', 'false');
       await expect(page.locator('[data-pick="trivy"]')).toHaveAttribute('aria-pressed', 'true');
     });
 
-    await step(page, 'ปิด Checkov แล้วเปิดกลับ ตัวนับเปลี่ยนตาม', async () => {
+    await step(page, 'Turn Checkov off and on: the counter follows', async () => {
       await page.locator('[data-pick="checkov"]').click();
-      await expect(page.getByText('เลือกแล้ว 5 จาก 7')).toBeVisible();
+      await expect(page.getByText('5 of 7 selected')).toBeVisible();
       await page.locator('[data-pick="checkov"]').click();
-      await expect(page.getByText('เลือกแล้ว 6 จาก 7')).toBeVisible();
+      await expect(page.getByText('6 of 7 selected')).toBeVisible();
     });
 
-    await step(page, 'ไปขั้นที่ 2 ตั้งเวลาอัปเดตเป็น 02:30', async () => {
-      await page.getByRole('button', { name: 'ถัดไป' }).click();
-      await expect(page.getByRole('heading', { name: 'อัปเดต scanner อัตโนมัติ' })).toBeVisible();
-      await expect(page.getByRole('switch', { name: 'อัปเดตทุกวัน' })).toHaveAttribute('aria-checked', 'true');
+    await step(page, 'Step 2: set the update time to 02:30', async () => {
+      await page.getByRole('button', { name: 'Next' }).click();
+      await expect(page.getByRole('heading', { name: 'Auto-update scanners' })).toBeVisible();
+      await expect(page.getByRole('switch', { name: 'Update daily' })).toHaveAttribute('aria-checked', 'true');
       await page.locator('#wTime').fill('02:30');
     });
 
-    await step(page, 'กดเปิดใช้งาน แล้วเห็นสรุป', async () => {
-      await page.getByRole('button', { name: 'เปิดใช้งาน' }).click();
-      await expect(page.getByRole('heading', { name: 'พร้อมใช้งาน' })).toBeVisible();
-      await expect(page.getByText('เปิดใช้ 6 scanner · อัปเดตทุกวันเวลา 02:30 รวมฐานข้อมูลช่องโหว่')).toBeVisible();
+    await step(page, 'Click Enable and see the summary', async () => {
+      await page.getByRole('button', { name: 'Enable' }).click();
+      await expect(page.getByRole('heading', { name: 'Ready' })).toBeVisible();
+      await expect(page.getByText('6 scanners enabled · updates daily at 02:30 including vulnerability databases')).toBeVisible();
       await expect(page.locator('#instList .done-row')).toHaveCount(6);
     });
 
-    await step(page, 'เข้าสู่ ScanHub ไปที่หน้าโปรเจกต์', async () => {
-      await page.getByRole('button', { name: 'เข้าสู่ ScanHub' }).click();
+    await step(page, 'Go to ScanHub: the Projects page', async () => {
+      await page.getByRole('button', { name: 'Go to ScanHub' }).click();
       await expect(page).toHaveURL(/#projects/);
-      await expect(page.getByRole('heading', { name: 'โปรเจกต์', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible();
     });
 
-    await step(page, 'server บันทึกตารางเวลาและ scanner ที่เปิดใช้', async () => {
+    await step(page, 'The server saved the schedule and enabled scanners', async () => {
       const s = await api.get('/api/settings');
       expect(s.schedule).toMatchObject({ enabled: true, time: '02:30', updateDb: true });
       const tools = await api.get('/api/tools');

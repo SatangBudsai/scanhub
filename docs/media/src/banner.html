@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{width:1280px;height:640px;overflow:hidden;position:relative;color:#e8ebf2;
+    font-family:"Segoe UI",Inter,system-ui,sans-serif;
+    background:radial-gradient(900px 520px at 85% 10%,#1a2a52 0%,transparent 60%),radial-gradient(700px 500px at 0% 100%,#121c36 0%,transparent 60%),#0b0f19}
+  body:before{content:"";position:absolute;inset:0;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:40px 40px;
+    -webkit-mask-image:linear-gradient(90deg,#000 0,#0008 55%,transparent 90%)}
+  .left{position:absolute;left:72px;top:64px;width:590px}
+  .logo svg{height:40px;width:auto;display:block}
+  .tag{margin-top:44px;font:500 15px/1 "Cascadia Code",Consolas,monospace;color:#8fb4ff;letter-spacing:.5px;display:flex;align-items:center;gap:10px}
+  .tag:before{content:"";width:6px;height:6px;border-radius:50%;background:#5b8cff;box-shadow:0 0 10px #5b8cff}
+  h1{margin:20px 0 0;font-size:58px;line-height:1.04;font-weight:750;letter-spacing:-1.6px}
+  h1 span{background:linear-gradient(90deg,#8fb4ff,#c7d8ff);-webkit-background-clip:text;color:transparent}
+  p{margin:22px 0 0;font-size:19px;line-height:1.5;color:#a3abbd}
+  p b{color:#fff;font-weight:600}
+  .chips{margin-top:28px;display:flex;flex-wrap:wrap;gap:9px}
+  .chips span{padding:7px 14px;border:1px solid #ffffff1c;border-radius:999px;font-size:14px;color:#c9cfdb;background:#ffffff06}
+  .cmd{margin-top:34px;display:inline-flex;align-items:center;gap:14px;padding:14px 20px;border:1px solid #ffffff1c;border-radius:12px;background:#0d1220;
+    font:500 18px/1 "Cascadia Code",Consolas,monospace}
+  .cmd i{font-style:normal;color:#3fb950}
+  .cmd small{font:14px "Segoe UI",system-ui,sans-serif;color:#8b93a7;margin-left:6px}
+  .shot{position:absolute;left:700px;top:96px;width:760px;border-radius:14px;overflow:hidden;border:1px solid #ffffff1f;background:#141415;
+    box-shadow:0 40px 90px #000a,0 0 0 1px #000;transform:perspective(1600px) rotateY(-14deg) rotateX(4deg);transform-origin:left center}
+  .bar{height:30px;display:flex;align-items:center;gap:7px;padding:0 13px;background:#1b1c1f;border-bottom:1px solid #ffffff10}
+  .bar i{width:10px;height:10px;border-radius:50%;background:#3a3b40}
+  .shot img{display:block;width:100%}
+  .float{position:absolute;border:1px solid #ffffff22;border-radius:14px;background:#151820ee;box-shadow:0 20px 50px #0009;backdrop-filter:blur(6px)}
+  .f1{left:812px;top:46px;padding:12px 18px;font-size:15px;display:flex;align-items:center;gap:10px}
+  .f1:before{content:"";width:9px;height:9px;border-radius:50%;background:#f85149}
+  .f1 em{font-style:normal;color:#8b93a7;font-family:Consolas,monospace;font-size:13px}
+  .f2{left:640px;top:438px;display:flex;padding:16px 8px}
+  .f2 div{padding:0 22px;border-left:1px solid #ffffff18}.f2 div:first-child{border:0}
+  .f2 small{display:block;font-size:13px;color:#8b93a7}
+  .f2 b{display:block;font-size:34px;font-weight:700;margin-top:4px}
+</style></head>
+<body>
+  <div class="left">
+    <div class="logo">{{logo}}</div>
+    <div class="tag">Self-hosted security dashboard</div>
+    <h1>Every security scanner.<br><span>One place.</span></h1>
+    <p>Findings from every tool merged into one list and compared with the last scan, so you know <b>what's new</b> and <b>what's fixed</b> in every repo.</p>
+    <div class="chips"><span>SonarQube</span><span>Trivy</span><span>Semgrep</span><span>Gitleaks</span><span>Grype</span><span>Checkov</span><span>OWASP Dependency-Check</span></div>
+    <div class="cmd"><i>$</i> docker compose up -d <small>one container, ready to go</small></div>
+  </div>
+  <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="{{shot}}"></div>
+  <div class="float f1">Critical · AWS Access Key ID <em>4 scanners</em></div>
+  <div class="float f2"><div><small>Open</small><b>{{open}}</b></div><div><small>New</small><b style="color:#7aa2ff">{{new}}</b></div><div><small>Fixed</small><b style="color:#3fb950">{{fixed}}</b></div></div>
+</body></html>

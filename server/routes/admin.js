@@ -15,7 +15,7 @@ export function setupRoutes({ db, tools }) {
   r.post('/', requireRole('ADMIN'), ah(async (req, res) => {
     const ids = Array.isArray(req.body?.tools) ? req.body.tools : [];
     const unknown = ids.find((id) => !TOOL_IDS.includes(id));
-    if (unknown) throw bad(`ไม่รู้จัก scanner: ${unknown}`);
+    if (unknown) throw bad(`Unknown scanner: ${unknown}`);
     let schedule;
     try { schedule = validSchedule(req.body?.schedule || {}); } catch (e) { throw bad(e.message); }
     await db.setSetting('schedule', schedule);
@@ -36,7 +36,7 @@ export function toolRoutes({ tools }) {
     res.json({ ok: true });
   });
   const known = (req) => {
-    if (!TOOL_IDS.includes(req.params.id)) throw notFound('ไม่พบ scanner นี้');
+    if (!TOOL_IDS.includes(req.params.id)) throw notFound('Scanner not found');
     return req.params.id;
   };
   r.post('/:id/install', requireRole('ADMIN'), (req, res) => { tools.install(known(req)); res.json({ ok: true }); });
@@ -64,12 +64,12 @@ export function settingsRoutes({ db }) {
     const writes = [];
     if (b.serverUrl !== undefined) {
       const u = String(b.serverUrl || '').trim().replace(/\/+$/, '');
-      if (u && !URL_RE.test(u)) throw bad('Server URL ต้องขึ้นต้นด้วย http:// หรือ https://');
+      if (u && !URL_RE.test(u)) throw bad('Server URL must start with http:// or https://');
       writes.push(() => db.setSetting('serverUrl', u || null));
     }
     if (b.retentionDays !== undefined) {
       const n = Number(b.retentionDays);
-      if (!Number.isInteger(n) || n < 0 || n > 3650) throw bad('จำนวนวันเก็บข้อมูลต้องเป็น 0–3650');
+      if (!Number.isInteger(n) || n < 0 || n > 3650) throw bad('Retention days must be 0–3650');
       writes.push(() => db.setSetting('retentionDays', n));
     }
     if (b.schedule !== undefined) {
@@ -78,14 +78,14 @@ export function settingsRoutes({ db }) {
       writes.push(() => db.setSetting('schedule', s));
     }
     if (b.scanTime !== undefined) {
-      if (!isTime(b.scanTime)) throw bad('เวลาสแกนต้องอยู่ในรูปแบบ HH:MM');
+      if (!isTime(b.scanTime)) throw bad('Scan time must be in HH:MM format');
       writes.push(() => db.setSetting('scanTime', b.scanTime));
     }
     // Fields that come from env are read-only: ignored here
     if (b.sonar && !config.sonarFromEnv) {
       if (b.sonar.url !== undefined) {
         const u = String(b.sonar.url || '').trim().replace(/\/+$/, '');
-        if (u && !URL_RE.test(u)) throw bad('SonarQube URL ต้องขึ้นต้นด้วย http:// หรือ https://');
+        if (u && !URL_RE.test(u)) throw bad('SonarQube URL must start with http:// or https://');
         writes.push(() => db.setSetting('sonarUrl', u));
       }
       if (b.sonar.token !== undefined) writes.push(() => setSecret(db, 'sonarToken', b.sonar.token));

@@ -6,7 +6,7 @@ const noOverflow = async (page) => {
   expect(m.sw, `page is ${m.sw}px wide in a ${m.cw}px viewport`).toBeLessThanOrEqual(m.cw);
 };
 
-test.describe('มือถือ 390px', () => {
+test.describe('Mobile 390px', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   let repo, scanId;
 
@@ -20,27 +20,27 @@ test.describe('มือถือ 390px', () => {
     await api.dispose();
   });
 
-  test('ทุกหน้าใช้งานได้บนจอมือถือ และไม่มีการเลื่อนแนวนอน', async ({ page, step }) => {
-    await step(page, 'หน้า login', async () => {
+  test('Every page works on a phone with no horizontal scroll', async ({ page, step }) => {
+    await step(page, 'Login page', async () => {
       await page.goto('/#login');
-      await expect(page.getByRole('heading', { name: 'เข้าสู่ระบบ' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
       await noOverflow(page);
     });
-    await step(page, 'หน้าโปรเจกต์: เมนูยุบเป็นปุ่มเดียว', async () => {
+    await step(page, 'Projects: nav collapses into one menu button', async () => {
       await login(page);
-      await expect(page.getByRole('link', { name: 'ตั้งค่า', exact: true })).toBeHidden();
-      await page.getByRole('button', { name: 'เมนู' }).click();
+      await expect(page.getByRole('link', { name: 'Settings', exact: true })).toBeHidden();
+      await page.getByRole('button', { name: 'Menu' }).click();
       const nav = page.locator('#navPop');
       await expect(nav).toBeVisible();
       await expect(nav.getByRole('link', { name: repo.name })).toBeVisible();
       await noOverflow(page);
     });
-    await step(page, 'เลือก repo จากเมนู ไปหน้าผลสแกน', async () => {
+    await step(page, 'Pick a repo from the menu: scan results', async () => {
       await page.locator('#navPop').getByRole('link', { name: repo.name }).click();
-      await expect(page.locator('.scanbar .ttl')).toHaveText('สแกน #1');
+      await expect(page.locator('.scanbar .ttl')).toHaveText('Scan #1');
       await noOverflow(page);
     });
-    await step(page, 'รายการปัญหาและรายละเอียด', async () => {
+    await step(page, 'Findings list and details', async () => {
       await page.locator('[data-view="all"]').click();
       const first = page.locator('#fList .f-row').first();
       await first.scrollIntoViewIfNeeded();
@@ -48,25 +48,25 @@ test.describe('มือถือ 390px', () => {
       await expect(page.locator('.f.open .f-detail')).toBeVisible();
       await noOverflow(page);
     });
-    await step(page, 'หน้าเชื่อมต่อ CI', async () => {
+    await step(page, 'Connect CI page', async () => {
       await page.goto(`/#connect/${repo.id}`);
-      await expect(page.getByRole('heading', { name: 'เชื่อมต่อ CI' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Connect CI' })).toBeVisible();
       await noOverflow(page);
     });
-    await step(page, 'หน้าผู้ใช้แสดงเป็นการ์ด', async () => {
+    await step(page, 'Users page shows cards', async () => {
       await page.goto('/#users');
-      await expect(page.getByRole('heading', { name: 'ผู้ใช้', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Users', exact: true })).toBeVisible();
       const tr = page.locator('.users-table tbody tr').first();
       const display = await tr.evaluate((el) => getComputedStyle(el).display);
       expect(display).not.toBe('table-row');
       await noOverflow(page);
     });
-    await step(page, 'หน้าตั้งค่า', async () => {
+    await step(page, 'Settings page', async () => {
       await page.goto('/#settings');
-      await expect(page.getByRole('heading', { name: 'ตั้งค่า', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
       await noOverflow(page);
     });
-    await step(page, 'รายงานสำหรับลูกค้า', async () => {
+    await step(page, 'Client report', async () => {
       await page.goto(`/report.html?scan=${scanId}`);
       await expect(page.locator('main.sheet h1')).toBeVisible();
       await noOverflow(page);

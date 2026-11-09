@@ -35,8 +35,8 @@ export async function runSonar({ bin, src, out, repo, url, token }) {
     const t = await api(`/api/ce/task?id=${encodeURIComponent(task.ceTaskId)}`);
     const st = t.task?.status;
     if (st === 'SUCCESS') break;
-    if (st === 'FAILED' || st === 'CANCELED') return { error: `SonarQube ประมวลผลไม่สำเร็จ: ${t.task?.errorMessage || st}` };
-    if (Date.now() > deadline) return { error: 'รอ SonarQube ประมวลผลนานเกิน 15 นาที' };
+    if (st === 'FAILED' || st === 'CANCELED') return { error: `SonarQube processing failed: ${t.task?.errorMessage || st}` };
+    if (Date.now() > deadline) return { error: 'SonarQube processing took longer than 15 minutes' };
     await sleep(3000);
   }
 

@@ -19,12 +19,12 @@ export const linuxArch = () => (process.arch === 'arm64' ? 'arm64' : 'x64');
 export const CATALOG = [
   {
     id: 'sonarqube', name: 'SonarQube', needsConfig: true,
-    desc: 'คุณภาพโค้ดและ SAST: bug, code smell, security hotspot (ใช้ SonarQube server ที่มีอยู่)',
+    desc: 'Code quality and SAST: bugs, code smells, security hotspots (uses your existing SonarQube server)',
     source: 'sonar', binName: 'sonar-scanner', versionArgs: ['--version'],
   },
   {
     id: 'trivy', name: 'Trivy',
-    desc: 'ช่องโหว่ใน dependency, secret และ misconfiguration ของ IaC/Dockerfile',
+    desc: 'Vulnerabilities in dependencies, secrets, and IaC/Dockerfile misconfigurations',
     source: 'github', repo: 'aquasecurity/trivy', binName: 'trivy', versionArgs: ['--version'],
     asset: (v) => `trivy_${v}_Linux-${linuxArch() === 'arm64' ? 'ARM64' : '64bit'}.tar.gz`,
     async run({ bin, src, out }) {
@@ -39,7 +39,7 @@ export const CATALOG = [
   },
   {
     id: 'semgrep', name: 'Semgrep',
-    desc: 'SAST ตาม rule ที่ปรับแต่งได้ รองรับ 30+ ภาษา',
+    desc: 'SAST with customizable rules, 30+ languages',
     source: 'pip', pkg: 'semgrep', binName: 'semgrep', versionArgs: ['--version'],
     async run({ bin, src, out }) {
       const file = path.join(out, 'semgrep.json');
@@ -50,7 +50,7 @@ export const CATALOG = [
   },
   {
     id: 'gitleaks', name: 'Gitleaks',
-    desc: 'หา secret และ credential ที่หลุดอยู่ในโค้ด',
+    desc: 'Finds secrets and credentials leaked in code',
     source: 'github', repo: 'gitleaks/gitleaks', binName: 'gitleaks', versionArgs: ['version'],
     asset: (v) => `gitleaks_${v}_linux_${linuxArch()}.tar.gz`,
     async run({ bin, src, out }) {
@@ -62,13 +62,13 @@ export const CATALOG = [
   },
   {
     id: 'dependency-check', name: 'OWASP Dependency-Check',
-    desc: 'จับคู่ dependency กับ CVE จาก NVD (ครั้งแรกต้องโหลดฐานข้อมูล แนะนำให้ตั้ง NVD API key)',
+    desc: 'Matches dependencies against CVEs from NVD (the first run downloads the database; an NVD API key is recommended)',
     source: 'github', repo: 'jeremylong/DependencyCheck', binName: 'dependency-check.sh', versionArgs: ['--version'],
     asset: (v) => `dependency-check-${v}-release.zip`,
     async run({ bin, src, out, ctx }) {
       const data = path.join(dirs.cache, 'dependency-check');
       if (!fs.existsSync(data) || !fs.readdirSync(data).length) {
-        return { skip: 'ยังไม่มีฐานข้อมูล NVD กด "อัปเดตตอนนี้" ในหน้าตั้งค่าก่อน' };
+        return { skip: 'No NVD database yet. Click "Update all now" in Settings first' };
       }
       const args = ['--scan', src, '--format', 'JSON', '--out', out, '--data', data, '--noupdate', '--disableAssembly'];
       if (ctx.nvdApiKey) args.push('--nvdApiKey', ctx.nvdApiKey);
@@ -83,7 +83,7 @@ export const CATALOG = [
   },
   {
     id: 'checkov', name: 'Checkov',
-    desc: 'misconfiguration ใน Terraform, Kubernetes, Dockerfile และ CI config',
+    desc: 'Misconfigurations in Terraform, Kubernetes, Dockerfile and CI config',
     source: 'pip', pkg: 'checkov', binName: 'checkov', versionArgs: ['--version'],
     async run({ bin, src, out }) {
       const r = await runCmd(bin, ['-d', src, '-o', 'json', '--output-file-path', out, '--quiet', '--compact', '--soft-fail', '--skip-download'],
@@ -93,7 +93,7 @@ export const CATALOG = [
   },
   {
     id: 'grype', name: 'Grype',
-    desc: 'ช่องโหว่ใน dependency และ filesystem จากฐานข้อมูลของ Anchore',
+    desc: 'Vulnerabilities in dependencies and the filesystem, from the Anchore database',
     source: 'github', repo: 'anchore/grype', binName: 'grype', versionArgs: ['version'],
     asset: (v) => `grype_${v}_linux_${linuxArch() === 'arm64' ? 'arm64' : 'amd64'}.tar.gz`,
     env: () => ({ GRYPE_DB_CACHE_DIR: path.join(dirs.cache, 'grype'), GRYPE_CHECK_FOR_APP_UPDATE: 'false' }),
@@ -116,10 +116,10 @@ function reportOrFail(r, file, onMissing) {
     try {
       return { data: readJsonFile(file) };
     } catch (e) {
-      return { error: `อ่านผลลัพธ์ไม่ได้: ${e.message}` };
+      return { error: `Could not read output: ${e.message}` };
     }
   }
-  if (r.timedOut) return { error: 'ใช้เวลานานเกิน 30 นาที' };
+  if (r.timedOut) return { error: 'Took longer than 30 minutes' };
   if (onMissing && r.code === 0) return onMissing();
   return { error: tail(r.stderr || r.stdout) || `exit code ${r.code}` };
 }

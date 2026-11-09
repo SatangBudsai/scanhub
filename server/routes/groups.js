@@ -15,18 +15,18 @@ export function groupRoutes({ db }) {
   }
   const load = async (id) => {
     const g = Number.isInteger(Number(id)) ? await db.get('SELECT * FROM groups WHERE id = ?', Number(id)) : null;
-    if (!g) throw notFound('ไม่พบกลุ่ม');
+    if (!g) throw notFound('Group not found');
     return g;
   };
   const cleanName = (n) => {
     const s = String(n || '').trim();
-    if (s.length < 2 || s.length > 60) throw bad('ชื่อกลุ่มต้องยาว 2–60 ตัวอักษร');
+    if (s.length < 2 || s.length > 60) throw bad('Group name must be 2–60 characters');
     return s;
   };
 
   async function save(id, b, isNew) {
     const name = b.name !== undefined || isNew ? cleanName(b.name) : null;
-    if (name !== null && await db.get('SELECT id FROM groups WHERE name = ? AND id <> ?', name, id || 0)) throw new HttpError(409, 'มีกลุ่มชื่อนี้แล้ว');
+    if (name !== null && await db.get('SELECT id FROM groups WHERE name = ? AND id <> ?', name, id || 0)) throw new HttpError(409, 'A group with this name already exists');
     const members = b.memberIds !== undefined ? await idList(db, b.memberIds, 'users', 'memberIds') : null;
     const projects = b.projectIds !== undefined ? await idList(db, b.projectIds, 'projects', 'projectIds') : null;
     return db.tx(async (q) => {
@@ -70,7 +70,7 @@ export function groupRoutes({ db }) {
   r.get('/projects/:id/access', admin, ah(async (req, res) => {
     const pid = Number(req.params.id);
     const p = Number.isInteger(pid) ? await db.get('SELECT id FROM projects WHERE id = ?', pid) : null;
-    if (!p) throw notFound('ไม่พบโปรเจกต์');
+    if (!p) throw notFound('Project not found');
     const groups = await db.all(
       `SELECT g.id, g.name FROM groups g
        WHERE g.all_projects = 1 OR EXISTS (SELECT 1 FROM group_projects gp WHERE gp.group_id = g.id AND gp.project_id = ?)

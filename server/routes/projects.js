@@ -25,8 +25,8 @@ export function repoView(r) {
 /** Scan with findings. With a user, a scan in a project they cannot see is a 404. */
 export async function loadScanDetail(db, id, user) {
   const s = intId(id) && await db.get('SELECT s.*, r.project_id FROM scans s JOIN repos r ON r.id = s.repo_id WHERE s.id = ?', intId(id));
-  if (!s) throw notFound('ไม่พบผลสแกน');
-  if (user) await assertProject(db, user, s.project_id, 'ไม่พบผลสแกน');
+  if (!s) throw notFound('Scan not found');
+  if (user) await assertProject(db, user, s.project_id, 'Scan not found');
   const repo = await db.get('SELECT branch FROM repos WHERE id = ?', s.repo_id);
   const prev = await baselineScan(db, s, repo || {});
   const findings = (await db.all('SELECT * FROM findings WHERE scan_id = ?', s.id)).map(rowToFinding)
@@ -42,36 +42,36 @@ export function projectRoutes({ db, queue, runner }) {
   // Both loaders hide projects the user cannot see (404)
   const loadRepo = async (req, id) => {
     const repo = intId(id) && await db.get('SELECT r.*, p.name AS project_name FROM repos r JOIN projects p ON p.id = r.project_id WHERE r.id = ?', intId(id));
-    if (!repo) throw notFound('ไม่พบ repo');
-    await assertProject(db, req.user, repo.project_id, 'ไม่พบ repo');
+    if (!repo) throw notFound('Repo not found');
+    await assertProject(db, req.user, repo.project_id, 'Repo not found');
     return repo;
   };
   const loadProject = async (req, id) => {
     const p = intId(id) && await db.get('SELECT * FROM projects WHERE id = ?', intId(id));
-    if (!p) throw notFound('ไม่พบโปรเจกต์');
-    await assertProject(db, req.user, p.id, 'ไม่พบโปรเจกต์');
+    if (!p) throw notFound('Project not found');
+    await assertProject(db, req.user, p.id, 'Project not found');
     return p;
   };
   const cleanName = (n) => {
     const s = String(n || '').trim();
-    if (s.length < 2 || s.length > 80) throw bad('ชื่อโปรเจกต์ต้องยาว 2–80 ตัวอักษร');
+    if (s.length < 2 || s.length > 80) throw bad('Project name must be 2–80 characters');
     return s;
   };
   function validTools(t) {
     if (t === null || t === undefined) return null;
-    if (!Array.isArray(t)) throw bad('tools ต้องเป็น array');
+    if (!Array.isArray(t)) throw bad('tools must be an array');
     const unknown = t.find((x) => !TOOL_IDS.includes(x));
-    if (unknown) throw bad(`ไม่รู้จัก scanner: ${unknown}`);
+    if (unknown) throw bad(`Unknown scanner: ${unknown}`);
     return t.length ? JSON.stringify([...new Set(t)]) : null;
   }
   const validGit = (u) => {
     const s = String(u || '').trim();
-    if (s && !GIT_RE.test(s)) throw bad('Git URL ต้องขึ้นต้นด้วย https://, ssh:// หรือ git@');
+    if (s && !GIT_RE.test(s)) throw bad('Git URL must start with https://, ssh:// or git@');
     return s || null;
   };
   const validSchedule = (s) => {
     if (s === undefined) return 'none';
-    if (!['none', 'daily'].includes(s)) throw bad('schedule ต้องเป็น none หรือ daily');
+    if (!['none', 'daily'].includes(s)) throw bad('schedule must be none or daily');
     return s;
   };
   const gateJson = (g, current) => {
@@ -79,7 +79,7 @@ export function projectRoutes({ db, queue, runner }) {
   };
   const repoName = (n) => {
     const name = String(n || '').trim().toLowerCase();
-    if (!REPO_RE.test(name)) throw bad('ชื่อ repo ใช้ได้เฉพาะ a-z 0-9 . _ - ยาว 2–60 ตัว');
+    if (!REPO_RE.test(name)) throw bad('Repo name may use only a-z 0-9 . _ - and be 2–60 characters');
     return name;
   };
 
@@ -125,7 +125,7 @@ export function projectRoutes({ db, queue, runner }) {
 
   r.delete('/projects/:id', manage, ah(async (req, res) => {
     const p = await loadProject(req, req.params.id);
-    if (await db.get('SELECT id FROM repos WHERE project_id = ? LIMIT 1', p.id)) throw new HttpError(409, 'ลบไม่ได้ ยังมี repo อยู่ในโปรเจกต์นี้');
+    if (await db.get('SELECT id FROM repos WHERE project_id = ? LIMIT 1', p.id)) throw new HttpError(409, 'Cannot delete: this project still has repos');
     await db.run('DELETE FROM projects WHERE id = ?', p.id);
     res.json({ ok: true });
   }));
@@ -135,7 +135,7 @@ export function projectRoutes({ db, queue, runner }) {
     const b = req.body || {};
     const p = await loadProject(req, b.projectId);
     const name = repoName(b.name);
-    if (await db.get('SELECT id FROM repos WHERE name = ?', name)) throw new HttpError(409, 'มี repo ชื่อนี้แล้ว');
+    if (await db.get('SELECT id FROM repos WHERE name = ?', name)) throw new HttpError(409, 'A repo with this name already exists');
     const tok = newRepoToken();
     const { id } = await db.run(
       'INSERT INTO repos (name, project_id, lang, branch, git_url, tools, schedule, token_hash, token_hint, gate) VALUES (?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?::jsonb) RETURNING id',
@@ -153,7 +153,7 @@ export function projectRoutes({ db, queue, runner }) {
     const sets = [];
     if (b.name !== undefined) {
       const name = repoName(b.name);
-      if (await db.get('SELECT id FROM repos WHERE name = ? AND id <> ?', name, repo.id)) throw new HttpError(409, 'มี repo ชื่อนี้แล้ว');
+      if (await db.get('SELECT id FROM repos WHERE name = ? AND id <> ?', name, repo.id)) throw new HttpError(409, 'A repo with this name already exists');
       sets.push(['name', name]);
     }
     if (b.projectId !== undefined) sets.push(['project_id', (await loadProject(req, b.projectId)).id]);
@@ -174,7 +174,7 @@ export function projectRoutes({ db, queue, runner }) {
 
   r.delete('/repos/:id', manage, ah(async (req, res) => {
     const repo = await loadRepo(req, req.params.id);
-    if (queue.isBusy(repo.id)) throw new HttpError(409, 'repo นี้กำลังสแกนอยู่ รอให้เสร็จก่อนแล้วค่อยลบ');
+    if (queue.isBusy(repo.id)) throw new HttpError(409, 'This repo is being scanned. Wait for it to finish before deleting');
     await db.run('DELETE FROM repos WHERE id = ?', repo.id);
     res.json({ ok: true });
   }));
@@ -195,10 +195,10 @@ export function projectRoutes({ db, queue, runner }) {
     let line = null;
     if (req.query.of !== undefined) {
       const s = await db.get('SELECT * FROM scans WHERE repo_id = ? AND num = ?', repo.id, intId(req.query.of) || 0);
-      if (!s) throw notFound('ไม่พบผลสแกน');
+      if (!s) throw notFound('Scan not found');
       line = lineOf(s);
     } else if (req.query.kind !== undefined) {
-      if (!REF_KINDS.includes(req.query.kind)) throw bad('kind ต้องเป็น branch, tag หรือ pr');
+      if (!REF_KINDS.includes(req.query.kind)) throw bad('kind must be branch, tag or pr');
       line = { kind: req.query.kind, name: String(req.query.ref || '') };
     }
     const rows = line
@@ -226,7 +226,7 @@ export function projectRoutes({ db, queue, runner }) {
 
   r.post('/repos/:id/scan', requireRole('ADMIN', 'MAINTAINER', 'ANALYST'), ah(async (req, res) => {
     const repo = await loadRepo(req, req.params.id);
-    if (!repo.git_url) throw bad('repo นี้ยังไม่มี Git URL ให้เชื่อมผ่าน CI หรือใส่ Git URL ก่อน');
+    if (!repo.git_url) throw bad('This repo has no Git URL. Connect it through CI or add a Git URL first');
     const branch = req.body?.branch ? String(req.body.branch).trim() : repo.branch;
     const scan = await createScan(db, repo, { trigger: 'manual', branch });
     queue.add(scan, runner.fromGit());

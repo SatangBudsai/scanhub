@@ -84,9 +84,9 @@ export async function sessionUser(db, req) {
 // Logged in. Unless allowMustChange, users with a temporary password are blocked until they change it.
 export const requireAuth = (db, { allowMustChange = false } = {}) => (req, res, next) => {
   sessionUser(db, req).then((u) => {
-    if (!u) return next(new HttpError(401, 'กรุณาเข้าสู่ระบบ'));
+    if (!u) return next(new HttpError(401, 'Not signed in'));
     if (u.must_change && !allowMustChange) {
-      return next(new HttpError(403, 'ต้องเปลี่ยนรหัสผ่านชั่วคราวก่อน', { code: 'MUST_CHANGE_PASSWORD' }));
+      return next(new HttpError(403, 'Change your temporary password first', { code: 'MUST_CHANGE_PASSWORD' }));
     }
     req.user = u;
     next();
@@ -94,7 +94,7 @@ export const requireAuth = (db, { allowMustChange = false } = {}) => (req, res, 
 };
 
 export const requireRole = (...roles) => (req, res, next) => {
-  if (!req.user || !roles.includes(req.user.role)) return next(new HttpError(403, 'ไม่มีสิทธิ์ทำรายการนี้'));
+  if (!req.user || !roles.includes(req.user.role)) return next(new HttpError(403, 'You do not have permission to do this'));
   next();
 };
 

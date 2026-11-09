@@ -1,33 +1,39 @@
-![ScanHub: ผลสแกนความปลอดภัยทุก tool รวมไว้ที่เดียว รู้ทันทีว่าอะไรใหม่และอะไรแก้แล้ว](docs/media/banner.png)
+![ScanHub: results from every security scanner in one place, see at a glance what is new and what is fixed](docs/media/banner.png)
 
 # ScanHub
 
-รวมผลสแกนความปลอดภัยจาก SonarQube, Trivy, Semgrep, Gitleaks, Grype, Checkov และ OWASP Dependency-Check ไว้ที่เดียว แยกตาม project › repo มีประวัติทุกครั้งที่สแกน ผลจากทุก tool รวมเป็นรายการเดียว และเทียบกับสแกนครั้งก่อนให้เห็นว่าอะไรใหม่ อะไรแก้แล้ว
+ScanHub collects results from SonarQube, Trivy, Semgrep, Gitleaks, Grype, Checkov and OWASP Dependency-Check in one place, organized by project › repo. Every scan is kept in history, findings from all tools are merged into a single list, and each scan is compared with the previous one so you can see what is new and what has been fixed.
 
-![ภาพรวมผลสแกนของ repo: ตัวเลขสรุป ระดับความรุนแรง และรายการปัญหาจากทุก scanner](docs/media/results-overview.gif)
+![Repo results overview: summary numbers, severity levels and findings from every scanner](docs/media/results-overview.gif)
 
-- **ติดตั้งด้วยไฟล์เดียว**: แก้ `docker-compose.yml` แล้ว `docker compose up -d` ใน container เดียวมีทั้งเว็บ, PostgreSQL และ scanner ทุกตัว
-- **เชื่อม CI แบบกดครั้งเดียว**: GitHub / GitLab ตั้ง secret และเปิด Pull Request ให้เอง หรือ copy โค้ดสำหรับ Jenkins, Azure, Bitbucket และ CLI
-- **เลือกได้ว่าจะ block pipeline หรือแค่แจ้งผล** และเปลี่ยนทีหลังได้โดยไม่ต้องแก้ pipeline
-- **รายงานส่งลูกค้า** เป็น PDF / HTML และ share link แบบเฉพาะคนในระบบหรือแบบตั้งรหัสผ่าน
-- **ผู้ใช้ กลุ่ม และสิทธิ์รายโปรเจกต์**: admin มาจาก config และตั้งค่าใหม่ทุกครั้งที่ start
-- **scanner อัปเดตเองทุกวัน** ขณะที่ระบบรันอยู่
+- **One-file install**: edit `docker-compose.yml` and run `docker compose up -d`. A single container holds the web app, PostgreSQL and every scanner.
+- **One-click CI setup**: for GitHub / GitLab, ScanHub sets the secret and opens a Pull Request for you. For Jenkins, Azure, Bitbucket and CLI, copy a ready-made snippet.
+- **Block the pipeline or just report**, and change it later without touching the pipeline.
+- **Client-ready reports** as PDF / HTML, plus share links for signed-in users only or protected by a password.
+- **Users, groups and per-project access**: the admin account comes from config and is re-applied on every start.
+- **Scanners update themselves daily** while the system is running.
+
+## Architecture
+
+![How ScanHub works: CI asks whether to scan, uploads the source, every scanner runs inside one container, findings are merged and stored, then CI gets pass or block and people see the results in the browser](docs/media/architecture.gif)
+
+CI only sends source code. ScanHub runs the scanners itself, merges the findings, compares them with the right earlier scan and answers the pipeline with pass or block. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design and API.
 
 ---
 
-## 1. ติดตั้ง
+## 1. Install
 
-ต้องมี Docker เท่านั้น ใช้ไฟล์ `docker-compose.yml` ไฟล์เดียว ไม่ต้อง clone โค้ดหรือ build เอง
+You only need Docker. Everything comes from a single `docker-compose.yml`; no cloning or building required.
 
-| ระบบ | ใช้ Docker | หมายเหตุ |
+| System | Docker | Notes |
 | --- | --- | --- |
-| Windows 10 / 11 | [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) (WSL 2) | Windows แบบ Intel / AMD และ ARM |
-| macOS | [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/) | Mac Intel และ Apple Silicon (M1 ขึ้นไป) |
-| Linux server | Docker Engine + Compose plugin | x86_64 และ arm64 |
+| Windows 10 / 11 | [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) (WSL 2) | Intel / AMD and ARM |
+| macOS | [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/) | Intel and Apple Silicon (M1 and later) |
+| Linux server | Docker Engine + Compose plugin | x86_64 and arm64 |
 
-image มีทั้ง amd64 และ arm64 Docker เลือกให้ตรงกับเครื่องเอง ใช้งานบน iPhone / iPad / Android ได้ผ่าน browser แต่ต้องติดตั้ง ScanHub บนเครื่องข้างบน
+The image is published for amd64 and arm64; Docker picks the right one. You can use ScanHub from an iPhone / iPad / Android browser, but it must be installed on one of the systems above.
 
-1. ดาวน์โหลด `docker-compose.yml` มาไว้ในโฟลเดอร์ว่าง
+1. Download `docker-compose.yml` into an empty folder.
 
    **macOS / Linux** (Terminal)
 
@@ -43,119 +49,119 @@ image มีทั้ง amd64 และ arm64 Docker เลือกให้�
    Invoke-WebRequest https://raw.githubusercontent.com/SatangBudsai/scanhub/main/docker-compose.yml -OutFile docker-compose.yml
    ```
 
-2. เปิดไฟล์แล้วแก้ 3 บรรทัด
+2. Open the file and edit 3 lines.
 
    ```yaml
    SCANHUB_ADMIN_USER: admin
-   SCANHUB_ADMIN_PASSWORD: your-strong-password   # อย่างน้อย 8 ตัว
-   SCANHUB_URL: https://scanhub.company.local     # URL ที่คนและ CI ใช้เข้า ScanHub
+   SCANHUB_ADMIN_PASSWORD: your-strong-password   # at least 8 characters
+   SCANHUB_URL: https://scanhub.company.local     # URL people and CI use to reach ScanHub
    ```
 
-3. สั่ง `docker compose up -d` ในโฟลเดอร์เดียวกัน (คำสั่งเดียวกันทั้ง Windows และ macOS) ครั้งแรกจะดาวน์โหลด image ประมาณ 2 GB ที่มีเว็บ, PostgreSQL และ scanner ทุกตัวอยู่แล้ว
-4. เปิด `SCANHUB_URL` แล้ว login ด้วย admin ครั้งแรกจะมีหน้าให้เลือก scanner และเวลาอัปเดตรายวัน
+3. Run `docker compose up -d` in the same folder (same command on Windows and macOS). The first run downloads an image of about 2 GB that already contains the web app, PostgreSQL and every scanner.
+4. Open `SCANHUB_URL` and sign in as admin. On first sign-in you choose the scanners and the daily update time.
 
-![ตั้งค่าครั้งแรก: เลือก scanner และเวลาอัปเดตอัตโนมัติ](docs/media/setup.gif)
+![First-time setup: choose scanners and the automatic update time](docs/media/setup.gif)
 
-ถ้ายังไม่เปลี่ยนรหัส admin ตัวอย่าง ระบบจะไม่ยอม start ข้อมูลทั้งหมดเก็บใน volume `scanhub-data`
+ScanHub refuses to start while the admin password is still the example value. All data is stored in the `scanhub-data` volume.
 
-### อัปเดตเวอร์ชัน
+### Update
 
 ```sh
 docker compose pull
 docker compose up -d
 ```
 
-ข้อมูลใน volume `scanhub-data` อยู่ครบ ฐานข้อมูลอัปเดตโครงสร้างเองตอน start ถ้าต้องการล็อกเวอร์ชัน เปลี่ยน `:latest` ใน `docker-compose.yml` เป็นเลขเวอร์ชัน เช่น `:1.1.0` แล้วจะย้อนกลับเวอร์ชันก่อนก็ทำแบบเดียวกัน (ดูเวอร์ชันทั้งหมดได้ที่ [GitHub Packages](https://github.com/SatangBudsai/scanhub/pkgs/container/scanhub))
+Data in the `scanhub-data` volume is kept, and the database schema migrates itself on start. To pin a version, replace `:latest` in `docker-compose.yml` with a version number such as `:1.1.0`; rolling back works the same way. All versions are listed on [GitHub Packages](https://github.com/SatangBudsai/scanhub/pkgs/container/scanhub).
 
-### Server ที่ต่ออินเทอร์เน็ตไม่ได้
+### Offline servers
 
-ย้าย image ด้วยไฟล์ แล้ว start ตามปกติ
+Move the image as a file, then start as usual.
 
 ```sh
-# เครื่องที่ต่ออินเทอร์เน็ตได้ (ใส่ --platform linux/arm64 ถ้า server ปลายทางเป็น arm64)
+# On a machine with internet (add --platform linux/arm64 if the target server is arm64)
 docker pull ghcr.io/satangbudsai/scanhub:latest
 docker save -o scanhub-image.tar ghcr.io/satangbudsai/scanhub:latest
-# server ปลายทาง: copy scanhub-image.tar และ docker-compose.yml ไปไว้โฟลเดอร์เดียวกัน
+# On the target server: copy scanhub-image.tar and docker-compose.yml into the same folder
 docker load -i scanhub-image.tar
 docker compose up -d
 ```
 
-คำสั่งเหล่านี้ใช้ได้ทั้ง Windows PowerShell, macOS และ Linux
+These commands work in Windows PowerShell, macOS and Linux.
 
-scanner ต้องดาวน์โหลดฐานข้อมูลช่องโหว่จากอินเทอร์เน็ต ถ้า server ต่อไม่ได้เลย ผลของ Trivy, Grype และ Dependency-Check จะไม่อัปเดต
+Scanners download vulnerability databases from the internet. With no internet access at all, Trivy, Grype and Dependency-Check results will not be updated.
 
-### ค่าเสริม
+### Optional settings
 
-ทั้งหมดอยู่ใน `docker-compose.yml` ไฟล์เดียว ลบ `#` หน้าบรรทัดเพื่อเปิดใช้
+Everything lives in `docker-compose.yml`. Remove the `#` at the start of a line to enable it.
 
-| ค่า | ใช้ทำอะไร |
+| Setting | Purpose |
 | --- | --- |
-| `DATABASE_URL` | ใช้ PostgreSQL ที่มีอยู่แล้ว ถ้าตั้งค่านี้ PostgreSQL ใน container จะไม่ถูก start |
-| `SONAR_URL`, `SONAR_TOKEN` | SonarQube server ที่มีอยู่ ScanHub จะส่งโค้ดไปวิเคราะห์และดึงผลกลับมา |
-| `NVD_API_KEY` | ให้ OWASP Dependency-Check โหลดฐานข้อมูลครั้งแรกได้เร็ว (ขอฟรีที่ nvd.nist.gov) |
-| `GITHUB_TOKEN`, `GITHUB_API_URL` | เชื่อม GitHub / GitHub Enterprise สำหรับตั้งค่า CI อัตโนมัติ |
-| `GITLAB_URL`, `GITLAB_TOKEN` | เชื่อม GitLab (gitlab.com หรือ server ของคุณ) สำหรับตั้งค่า CI อัตโนมัติ |
-| `TZ` | เขตเวลาของงานรายวัน (ค่าเริ่มต้น `Asia/Bangkok`) |
-| `SCAN_CONCURRENCY`, `MAX_UPLOAD_MB` | จำนวนสแกนพร้อมกัน, ขนาด source สูงสุดที่ CI ส่งมา |
+| `DATABASE_URL` | Use an existing PostgreSQL. When set, the bundled PostgreSQL is not started |
+| `SONAR_URL`, `SONAR_TOKEN` | An existing SonarQube server. ScanHub sends code for analysis and pulls the results back |
+| `NVD_API_KEY` | Speeds up OWASP Dependency-Check's first database download (free at nvd.nist.gov) |
+| `GITHUB_TOKEN`, `GITHUB_API_URL` | Connect GitHub / GitHub Enterprise for automatic CI setup |
+| `GITLAB_URL`, `GITLAB_TOKEN` | Connect GitLab (gitlab.com or self-hosted) for automatic CI setup |
+| `TZ` | Time zone for daily jobs (default `Asia/Bangkok`) |
+| `SCAN_CONCURRENCY`, `MAX_UPLOAD_MB` | Number of concurrent scans, max source size sent by CI |
 
-ค่าที่ตั้งในไฟล์นี้จะแสดงในหน้าตั้งค่าเป็น "ตั้งค่าจาก env" และแก้จากหน้าเว็บไม่ได้
+Values set in this file show as "set from env" on the settings page and cannot be edited from the web UI.
 
 ---
 
-## 2. เชื่อมต่อ CI/CD
+## 2. Connect CI/CD
 
-เปิด repo แล้วกด **เชื่อมต่อ CI**
+Open a repo and click **Connect CI**.
 
-### ตั้งค่าอัตโนมัติ (GitHub / GitLab)
+### Automatic setup (GitHub / GitLab)
 
-1. เลือกการเชื่อมต่อและ repo ปลายทาง
-2. เลือกว่าจะ **Block** หรือ **แจ้งผลอย่างเดียว**
-3. กด **ตั้งค่าให้อัตโนมัติ** ScanHub จะทำ 3 อย่างให้
-   - เก็บ `SCANHUB_TOKEN` เป็น secret
-   - เพิ่มไฟล์ pipeline
-   - เปิด Pull Request / Merge Request
-4. กด merge แล้วทุก push จะถูกสแกน
+1. Choose the connection and the target repo.
+2. Choose **Block** or **Report only**.
+3. Click **Set up automatically**. ScanHub will:
+   - store `SCANHUB_TOKEN` as a secret
+   - add the pipeline file
+   - open a Pull Request / Merge Request
+4. Merge it, and every push gets scanned.
 
-![ตั้งค่า CI อัตโนมัติกับ GitHub: ใส่ secret และ workflow แล้วเปิด Pull Request](docs/media/auto-setup-github.gif)
+![Automatic CI setup with GitHub: add the secret and workflow, then open a Pull Request](docs/media/auto-setup-github.gif)
 
-token ที่ใช้ต้องมีสิทธิ์ดังนี้
+The token needs these permissions:
 
-- **GitHub**: fine-grained PAT ที่ให้ Contents, Pull requests, Secrets, Variables, Workflows เป็น read/write (classic token: `repo`, `workflow`)
-- **GitLab**: scope `api` และ role Maintainer
+- **GitHub**: a fine-grained PAT with read/write on Contents, Pull requests, Secrets, Variables and Workflows (classic token: `repo`, `workflow`)
+- **GitLab**: scope `api` and the Maintainer role
 
-### Block หรือแค่แจ้งผล
+### Block or report only
 
-- **Block**: pipeline fail เมื่อเจอปัญหาใหม่ระดับที่เลือก (Critical / Critical + High / Medium ขึ้นไป)
-- **แจ้งผลอย่างเดียว**: pipeline ผ่านเสมอ
+- **Block**: the pipeline fails when new findings at the chosen level appear (Critical / Critical + High / Medium and above)
+- **Report only**: the pipeline always passes
 
-ทั้ง 2 แบบแสดงสรุปและลิงก์ผลสแกนใน log ของ CI ค่านี้เก็บไว้ที่ ScanHub จึงเปลี่ยนได้ทุกเมื่อโดยไม่ต้องแก้ pipeline
+Both modes print a summary and a link to the results in the CI log. The setting is stored in ScanHub, so you can change it at any time without editing the pipeline.
 
-![อัปโหลดโค้ดแบบ CI: โหมด block ได้ 422 โหมดแจ้งผลได้ 200](docs/media/ci-gate.gif)
+![CI-style upload: block mode returns 422, report mode returns 200](docs/media/ci-gate.gif)
 
-### Branch, tag และ Pull Request ที่สแกน
+### Which branches, tags and Pull Requests are scanned
 
-pipeline ที่ ScanHub สร้างให้รันทุก branch, tag และ PR แล้วถาม ScanHub ก่อนว่าต้องสแกนไหม ตั้งค่าที่หน้า **เชื่อมต่อ CI** ของแต่ละ repo เปลี่ยนได้ทุกเมื่อโดยไม่ต้องแก้ pipeline ตัวที่ไม่ตรงจะจบทันทีโดยไม่อัปโหลดโค้ด
+The pipeline ScanHub generates runs on every branch, tag and PR, and first asks ScanHub whether to scan. Configure this on each repo's **Connect CI** page; changes apply without editing the pipeline. Refs that don't match exit immediately without uploading code.
 
-| ตั้งค่า | ตัวอย่าง | ค่าเริ่มต้น |
+| Setting | Example | Default |
 | --- | --- | --- |
-| Branch | `main, develop, release/*` | branch หลักของ repo อย่างเดียว |
-| Tag | `v*` หรือ `sit_v*, uat_v*` | ไม่สแกน tag |
-| Pull Request / Merge Request | เปิด / ปิด | เปิด |
+| Branch | `main, develop, release/*` | the repo's default branch only |
+| Tag | `v*` or `sit_v*, uat_v*` | tags are not scanned |
+| Pull Request / Merge Request | on / off | on |
 
-`*` ใช้ได้ทุกตำแหน่ง แต่ละสแกนเทียบผล "ใหม่ / แก้แล้ว" กับสแกนที่เหมาะสม
+`*` works anywhere in a pattern. Each scan computes "new / fixed" against the appropriate earlier scan:
 
-- **branch** เทียบกับสแกนก่อนหน้าของ branch เดียวกัน
-- **PR** เทียบกับ branch ปลายทาง ปัญหาใหม่คือสิ่งที่ PR นั้นเพิ่มเข้ามา ใช้กับ block แบบ "เฉพาะปัญหาใหม่" ได้ตรง
-- **tag** เทียบกับ tag ก่อนหน้าใน pattern เดียวกัน เช่น `sit_v1.2` เทียบกับ `sit_v1.1` ไม่ใช่ `uat_v1.1`
+- **branch**: the previous scan of the same branch
+- **PR**: the target branch, so "new" means what the PR introduces. This pairs well with blocking on new findings only
+- **tag**: the previous tag in the same pattern, e.g. `sit_v1.2` compares with `sit_v1.1`, not `uat_v1.1`
 
-หน้า repo มีตัวเลือก branch / PR / tag และประวัติแสดงแยกตามที่เลือก pipeline ที่ตั้งไว้ก่อนมีฟีเจอร์นี้ยังใช้ได้ (สแกนทุกครั้งเหมือนเดิม) ตั้งค่าอัตโนมัติอีกครั้งหรือ copy โค้ดใหม่เพื่อใช้การเลือก branch และ tag
+The repo page has a branch / PR / tag picker, and history is shown per selection. Pipelines set up before this feature keep working (they scan every run). Run automatic setup again or copy the new snippet to use branch and tag filtering.
 
-### ตั้งค่าเอง
+### Manual setup
 
-copy โค้ดสำหรับ GitHub Actions, GitLab CI, Jenkins, Azure Pipelines, Bitbucket หรือ CLI แล้วเพิ่ม secret `SCANHUB_TOKEN` CI แค่ส่ง source code มา ScanHub สแกนด้วย scanner ของตัวเอง ฝั่ง CI จึงไม่ต้องติดตั้งอะไรเลย
+Copy the snippet for GitHub Actions, GitLab CI, Jenkins, Azure Pipelines, Bitbucket or CLI and add the `SCANHUB_TOKEN` secret. CI only sends source code; ScanHub scans it with its own scanners, so nothing needs to be installed on the CI side.
 
 ```sh
-# KIND = branch | tag | pr, BASE = branch ปลายทางของ PR
+# KIND = branch | tag | pr, BASE = the PR's target branch
 Q="kind=$KIND&branch=$REF&base=$BASE"
 case "$(curl -sS -H "Authorization: Bearer $SCANHUB_TOKEN" -H "Accept: text/plain" "$SCANHUB_URL/api/v1/check?$Q")" in skip*) exit 0;; esac
 tar --exclude=.git -czf - . | curl --fail-with-body -sS -X POST -T - \
@@ -163,120 +169,121 @@ tar --exclude=.git -czf - . | curl --fail-with-body -sS -X POST -T - \
   "$SCANHUB_URL/api/v1/scan?$Q&commit=$COMMIT&wait=1"
 ```
 
-ถ้ารัน scanner ใน CI อยู่แล้ว ส่งไฟล์ผล JSON/SARIF ไปที่ `/api/v1/reports` ได้เช่นกัน
+If you already run scanners in CI, you can also send their JSON/SARIF output to `/api/v1/reports`.
 
-CI runner ต้องเข้าถึง `SCANHUB_URL` ได้ ถ้า ScanHub อยู่ในเครือข่ายภายใน ให้ใช้ runner ที่อยู่ในเครือข่ายเดียวกัน
-
----
-
-## 3. ดูผลสแกน
-
-- **ปัญหาเดียวกันที่หลาย scanner เจอแสดงเป็นรายการเดียว** พร้อมชื่อทุก tool ที่เจอ
-- เริ่มต้นแสดงเฉพาะที่ **ต้องดู** (ปัญหาใหม่ + Critical/High) กดเปลี่ยนเป็น **ทั้งหมด** หรือ **แก้แล้ว** ได้
-- **กดที่ระดับความรุนแรง** เพื่อกรองเฉพาะระดับนั้น
-- **กดที่ปัญหา** เพื่อดูโค้ดที่เกี่ยวข้อง วิธีแก้ และลิงก์อ้างอิง
-
-![ค้นหา ตัวกรอง จัดกลุ่ม และรายละเอียดของปัญหาที่หลาย scanner เจอ](docs/media/findings-filter.gif)
-
-ทุกครั้งที่สแกนเก็บเป็นประวัติ แยกตาม branch / PR / tag สลับดูสแกนเก่าได้ และดาวน์โหลด CSV ได้
-
-![ประวัติการสแกน สลับสแกน และดาวน์โหลด CSV](docs/media/history.gif)
+The CI runner must be able to reach `SCANHUB_URL`. If ScanHub is on an internal network, use a runner on the same network.
 
 ---
 
-## 4. รายงานและการแชร์
+## 3. View results
 
-ในหน้า repo กด **รายงาน**
+- **The same issue found by several scanners appears once**, listed with every tool that found it.
+- By default only **Needs attention** is shown (new + Critical/High). Switch to **All** or **Fixed** at any time.
+- **Click a severity** to filter to that level.
+- **Click a finding** to see the related code, how to fix it and reference links.
+
+![Search, filters, grouping and details of a finding reported by several scanners](docs/media/findings-filter.gif)
+
+Every scan is kept in history, separated by branch / PR / tag. You can switch to older scans and download CSV.
+
+![Scan history, switching scans and downloading CSV](docs/media/history.gif)
+
+---
+
+## 4. Reports and sharing
+
+On a repo page, click **Report**.
 
 ### Export
 
-ใส่ชื่อลูกค้า เลือกระดับความรุนแรงขั้นต่ำ เลือกว่าจะแสดงโค้ดหรือไม่ แล้วกด **บันทึกเป็น PDF** หรือ **ดาวน์โหลด HTML** ได้ A4 หน้าตาเหมือนกันไม่ว่าจะเปิดจากจอขนาดไหน
+Enter the client name, pick the minimum severity, choose whether to include code, then click **Save as PDF** or **Download HTML**. The output is A4 and looks the same on any screen size.
 
-![ส่งออกรายงานสำหรับลูกค้าเป็น PDF และ HTML](docs/media/report-export.gif)
+![Exporting a client report as PDF and HTML](docs/media/report-export.gif)
 
-### Share link
+### Share links
 
-- **เฉพาะผู้ใช้ในระบบ**: ต้อง login และมีสิทธิ์ในโปรเจกต์นั้น
-- **ตั้งรหัสผ่าน**: ส่งให้คนนอกได้ ใส่รหัสผิด 5 ครั้งใน 15 นาทีจะถูกล็อกชั่วคราว
+- **Signed-in users only**: viewers must sign in and have access to the project
+- **Password protected**: can be sent to outsiders. 5 wrong passwords within 15 minutes locks the link temporarily
 
-ตั้งวันหมดอายุได้ ยกเลิก link ได้ทุกเมื่อ และดูได้ว่าเปิดไปกี่ครั้ง
+You can set an expiry date, revoke a link at any time and see how many times it was opened.
 
-![ลิงก์ตั้งรหัสผ่าน: รหัสผิด รหัสถูก และล็อกหลังผิด 5 ครั้ง](docs/media/share-password.gif)
+![Password-protected link: wrong password, right password, and lockout after 5 failures](docs/media/share-password.gif)
 
 ---
 
-## 5. ผู้ใช้ กลุ่ม และสิทธิ์
+## 5. Users, groups and access
 
-ไม่มีการสมัครเอง admin เพิ่มผู้ใช้ในหน้า **ผู้ใช้** ผู้ใช้ใหม่ต้องเปลี่ยนรหัสผ่านชั่วคราวตอน login ครั้งแรก
+There is no self sign-up. An admin adds users on the **Users** page, and new users must change their temporary password on first sign-in.
 
-| | ADMIN<br>ผู้ดูแลระบบ | MAINTAINER<br>ผู้ดูแลโปรเจกต์ | ANALYST<br>ผู้ตรวจสอบ | VIEWER<br>ผู้ดูผล |
+| | ADMIN | MAINTAINER | ANALYST | VIEWER |
 | --- | --- | --- | --- | --- |
-| ดูผลสแกน | ✓ | ✓ | ✓ | ✓ |
-| สั่งสแกน, สร้าง share link | ✓ | ✓ | ✓ | |
-| จัดการ project / repo / token / CI | ✓ | ✓ | | |
-| ดูหน้าตั้งค่า | ✓ | ✓ | | |
-| แก้ตั้งค่า, scanner, ผู้ใช้ | ✓ | | | |
+| View scan results | ✓ | ✓ | ✓ | ✓ |
+| Trigger scans, create share links | ✓ | ✓ | ✓ | |
+| Manage projects / repos / tokens / CI | ✓ | ✓ | | |
+| View settings | ✓ | ✓ | | |
+| Change settings, scanners, users | ✓ | | | |
 
-**การมองเห็นโปรเจกต์:** ADMIN เห็นทุกโปรเจกต์ ผู้ใช้คนอื่นเห็นได้ 3 ทาง
+**Project visibility:** ADMIN sees every project. Other users can see a project in 3 ways:
 
-- เปิด **เห็นทุกโปรเจกต์** ให้คนนั้น
-- ให้สิทธิ์รายโปรเจกต์
-- อยู่ใน **กลุ่ม** ที่มีสิทธิ์
+- **See all projects** is turned on for them
+- a direct grant on that project
+- membership in a **group** that has access
 
-คนที่สร้างโปรเจกต์จะเห็นโปรเจกต์นั้นอัตโนมัติ เมนู ⋯ ของโปรเจกต์มี **ใครเห็นโปรเจกต์นี้** ให้ตรวจได้
+The creator of a project sees it automatically. The project's ⋯ menu has **Who can see this project** for checking.
 
-![ให้สิทธิ์ผ่านกลุ่ม รายคน และเห็นทุกโปรเจกต์ แล้วดูว่าใครเห็นโปรเจกต์](docs/media/access-groups.gif)
-
----
-
-## 6. Scanner และการอัปเดต
-
-scanner ทุกตัวติดตั้งมากับ image แล้ว เปิด/ปิดได้ในหน้า **ตั้งค่า**
-
-ทุกวันตามเวลาที่ตั้ง (ค่าเริ่มต้น 03:00) ScanHub จะดาวน์โหลด scanner เวอร์ชันล่าสุดและฐานข้อมูลช่องโหว่มาเอง ขณะที่ระบบรันอยู่ ไม่ต้อง build ใหม่
-
-- ถ้าอัปเดตตัวไหนล้มเหลว จะใช้เวอร์ชันเดิมต่อและบันทึกไว้
-- ย้อนกลับไปใช้เวอร์ชันที่มากับ image ได้
-
-![เปิด/ปิด scanner และดูเวอร์ชัน](docs/media/scanners.gif)
-
-container ต้องออกอินเทอร์เน็ตได้ (GitHub, PyPI, SonarSource, NVD) การสแกนครั้งแรกจะช้ากว่าปกติ 3–4 นาที เพราะ Trivy และ Grype ต้องโหลดฐานข้อมูลช่องโหว่
-
-ตัวโปรแกรม ScanHub เองอัปเดตด้วย `docker compose pull` แล้ว `docker compose up -d` ข้อมูลเดิมยังอยู่ และฐานข้อมูลจะ migrate ให้อัตโนมัติ
+![Granting access through groups, per user and "see all projects", then checking who can see a project](docs/media/access-groups.gif)
 
 ---
 
-## 7. ใช้บนมือถือได้
+## 6. Scanners and updates
 
-ทุกหน้าปรับตามขนาดจอ เมนูด้านบนยุบเป็นปุ่มเดียว ตารางเรียงเป็นการ์ด
+Every scanner ships with the image. Turn them on or off on the **Settings** page.
 
-<img src="docs/media/mobile.gif" alt="ScanHub บนจอมือถือ" width="360">
+Every day at the configured time (default 03:00) ScanHub downloads the latest scanner versions and vulnerability databases while it keeps running. No rebuild is needed.
+
+- If an update fails, the previous version stays in use and the failure is logged.
+- You can roll back to the version bundled with the image.
+
+![Turning scanners on/off and checking versions](docs/media/scanners.gif)
+
+The container needs outbound internet access (GitHub, PyPI, SonarSource, NVD). The first scan takes 3–4 minutes longer than usual while Trivy and Grype download their vulnerability databases.
+
+ScanHub itself is updated with `docker compose pull` then `docker compose up -d`. Existing data is kept and the database migrates automatically.
 
 ---
 
-## สำหรับนักพัฒนา
+## 7. Mobile friendly
+
+Every page adapts to the screen size: the top menu collapses into one button and tables become cards.
+
+<img src="docs/media/mobile.gif" alt="ScanHub on a phone screen" width="360">
+
+---
+
+## For developers
 
 ```sh
 npm install
-npm test          # unit + API tests 37 รายการ (ใช้ PostgreSQL ชั่วคราวใน Docker)
-npm run e2e       # Playwright E2E 35 รายการ บันทึก GIF ทุก test
+npm test          # 37 unit + API tests (uses a temporary PostgreSQL in Docker)
+npm run e2e       # 35 Playwright E2E tests, each records a GIF
 npm run e2e:report
 
-# build image จากโค้ดในเครื่องแทนการ pull (E2E ใช้ image นี้)
+# Build the image from local code instead of pulling (E2E uses this image)
 docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 ```
 
-ทุก push และ Pull Request จะรัน test ใน GitHub Actions (`.github/workflows/image.yml`) push เข้า `main` จะ build image ทั้ง amd64 และ arm64 แล้วเก็บที่ `ghcr.io/satangbudsai/scanhub:latest` ส่วน tag `v1.2.3` จะได้ image `:1.2.3` เวอร์ชันของแอปอยู่ใน `package.json` ที่เดียว
+Every push and Pull Request runs the tests in GitHub Actions (`.github/workflows/image.yml`). Pushes to `main` build amd64 and arm64 images and publish them as `ghcr.io/satangbudsai/scanhub:latest`; a `v1.2.3` tag produces the `:1.2.3` image. The app version lives only in `package.json`.
 
-ผล E2E อยู่ที่ `e2e/results/index.html` แต่ละ test มีขั้นตอน ผลผ่าน/ไม่ผ่าน และ GIF ภาพทั้งหมดใน README นี้มาจากการรัน E2E จริง
+E2E results are in `e2e/results/index.html`, with the steps, pass/fail status and a GIF for each test. Every image in this README comes from a real E2E run.
 
-| โฟลเดอร์ | |
+| Folder | |
 | --- | --- |
 | `server/` | Node.js 22 + Express + PostgreSQL |
-| `public/` | หน้าเว็บ (`index.html`) และหน้ารายงาน (`report.html`) |
-| `docker/` | entrypoint และสคริปต์ติดตั้ง scanner |
-| `test/`, `e2e/` | ชุดทดสอบ |
-| `docs/ARCHITECTURE.md` | โครงสร้างระบบและ API ทั้งหมด |
-| `designs/` | ต้นแบบหน้าจอ 4 แบบที่ใช้เลือกดีไซน์ |
+| `public/` | the web app (`index.html`) and report page (`report.html`) |
+| `docker/` | entrypoint and scanner install script |
+| `test/`, `e2e/` | test suites |
+| `docs/ARCHITECTURE.md` | full system design and API |
+| `designs/` | the 4 UI prototypes used to choose the design |
+| `docs/media/src/` | source of the architecture GIF (`node docs/media/src/build-architecture.mjs <simple-icons>/icons`) |
 
-แนวทางดีไซน์อ้างอิง [unslop](https://github.com/heydamir/unslop) by Damir Sokolovsky, CC BY 4.0
+Design guidance based on [unslop](https://github.com/heydamir/unslop) by Damir Sokolovsky, CC BY 4.0

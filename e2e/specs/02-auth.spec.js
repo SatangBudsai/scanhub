@@ -2,79 +2,79 @@ import { test, expect, login } from '../lib/test.js';
 import { apiAs, projectWithRepo, standardReports, uid, uploadReports } from '../lib/api.js';
 import { ADMIN } from '../lib/env.js';
 
-test.describe('เข้าสู่ระบบ', () => {
-  test('admin จาก env login ได้ และเห็นป้ายตั้งค่าจาก env', async ({ page, step, admin }) => {
-    await step(page, 'เปิดหน้า login', async () => {
+test.describe('Sign in', () => {
+  test('The env admin can sign in and sees the Set from env tag', async ({ page, step, admin }) => {
+    await step(page, 'Open the sign-in page', async () => {
       await page.goto('/');
       await expect(page).toHaveURL(/#login/);
-      await expect(page.getByRole('heading', { name: 'เข้าสู่ระบบ' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
     });
-    await step(page, 'login ด้วยชื่อและรหัสจาก env', async () => {
+    await step(page, 'Sign in with the env username and password', async () => {
       await login(page, ADMIN.username, ADMIN.password, { expectHash: /#projects/ });
-      await expect(page.getByRole('heading', { name: 'โปรเจกต์', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible();
     });
-    await step(page, 'เมนูบัญชีแสดง ADMIN และตั้งค่าจาก env', async () => {
-      await page.getByRole('button', { name: `บัญชีของ ${ADMIN.username}` }).click();
-      const menu = page.getByRole('menu', { name: 'บัญชี' });
-      await expect(menu.locator('.role-tag')).toHaveText('ผู้ดูแลระบบ');
-      await expect(menu.getByText('ตั้งค่าจาก env')).toBeVisible();
+    await step(page, 'Account menu shows ADMIN and Set from env', async () => {
+      await page.getByRole('button', { name: `Account of ${ADMIN.username}` }).click();
+      const menu = page.getByRole('menu', { name: 'Account' });
+      await expect(menu.locator('.role-tag')).toHaveText('ADMIN');
+      await expect(menu.getByText('Set from env')).toBeVisible();
       // the env admin cannot change the password from the web
-      await expect(menu.getByRole('menuitem', { name: 'เปลี่ยนรหัสผ่าน' })).toHaveCount(0);
+      await expect(menu.getByRole('menuitem', { name: 'Change password' })).toHaveCount(0);
     });
   });
 
-  test('รหัสผ่านผิดแสดงข้อความ และยังอยู่หน้า login', async ({ page, step }) => {
-    await step(page, 'กรอกรหัสผ่านผิด', async () => {
+  test('A wrong password shows an error and stays on sign-in', async ({ page, step }) => {
+    await step(page, 'Enter a wrong password', async () => {
       await page.goto('/#login');
-      await page.getByLabel('ชื่อผู้ใช้').fill(ADMIN.username);
-      await page.getByLabel('รหัสผ่าน', { exact: true }).fill('wrong-password-1');
-      await page.getByRole('button', { name: 'เข้าสู่ระบบ' }).click();
+      await page.getByLabel('Username').fill(ADMIN.username);
+      await page.getByLabel('Password', { exact: true }).fill('wrong-password-1');
+      await page.getByRole('button', { name: 'Sign in' }).click();
     });
-    await step(page, 'เห็นข้อความรหัสผ่านไม่ถูกต้อง', async () => {
-      await expect(page.locator('#lerr')).toHaveText('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+    await step(page, 'See the wrong-password message', async () => {
+      await expect(page.locator('#lerr')).toHaveText('Wrong username or password');
       await expect(page).toHaveURL(/#login/);
     });
-    await step(page, 'ช่องว่างแจ้งให้กรอกให้ครบ', async () => {
-      await page.getByLabel('รหัสผ่าน', { exact: true }).fill('');
-      await page.getByRole('button', { name: 'เข้าสู่ระบบ' }).click();
-      await expect(page.locator('#lerr')).toHaveText('กรอกชื่อผู้ใช้และรหัสผ่าน');
+    await step(page, 'Empty fields ask for both values', async () => {
+      await page.getByLabel('Password', { exact: true }).fill('');
+      await page.getByRole('button', { name: 'Sign in' }).click();
+      await expect(page.locator('#lerr')).toHaveText('Enter your username and password');
     });
   });
 
-  test('ผู้ใช้ใหม่ต้องตั้งรหัสผ่านใหม่ก่อนใช้งาน', async ({ page, step, admin }) => {
+  test('A new user must set a new password first', async ({ page, step, admin }) => {
     const username = uid('newbie');
     await admin.post('/api/users', { username, password: 'temp-pass-123', role: 'ANALYST' });
 
-    await step(page, 'login ด้วยรหัสชั่วคราวจาก admin', async () => {
+    await step(page, 'Sign in with the temporary password from the admin', async () => {
       await page.goto('/#login');
       await login(page, username, 'temp-pass-123', { expectHash: /#password/ });
-      await expect(page.getByRole('heading', { name: 'ตั้งรหัสผ่านใหม่' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Set a new password' })).toBeVisible();
     });
-    await step(page, 'เข้าหน้าอื่นไม่ได้จนกว่าจะตั้งรหัสใหม่', async () => {
+    await step(page, 'Other pages are blocked until the password is changed', async () => {
       await page.evaluate(() => { location.hash = '#projects'; });
       await expect(page).toHaveURL(/#password/);
     });
-    await step(page, 'รหัสใหม่สองช่องไม่ตรงกัน', async () => {
-      await page.getByLabel('รหัสผ่านชั่วคราว').fill('temp-pass-123');
-      await page.getByLabel('รหัสผ่านใหม่', { exact: true }).fill('brand-new-pass-1');
-      await page.getByLabel('ยืนยันรหัสผ่านใหม่').fill('brand-new-pass-2');
-      await page.getByRole('button', { name: 'บันทึกรหัสผ่าน' }).click();
-      await expect(page.locator('#perr')).toHaveText('รหัสผ่านใหม่ทั้งสองช่องไม่ตรงกัน');
+    await step(page, 'The two new passwords do not match', async () => {
+      await page.getByLabel('Temporary password').fill('temp-pass-123');
+      await page.getByLabel('New password', { exact: true }).fill('brand-new-pass-1');
+      await page.getByLabel('Confirm new password').fill('brand-new-pass-2');
+      await page.getByRole('button', { name: 'Save password' }).click();
+      await expect(page.locator('#perr')).toHaveText('The new passwords do not match');
     });
-    await step(page, 'รหัสชั่วคราวผิด server ตอบกลับโดยไม่ logout', async () => {
-      await page.getByLabel('รหัสผ่านชั่วคราว').fill('not-the-temp-1');
-      await page.getByLabel('ยืนยันรหัสผ่านใหม่').fill('brand-new-pass-1');
-      await page.getByRole('button', { name: 'บันทึกรหัสผ่าน' }).click();
-      await expect(page.locator('#perr')).toHaveText('รหัสผ่านปัจจุบันไม่ถูกต้อง');
+    await step(page, 'Wrong temporary password: error shown, still signed in', async () => {
+      await page.getByLabel('Temporary password').fill('not-the-temp-1');
+      await page.getByLabel('Confirm new password').fill('brand-new-pass-1');
+      await page.getByRole('button', { name: 'Save password' }).click();
+      await expect(page.locator('#perr')).toHaveText('Current password is wrong');
       await expect(page).toHaveURL(/#password/);
     });
-    await step(page, 'ตั้งรหัสใหม่สำเร็จ เข้าหน้าโปรเจกต์ได้', async () => {
-      await page.getByLabel('รหัสผ่านชั่วคราว').fill('temp-pass-123');
-      await page.getByRole('button', { name: 'บันทึกรหัสผ่าน' }).click();
+    await step(page, 'Password saved: the Projects page opens', async () => {
+      await page.getByLabel('Temporary password').fill('temp-pass-123');
+      await page.getByRole('button', { name: 'Save password' }).click();
       await expect(page).toHaveURL(/#projects/);
-      await expect(page.getByRole('heading', { name: 'ยังไม่มีโปรเจกต์ที่คุณเห็น' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'No projects you can see yet' })).toBeVisible();
     });
-    await step(page, 'login ใหม่ด้วยรหัสใหม่ได้', async () => {
+    await step(page, 'Sign in again with the new password', async () => {
       const again = await apiAs(username, 'brand-new-pass-1');
       const me = await again.get('/api/auth/me');
       expect(me.user.mustChange).toBe(false);
@@ -82,18 +82,18 @@ test.describe('เข้าสู่ระบบ', () => {
     });
   });
 
-  test('ออกจากระบบจากเมนูบัญชี', async ({ page, step }) => {
-    await step(page, 'login แล้วเปิดเมนูบัญชี', async () => {
+  test('Sign out from the account menu', async ({ page, step }) => {
+    await step(page, 'Sign in and open the account menu', async () => {
       await page.goto('/#login');
       await login(page);
-      await page.getByRole('button', { name: `บัญชีของ ${ADMIN.username}` }).click();
-      await expect(page.getByRole('menu', { name: 'บัญชี' })).toBeVisible();
+      await page.getByRole('button', { name: `Account of ${ADMIN.username}` }).click();
+      await expect(page.getByRole('menu', { name: 'Account' })).toBeVisible();
     });
-    await step(page, 'กดออกจากระบบ', async () => {
-      await page.getByRole('menuitem', { name: 'ออกจากระบบ' }).click();
+    await step(page, 'Click Sign out', async () => {
+      await page.getByRole('menuitem', { name: 'Sign out' }).click();
       await expect(page).toHaveURL(/#login/);
     });
-    await step(page, 'เปิดหน้าโปรเจกต์ตรงๆ ถูกส่งกลับไปหน้า login', async () => {
+    await step(page, 'Opening Projects directly goes back to sign-in', async () => {
       await page.goto('/#projects');
       await expect(page).toHaveURL(/#login/);
       const res = await page.request.get('/api/projects');
@@ -101,44 +101,44 @@ test.describe('เข้าสู่ระบบ', () => {
     });
   });
 
-  test('session หมดอายุ แล้วกลับไปหน้า login เอง', async ({ page, step, context }) => {
-    await step(page, 'login แล้วอยู่หน้าโปรเจกต์', async () => {
+  test('An expired session returns to sign-in', async ({ page, step, context }) => {
+    await step(page, 'Sign in and land on Projects', async () => {
       await page.goto('/#login');
       await login(page, undefined, undefined, { expectHash: /#projects/ });
     });
-    await step(page, 'session ถูกลบ (เช่นหมดอายุ)', async () => {
+    await step(page, 'The session is gone (e.g. expired)', async () => {
       await context.clearCookies();
     });
-    await step(page, 'กดไปหน้าตั้งค่า ระบบพากลับไปหน้า login', async () => {
-      await page.getByRole('link', { name: 'ตั้งค่า', exact: true }).click();
+    await step(page, 'Click Settings: back to sign-in', async () => {
+      await page.getByRole('link', { name: 'Settings', exact: true }).click();
       await expect(page).toHaveURL(/#login/);
-      await expect(page.getByRole('heading', { name: 'เข้าสู่ระบบ' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
     });
   });
 
-  test('login จากลิงก์รายงานแล้วกลับไปที่รายงาน (next=)', async ({ page, step, admin }) => {
+  test('Sign in from a report link returns to the report (next=)', async ({ page, step, admin }) => {
     const { repo, token } = await projectWithRepo(admin);
     const up = await uploadReports(token, standardReports(), { query: 'gate=report' });
     expect(up.status).toBe(200);
-    const share = (await admin.post(`/api/scans/${up.json.scanId}/shares`, { mode: 'internal', options: { title: `รายงาน ${repo.name}` } })).share;
+    const share = (await admin.post(`/api/scans/${up.json.scanId}/shares`, { mode: 'internal', options: { title: `Report ${repo.name}` } })).share;
     const path = new URL(share.url).pathname;
 
-    await step(page, 'เปิดลิงก์แชร์ตอนยังไม่ login', async () => {
+    await step(page, 'Open a share link while signed out', async () => {
       await page.goto(path);
-      await expect(page.getByRole('heading', { name: 'ต้อง login' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Sign-in required' })).toBeVisible();
     });
-    await step(page, 'กดเข้าสู่ระบบ ไปหน้า login ที่มี next', async () => {
-      await page.getByRole('link', { name: 'เข้าสู่ระบบ' }).click();
+    await step(page, 'Click Sign in: sign-in page with next', async () => {
+      await page.getByRole('link', { name: 'Sign in' }).click();
       await expect(page).toHaveURL(/#login\?next=/);
     });
-    await step(page, 'login แล้วกลับมาที่รายงานเดิม', async () => {
-      await page.getByLabel('ชื่อผู้ใช้').fill(ADMIN.username);
-      await page.getByLabel('รหัสผ่าน', { exact: true }).fill(ADMIN.password);
-      await page.getByRole('button', { name: 'เข้าสู่ระบบ' }).click();
+    await step(page, 'Sign in and return to the same report', async () => {
+      await page.getByLabel('Username').fill(ADMIN.username);
+      await page.getByLabel('Password', { exact: true }).fill(ADMIN.password);
+      await page.getByRole('button', { name: 'Sign in' }).click();
       await expect(page).toHaveURL(new RegExp(path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'));
-      await expect(page.getByRole('heading', { name: `รายงาน ${repo.name}` })).toBeVisible();
+      await expect(page.getByRole('heading', { name: `Report ${repo.name}` })).toBeVisible();
     });
-    await step(page, 'next ที่ชี้ออกนอกเว็บถูกเพิกเฉย', async () => {
+    await step(page, 'A next pointing off-site is ignored', async () => {
       await page.goto('/#login?next=//evil.example/x');
       await expect(page).toHaveURL(/#projects/);
     });

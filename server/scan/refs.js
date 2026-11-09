@@ -26,9 +26,9 @@ export function validRefs(input, current = DEFAULT_REFS) {
   const list = (v, label) => {
     const arr = (Array.isArray(v) ? v : String(v || '').split(/[\s,]+/)).map((x) => String(x).trim()).filter(Boolean);
     const uniq = [...new Set(arr)];
-    if (uniq.length > MAX_PATTERNS) throw new Error(`${label}ใส่ได้ไม่เกิน ${MAX_PATTERNS} รายการ`);
+    if (uniq.length > MAX_PATTERNS) throw new Error(`${label}: at most ${MAX_PATTERNS} patterns`);
     const bad = uniq.find((x) => !PATTERN_RE.test(x));
-    if (bad) throw new Error(`${label} "${bad}" ใช้ได้เฉพาะ a-z A-Z 0-9 . _ - / + @ และ *`);
+    if (bad) throw new Error(`${label} "${bad}" may use only a-z A-Z 0-9 . _ - / + @ and *`);
     return uniq;
   };
   return {
@@ -41,14 +41,14 @@ export function validRefs(input, current = DEFAULT_REFS) {
 /** Should CI scan this ref? Returns { scan, group, reason } */
 export function shouldScan(repo, kind, name) {
   const refs = refsOf(repo);
-  if (kind === 'pr') return refs.prs ? { scan: true, group: '' } : { scan: false, reason: 'repo นี้ปิดการสแกน Pull Request ไว้' };
+  if (kind === 'pr') return refs.prs ? { scan: true, group: '' } : { scan: false, reason: 'Pull Request scans are turned off for this repo' };
   if (kind === 'tag') {
     const group = firstMatch(refs.tags, name);
     if (group) return { scan: true, group };
-    return { scan: false, reason: refs.tags.length ? `tag ${name} ไม่ตรงกับ ${refs.tags.join(', ')}` : 'repo นี้ไม่ได้ตั้งให้สแกน tag' };
+    return { scan: false, reason: refs.tags.length ? `tag ${name} does not match ${refs.tags.join(', ')}` : 'this repo is not set to scan tags' };
   }
   const pats = branchPatterns(refs);
-  return firstMatch(pats, name) ? { scan: true, group: '' } : { scan: false, reason: `branch ${name} ไม่ตรงกับ ${pats.join(', ')}` };
+  return firstMatch(pats, name) ? { scan: true, group: '' } : { scan: false, reason: `branch ${name} does not match ${pats.join(', ')}` };
 }
 
 /** Normalize the kind CI sends. Unknown or missing = null (old pipelines: scan as a branch, no filter) */

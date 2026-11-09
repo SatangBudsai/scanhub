@@ -1,0 +1,212 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  html,body{margin:0;background:#0d1015;}
+  body{width:1280px;height:720px;overflow:hidden;font-family:"Segoe UI",Inter,system-ui,sans-serif;}
+  svg text{font-family:inherit}
+  .logo{position:absolute;left:40px;top:22px}
+  .logo svg{height:34px;width:auto}
+</style></head>
+<body>
+<div class="logo">{{logo}}</div>
+<svg id="s" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#1a1f29"/></pattern>
+  </defs>
+  <rect width="1280" height="720" fill="url(#grid)"/>
+  <text x="1240" y="46" text-anchor="end" font-size="15" fill="#8b93a7" letter-spacing="2">ARCHITECTURE</text>
+  <g id="bg"></g>
+  <g id="edges"></g>
+  <g id="nodes"></g>
+  <g id="packets"></g>
+  <g id="caption"></g>
+</svg>
+<script>
+const C = { card:'#151922', line:'#262d3b', text:'#e8ebf2', muted:'#8b93a7', brand:'#5b8cff', ok:'#3fb950', bad:'#f85149', amber:'#e3a53b' };
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const txt = (x, y, s, attrs, parent) => { const t = el('text', { x, y, ...attrs }, parent); t.textContent = s; return t; };
+const icon = (d, color, x, y, size, parent) => { const s = el('svg', { x, y, width: size, height: size, viewBox: '0 0 24 24' }, parent); el('path', { d, fill: color }, s); };
+const mono = (label, bg, x, y, size, parent) => { el('rect', { x, y, width: size, height: size, rx: size * 0.24, fill: bg }, parent); txt(x + size / 2, y + size * 0.66, label, { 'text-anchor': 'middle', 'font-size': size * 0.44, 'font-weight': 700, fill: '#fff' }, parent); };
+
+const I = {
+  github: '{{icon:github}}', gitlab: '{{icon:gitlab}}', jenkins: '{{icon:jenkins}}', bitbucket: '{{icon:bitbucket}}',
+  bash: '{{icon:gnubash}}', docker: '{{icon:docker}}', pg: '{{icon:postgresql}}', node: '{{icon:nodedotjs}}',
+  express: '{{icon:express}}', sonar: '{{icon:sonarqubeserver}}', trivy: '{{icon:trivy}}', owasp: '{{icon:owasp}}', chrome: '{{icon:googlechrome}}',
+};
+
+const nodesG = document.getElementById('nodes'), edgesG = document.getElementById('edges'), packG = document.getElementById('packets');
+
+// ---- containers ----
+const bgG = document.getElementById('bg');
+el('rect', { x: 312, y: 92, width: 716, height: 566, rx: 22, fill: '#10141c', stroke: '#2f4a85', 'stroke-width': 1.5, 'stroke-dasharray': '6 6' }, bgG);
+icon(I.docker, '#2496ED', 334, 106, 26, nodesG);
+txt(370, 125, 'ScanHub container', { 'font-size': 18, 'font-weight': 650, fill: C.text }, nodesG);
+txt(548, 125, 'one Docker image · web app, database and every scanner', { 'font-size': 13, fill: C.muted }, nodesG);
+
+const nodes = {};
+function card(id, x, y, w, h, title, sub, icons = [], opts = {}) {
+  const g = el('g', {}, nodesG);
+  const r = el('rect', { x, y, width: w, height: h, rx: 14, fill: C.card, stroke: C.line, 'stroke-width': 1.5 }, g);
+  let ix = x + 16;
+  icons.forEach((ic) => { ic.mono ? mono(ic.mono, ic.bg, ix, y + 16, 28, g) : icon(ic.d, ic.c, ix, y + 16, 28, g); ix += 36; });
+  const tx = icons.length ? ix + 4 : x + 18;
+  txt(tx, y + (sub ? 30 : 36), title, { 'font-size': 16, 'font-weight': 650, fill: C.text }, g);
+  if (sub) txt(tx, y + 50, sub, { 'font-size': 12.5, fill: C.muted }, g);
+  nodes[id] = { r, g, color: opts.color || C.brand };
+  return g;
+}
+
+// ---- left: inputs ----
+{
+  const g = el('g', {}, nodesG);
+  const r = el('rect', { x: 40, y: 110, width: 230, height: 300, rx: 16, fill: C.card, stroke: C.line, 'stroke-width': 1.5 }, g);
+  nodes.ci = { r, g, color: C.brand };
+  txt(60, 142, 'Your CI/CD', { 'font-size': 17, 'font-weight': 650, fill: C.text }, g);
+  txt(60, 162, 'sends source, gets pass / block', { 'font-size': 12.5, fill: C.muted }, g);
+  const list = [
+    ['GitHub', { d: I.github, c: '#ffffff' }], ['GitLab', { d: I.gitlab, c: '#FC6D26' }],
+    ['Jenkins', { d: I.jenkins, c: '#D24939' }], ['Azure', { mono: 'Az', bg: '#0078D4' }],
+    ['Bitbucket', { d: I.bitbucket, c: '#2684FF' }], ['CLI', { d: I.bash, c: '#4EAA25' }],
+  ];
+  list.forEach(([name, ic], i) => {
+    const x = 58 + (i % 2) * 104, y = 186 + Math.floor(i / 2) * 70;
+    el('rect', { x, y, width: 94, height: 58, rx: 10, fill: '#1b2030' }, g);
+    ic.mono ? mono(ic.mono, ic.bg, x + 35, y + 7, 24, g) : icon(ic.d, ic.c, x + 35, y + 7, 24, g);
+    txt(x + 47, y + 48, name, { 'font-size': 12, fill: C.muted, 'text-anchor': 'middle' }, g);
+  });
+}
+card('browser', 40, 450, 230, 110, 'Browser', 'desktop · phone', [{ d: I.chrome, c: '#4285F4' }]);
+txt(58, 540, 'results · PDF reports · share links', { 'font-size': 12.5, fill: '#aab3c5' }, nodesG);
+
+// ---- inside the container ----
+card('api', 340, 150, 220, 72, 'Web app + API', 'Node.js · Express', [{ d: I.node, c: '#5FA04E' }]);
+card('queue', 340, 300, 220, 72, 'Scan queue', 'unpack source · run tools');
+card('sched', 340, 470, 220, 72, 'Scheduler', 'daily scanner + DB updates');
+{
+  const g = el('g', {}, nodesG);
+  const r = el('rect', { x: 600, y: 150, width: 400, height: 262, rx: 16, fill: '#121722', stroke: C.line, 'stroke-width': 1.5 }, g);
+  nodes.scanners = { r, g, color: C.brand };
+  txt(620, 180, 'Scanners', { 'font-size': 16, 'font-weight': 650, fill: C.text }, g);
+  txt(700, 180, 'run in parallel on the same source', { 'font-size': 12.5, fill: C.muted }, g);
+}
+const tools = [
+  ['trivy', 'Trivy', { d: I.trivy, c: '#4f7bff' }], ['semgrep', 'Semgrep', { mono: 'Sg', bg: '#1f9d77' }],
+  ['gitleaks', 'Gitleaks', { mono: 'GL', bg: '#7b3fe4' }], ['grype', 'Grype', { mono: 'Gr', bg: '#1e6fd9' }],
+  ['checkov', 'Checkov', { mono: 'Ck', bg: '#6d4bd8' }], ['depcheck', 'Dependency-Check', { d: I.owasp, c: '#ffffff' }],
+];
+const toolPos = {};
+tools.forEach(([id, name, ic], i) => {
+  const x = 618 + (i % 3) * 126, y = 198 + Math.floor(i / 3) * 102;
+  const g = el('g', {}, nodesG);
+  const r = el('rect', { x, y, width: 114, height: 90, rx: 12, fill: '#1b2030', stroke: '#1b2030', 'stroke-width': 1.5 }, g);
+  ic.mono ? mono(ic.mono, ic.bg, x + 39, y + 14, 36, g) : icon(ic.d, ic.c, x + 39, y + 14, 36, g);
+  txt(x + 57, y + 74, name, { 'font-size': name.length > 10 ? 11 : 13, fill: C.text, 'text-anchor': 'middle' }, g);
+  nodes[id] = { r, g, color: C.brand, idle: '#1b2030' };
+  toolPos[id] = [x + 57, y + 45];
+});
+card('merge', 600, 470, 210, 72, 'Merge & diff', 'dedupe · new / fixed');
+card('db', 836, 470, 164, 72, 'PostgreSQL', 'every scan kept', [{ d: I.pg, c: '#6d8fef' }]);
+
+// ---- right: outside services ----
+card('sonar', 1066, 160, 180, 72, 'SonarQube', 'optional', [{ d: I.sonar, c: '#4E9BCD' }]);
+card('gitapi', 1066, 300, 180, 72, 'GitHub / GitLab', 'auto CI setup', [{ d: I.github, c: '#fff' }]);
+card('volume', 1066, 470, 180, 72, 'scanhub-data', 'Docker volume', [{ d: I.docker, c: '#2496ED' }]);
+card('net', 1066, 590, 180, 72, 'Internet', 'vuln DBs · releases');
+
+// ---- edges ----
+const paths = {};
+function edge(id, d, dashed) {
+  const p = el('path', { d, fill: 'none', stroke: '#2a3345', 'stroke-width': 2, 'stroke-dasharray': dashed ? '4 6' : '' }, edgesG);
+  paths[id] = p; return p;
+}
+edge('check', 'M270 230 C305 230 305 175 340 175');
+edge('upload', 'M270 265 C310 265 300 200 340 200');
+edge('result', 'M340 212 C300 212 305 300 270 300');
+edge('apiq', 'M450 222 L450 300');
+edge('browser', 'M340 186 C300 186 300 505 270 505');
+edge('gitapi', 'M450 150 L450 76 L1156 76 L1156 160');
+edge('gitapi2', 'M560 170 C580 170 580 76 600 76', true);
+tools.forEach(([id]) => { const [x, y] = toolPos[id]; edge('in_' + id, `M560 336 C590 336 ${x - 60} ${y} ${x} ${y}`); edge('out_' + id, `M${x} ${y} C${x} ${y + 120} 705 400 705 470`); });
+edge('sonar', 'M1000 196 L1066 196');
+edge('mdb', 'M810 506 L836 506');
+edge('vol', 'M1000 506 L1066 506');
+edge('dbapi', 'M918 470 C918 440 560 260 560 205', true);
+edge('net', 'M560 506 C585 506 585 626 620 626 L1066 626', true);
+edge('nettools', 'M450 470 L450 440 L800 440 L800 412', true);
+
+// ---- timeline (t in 0..1) ----
+const P = []; // packets: [pathId, t0, t1, color, label, reverse]
+const pk = (...a) => P.push(a);
+pk('check', 0.02, 0.10, C.brand, 'scan this ref?');
+pk('upload', 0.12, 0.21, C.brand, 'source.tar.gz');
+pk('apiq', 0.21, 0.26, C.brand, '');
+tools.forEach(([id], i) => pk('in_' + id, 0.26 + i * 0.012, 0.36 + i * 0.012, C.brand, ''));
+pk('sonar', 0.34, 0.42, '#4E9BCD', '');
+tools.forEach(([id], i) => pk('out_' + id, 0.46 + i * 0.01, 0.56 + i * 0.01, C.amber, ''));
+pk('mdb', 0.62, 0.67, C.amber, '');
+pk('vol', 0.66, 0.72, C.amber, '');
+pk('dbapi', 0.68, 0.77, C.amber, '');
+pk('result', 0.76, 0.86, C.ok, '✓ pass  /  ✕ block');
+pk('browser', 0.87, 0.98, C.ok, 'new · fixed');
+pk('net', 0.02, 0.16, '#8b93a7', '', true);
+pk('nettools', 0.16, 0.24, '#8b93a7', '');
+
+// which nodes light up when
+const ACT = {
+  ci: [[0, 0.12], [0.84, 0.92]], api: [[0.08, 0.24], [0.74, 0.9]], queue: [[0.22, 0.38]], scanners: [[0.26, 0.58]],
+  sonar: [[0.38, 0.5]], merge: [[0.55, 0.66]], db: [[0.64, 0.78]], volume: [[0.7, 0.8]], browser: [[0.95, 1]],
+  sched: [[0.0, 0.2]], net: [[0.0, 0.14]],
+};
+tools.forEach(([id], i) => (ACT[id] = [[0.33 + i * 0.012, 0.52 + i * 0.01]]));
+
+const STEPS = [
+  [0.00, '1', 'CI asks ScanHub whether this branch, tag or PR should be scanned'],
+  [0.11, '2', 'CI uploads the source; nothing is installed on the runner'],
+  [0.25, '3', 'Every enabled scanner runs on the same source (plus SonarQube if set)'],
+  [0.45, '4', 'Findings are merged, de-duplicated and compared with the previous scan'],
+  [0.62, '5', 'The scan is stored, so history stays per branch, PR and tag'],
+  [0.77, '6', 'CI gets pass or block; people see new and fixed findings in the browser'],
+];
+const capG = document.getElementById('caption');
+const capBadge = el('circle', { cx: 340, cy: 692, r: 13, fill: C.brand }, capG);
+const capNum = txt(340, 697, '1', { 'font-size': 14, 'font-weight': 700, fill: '#fff', 'text-anchor': 'middle' }, capG);
+const capText = txt(364, 697, '', { 'font-size': 16, fill: C.text }, capG);
+const dots = STEPS.map((_, i) => el('circle', { cx: 1150 + i * 16, cy: 692, r: 4, fill: '#2a3345' }, capG));
+
+const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
+window.setT = (t) => {
+  packG.innerHTML = '';
+  for (const [id, t0, t1, color, label, rev] of P) {
+    if (t < t0 || t > t1) continue;
+    const p = paths[id], L = p.getTotalLength();
+    let f = ease((t - t0) / (t1 - t0)); if (rev) f = 1 - f;
+    for (let k = 4; k >= 1; k--) { // short fading tail
+      const q = p.getPointAtLength(Math.max(0, Math.min(L, (rev ? f + k * 0.025 : f - k * 0.025) * L)));
+      el('circle', { cx: q.x, cy: q.y, r: 5 - k * 0.8, fill: color, opacity: 0.5 - k * 0.1 }, packG);
+    }
+    const pt = p.getPointAtLength(f * L);
+    el('circle', { cx: pt.x, cy: pt.y, r: 6.5, fill: color, filter: 'url(#glow)' }, packG);
+    if (label) {
+      const w = label.length * 7.4 + 20;
+      const g = el('g', {}, packG);
+      el('rect', { x: pt.x - w / 2, y: pt.y - 36, width: w, height: 24, rx: 12, fill: '#0d1015', stroke: color, 'stroke-width': 1.5 }, g);
+      txt(pt.x, pt.y - 19, label, { 'font-size': 12.5, 'font-weight': 600, fill: color, 'text-anchor': 'middle' }, g);
+    }
+  }
+  for (const id in nodes) {
+    const on = (ACT[id] || []).some(([a, b]) => t >= a && t <= b);
+    const n = nodes[id];
+    n.r.setAttribute('stroke', on ? n.color : n.idle || C.line);
+    n.r.setAttribute('filter', on ? 'url(#glow)' : '');
+  }
+  let si = 0; STEPS.forEach(([s], i) => { if (t >= s) si = i; });
+  capNum.textContent = STEPS[si][1]; capText.textContent = STEPS[si][2];
+  dots.forEach((d, i) => d.setAttribute('fill', i === si ? C.brand : '#2a3345'));
+};
+window.setT(0.3);
+</script>
+</body></html>

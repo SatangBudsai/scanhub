@@ -226,7 +226,7 @@ test('report export: filters, no ids, no secrets', async () => {
   const full = await a('GET', `/api/scans/${state.scan2}/report`);
   assert.equal(full.status, 200);
   const rep = full.data;
-  assert.equal(rep.title, 'รายงานผลการสแกนความปลอดภัย · payment-api');
+  assert.equal(rep.title, 'Security scan report · payment-api');
   assert.deepEqual(rep.repo, { name: 'payment-api', projectName: 'Payment Platform', lang: 'Go', branch: 'main' });
   assert.equal(rep.scan.num, 2);
   assert.deepEqual(rep.prev, { num: 1 });
@@ -353,14 +353,14 @@ test('CI gate: block / report, scope new / open, per-call overrides, text summar
   assert.deepEqual(s1.data.gate.matched, { critical: 2, high: 0, medium: 0, low: 0, info: 0 });
   assert.equal(s1.data.gate.failed, true);
   assert.match(s1.data.gate.reason, /Critical 2/);
-  assert.match(s1.data.summaryText, /ไม่ผ่าน/);
+  assert.match(s1.data.summaryText, /FAILED/);
   assert.ok(s1.data.summaryText.includes(s1.data.url));
 
   // same findings again: nothing new -> passes
   const s2 = await ci(tok, '/api/v1/reports', trivy);
   assert.equal(s2.status, 200);
   assert.equal(s2.data.gate.failed, false);
-  assert.match(s2.data.summaryText, /ผ่าน/);
+  assert.match(s2.data.summaryText, /PASSED/);
 
   // scope open: the open criticals block again
   assert.deepEqual((await a('PATCH', `/api/repos/${rid}`, { gate: { scope: 'open' } })).data.gate, { mode: 'block', severities: ['critical'], scope: 'open' });
@@ -372,7 +372,7 @@ test('CI gate: block / report, scope new / open, per-call overrides, text summar
   const s4 = await ci(tok, '/api/v1/reports?gate=report', trivy);
   assert.equal(s4.status, 200);
   assert.deepEqual([s4.data.gate.mode, s4.data.gate.failed, s4.data.gate.matched.critical], ['report', false, 2]);
-  assert.match(s4.data.gate.reason, /รายงานอย่างเดียว/);
+  assert.match(s4.data.gate.reason, /report-only/);
 
   // report mode on the repo: 200
   await a('PATCH', `/api/repos/${rid}`, { gate: { mode: 'report' } });
@@ -395,14 +395,14 @@ test('CI gate: block / report, scope new / open, per-call overrides, text summar
   assert.equal(txt.status, 422);
   assert.match(txt.headers.get('content-type'), /text\/plain/);
   const body = await txt.text();
-  assert.match(body, /^ScanHub · gate-repo · สแกน #\d+\n/);
-  assert.match(body, /ยังเปิดอยู่ \d+ รายการ \(Critical \d+ · High \d+/);
-  assert.match(body, /ผลการตรวจ: ไม่ผ่าน/);
-  assert.match(body, /ดูผล: http:\/\/scanhub\.test\/#repo\//);
+  assert.match(body, /^ScanHub · gate-repo · scan #\d+\n/);
+  assert.match(body, /Open: +\d+ issues \(Critical \d+ · High \d+/);
+  assert.match(body, /Gate: +FAILED/);
+  assert.match(body, /Results: http:\/\/scanhub\.test\/#repo\//);
   // report mode: 200 and still plain text; format=text works too
   const rep = await post('?gate=report&format=text');
   assert.equal(rep.status, 200);
-  assert.match(await rep.text(), /ผลการตรวจ: ผ่าน \(report only/);
+  assert.match(await rep.text(), /Gate: +PASSED \(report only/);
   // JSON when asked for JSON
   const js = await post('', 'application/json');
   assert.equal(typeof (await js.json()).summaryText, 'string');
@@ -423,8 +423,8 @@ test('branches, tags and pull requests: what CI scans and what each scan is comp
   // defaults: the main branch and every pull request, no tags
   assert.equal(await check('kind=branch&branch=main'), 'scan\n');
   assert.equal(await check('kind=pr&branch=feature/a&base=main'), 'scan\n');
-  assert.match(await check('kind=branch&branch=feature/a'), /^skip\n.*ไม่สแกน branch feature\/a/);
-  assert.match(await check('kind=tag&branch=v1.0'), /^skip\n.*ไม่ได้ตั้งให้สแกน tag/);
+  assert.match(await check('kind=branch&branch=feature/a'), /^skip\n.*not scanning branch feature\/a/);
+  assert.match(await check('kind=tag&branch=v1.0'), /^skip\n.*not set to scan tags/);
 
   assert.equal((await a('PATCH', `/api/repos/${rid}`, { scanRefs: { tags: 'bad tag!' } })).status, 400);
   const set = await a('PATCH', `/api/repos/${rid}`, { scanRefs: { branches: 'main, release/*', tags: ['sit_v*', 'uat_v*'] } });

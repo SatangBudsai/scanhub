@@ -29,12 +29,12 @@ export function createRunner(db, tools, lock) {
     const item = toolById(id);
     const release = await lock.shared(id);
     try {
-      if (!(await tools.isEnabled(id))) return { skip: 'ปิดใช้งานอยู่ในหน้าตั้งค่า' };
+      if (!(await tools.isEnabled(id))) return { skip: 'Disabled in settings' };
       const bin = await tools.installedBin(id);
-      if (!bin) return { skip: 'ไม่มี scanner นี้ในเครื่อง' };
+      if (!bin) return { skip: 'Scanner not installed' };
       if (id === 'sonarqube') {
         const { url, token } = await effectiveSonar(db);
-        if (!url || !token) return { skip: 'ยังไม่ได้ตั้งค่า SonarQube URL และ token' };
+        if (!url || !token) return { skip: 'SonarQube URL and token are not set' };
         return { ...(await runSonar({ bin, src, out, repo, url, token })), ctx: { sonarUrl: url } };
       }
       const nvdApiKey = await effectiveNvdKey(db);
@@ -54,10 +54,10 @@ export function createRunner(db, tools, lock) {
       ensureDir(work);
       const scan = await db.get('SELECT * FROM scans WHERE id = ?', scanId);
       const repo = await db.get('SELECT * FROM repos WHERE id = ?', scan.repo_id);
-      if (!repo) throw new Error('repo ถูกลบแล้ว');
+      if (!repo) throw new Error('Repo was deleted');
       const src = await prepare(work, scan, repo);
       const ids = await selectTools(repo, json(scan.tools_req, null), tools);
-      if (!ids.length) throw new Error('ยังไม่มี scanner ที่ติดตั้ง ไปที่หน้าตั้งค่าเพื่อติดตั้ง');
+      if (!ids.length) throw new Error('No scanners installed. Install them in settings');
       const raw = [];
       for (const id of ids) {
         const out = ensureDir(path.join(work, 'out', id));
@@ -76,10 +76,10 @@ export function createRunner(db, tools, lock) {
           raw.push(...found);
           runs.push({ tool: id, status: 'ok', durationMs, count: found.length, note: '' });
         } catch (e) {
-          runs.push({ tool: id, status: 'failed', durationMs, count: 0, note: `อ่านผลไม่ได้: ${e.message}` });
+          runs.push({ tool: id, status: 'failed', durationMs, count: 0, note: `Could not read results: ${e.message}` });
         }
       }
-      if (!runs.some((r) => r.status === 'ok')) throw new Error('ไม่มี scanner ไหนทำงานสำเร็จ');
+      if (!runs.some((r) => r.status === 'ok')) throw new Error('No scanner finished successfully');
       await saveResults(db, scanId, mergeFindings(raw, { src }), runs);
     } catch (e) {
       await failScan(db, scanId, e.message || e, runs).catch((err) => console.error('failScan', err));
@@ -93,7 +93,7 @@ export function createRunner(db, tools, lock) {
     const src = ensureDir(path.join(work, 'src'));
     try {
       const r = await runCmd('tar', ['-xzf', archive, '-C', src], { timeoutMs: 10 * 60 * 1000 });
-      if (r.code !== 0) throw new Error(`แตกไฟล์ที่อัปโหลดไม่สำเร็จ (ต้องเป็น tar.gz): ${tail(r.stderr)}`);
+      if (r.code !== 0) throw new Error(`Could not extract the upload (must be tar.gz): ${tail(r.stderr)}`);
     } finally {
       rmrf(archive);
     }
@@ -111,7 +111,7 @@ export function createRunner(db, tools, lock) {
       if (integ) auth.push('-c', `http.extraHeader=${cloneAuthHeader(integ.type, await decrypt(db, integ.token_enc))}`);
     }
     const r = await runCmd('git', [...auth, 'clone', '--depth', '1', '--branch', branch, '--single-branch', repo.git_url, src], { timeoutMs: 15 * 60 * 1000, env });
-    if (r.code !== 0) throw new Error(`git clone ไม่สำเร็จ: ${tail(r.stderr).replace(/\/\/[^@/\s]+@/g, '//***@')}`);
+    if (r.code !== 0) throw new Error(`git clone failed: ${tail(r.stderr).replace(/\/\/[^@/\s]+@/g, '//***@')}`);
     const sha = await runCmd('git', ['rev-parse', 'HEAD'], { cwd: src });
     if (sha.code === 0) await db.run('UPDATE scans SET commit_sha = ? WHERE id = ?', sha.stdout.trim(), scan.id);
     rmrf(path.join(src, '.git'));
@@ -129,12 +129,12 @@ export function createRunner(db, tools, lock) {
         const data = typeof rep.data === 'string' ? JSON.parse(rep.data) : rep.data;
         const found = PARSERS[rep.tool](data, {});
         raw.push(...found);
-        runs.push({ tool, status: 'ok', durationMs: 0, count: found.length, note: 'จากรายงานที่ CI ส่งมา' });
+        runs.push({ tool, status: 'ok', durationMs: 0, count: found.length, note: 'From a report sent by CI' });
       } catch (e) {
-        runs.push({ tool, status: 'failed', durationMs: 0, count: 0, note: `อ่านรายงานไม่ได้: ${e.message}` });
+        runs.push({ tool, status: 'failed', durationMs: 0, count: 0, note: `Could not read report: ${e.message}` });
       }
     }
-    if (!runs.some((r) => r.status === 'ok')) return failScan(db, scanId, 'อ่านรายงานไม่ได้เลย', runs);
+    if (!runs.some((r) => r.status === 'ok')) return failScan(db, scanId, 'Could not read any report', runs);
     try {
       await saveResults(db, scanId, mergeFindings(raw), runs);
     } catch (e) {

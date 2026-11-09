@@ -10,9 +10,9 @@ export function parseTrivy(data, { src } = {}) {
     for (const v of r.Vulnerabilities || []) {
       out.push(finding({
         tool: 'trivy', category: 'Vulnerability', severity: normSev(v.Severity, 'info'),
-        title: v.Title || `${v.VulnerabilityID} ใน ${v.PkgName}`,
+        title: v.Title || `${v.VulnerabilityID} in ${v.PkgName}`,
         file, pkg: v.PkgName, version: v.InstalledVersion, rule: v.VulnerabilityID,
-        fix: v.FixedVersion ? `อัปเกรด ${v.PkgName} เป็น ${v.FixedVersion.split(',')[0].trim()}` : '',
+        fix: v.FixedVersion ? `Upgrade ${v.PkgName} to ${v.FixedVersion.split(',')[0].trim()}` : '',
         description: v.Description, refs: refsOf(v.PrimaryURL, v.References || []),
       }));
     }
@@ -29,9 +29,9 @@ export function parseTrivy(data, { src } = {}) {
     for (const s of r.Secrets || []) {
       out.push(finding({
         tool: 'trivy', category: 'Secret', severity: normSev(s.Severity, 'high'),
-        title: s.Title || `พบ secret (${s.RuleID})`, file, line: s.StartLine, rule: s.RuleID,
-        fix: 'ลบ secret ออกจากโค้ดและ git history แล้ว rotate ค่านี้ทันที',
-        description: s.Category ? `ประเภท: ${s.Category}` : '',
+        title: s.Title || `Secret found (${s.RuleID})`, file, line: s.StartLine, rule: s.RuleID,
+        fix: 'Remove the secret from the code and git history, then rotate it right away',
+        description: s.Category ? `Category: ${s.Category}` : '',
       }));
     }
   }
@@ -61,7 +61,7 @@ export function parseSemgrep(data, { src } = {}) {
       tool: 'semgrep', category, severity,
       title: (r.extra?.message || shortId).split('\n')[0],
       file: relPath(r.path, src), line: r.start?.line, rule: r.check_id,
-      fix: r.extra?.fix ? `แก้เป็น: ${r.extra.fix}` : '',
+      fix: r.extra?.fix ? `Fix: ${r.extra.fix}` : '',
       description: r.extra?.message, refs: refsOf(md.references || [], md.source),
     });
   });
@@ -71,10 +71,10 @@ export function parseSemgrep(data, { src } = {}) {
 export function parseGitleaks(data, { src } = {}) {
   return (Array.isArray(data) ? data : []).map((g) => finding({
     tool: 'gitleaks', category: 'Secret', severity: 'critical',
-    title: g.Description || `พบ secret (${g.RuleID})`,
+    title: g.Description || `Secret found (${g.RuleID})`,
     file: relPath(g.File, src), line: g.StartLine, rule: g.RuleID,
-    fix: 'ลบ secret ออกจากโค้ดและ git history แล้ว rotate ค่านี้ทันที',
-    description: g.Commit ? `พบใน commit ${String(g.Commit).slice(0, 8)}` : '',
+    fix: 'Remove the secret from the code and git history, then rotate it right away',
+    description: g.Commit ? `Found in commit ${String(g.Commit).slice(0, 8)}` : '',
     secret: g.Secret || undefined,
   }));
 }
@@ -89,9 +89,9 @@ export function parseGrype(data, { src } = {}) {
     const fixV = (v.fix?.versions || [])[0];
     return finding({
       tool: 'grype', category: 'Vulnerability', severity: normSev(v.severity, 'info'),
-      title: `${cve} ใน ${a.name}`,
+      title: `${cve} in ${a.name}`,
       file: relPath(a.locations?.[0]?.path, src), pkg: a.name, version: a.version, rule: cve,
-      fix: fixV ? `อัปเกรด ${a.name} เป็น ${fixV}` : '',
+      fix: fixV ? `Upgrade ${a.name} to ${fixV}` : '',
       description: v.description || related[0]?.description || '',
       refs: refsOf(v.dataSource, v.urls || [], related[0]?.urls || []),
     });
@@ -132,7 +132,7 @@ export function parseDependencyCheck(data, { src } = {}) {
       const severity = normSev(v.cvssv3?.baseSeverity || v.severity, null) || sevFromScore(v.cvssv3?.baseScore ?? v.cvssv2?.score) || 'medium';
       out.push(finding({
         tool: 'dependency-check', category: 'Vulnerability', severity,
-        title: `${v.name} ใน ${p.name}`, file: relPath(d.filePath, src),
+        title: `${v.name} in ${p.name}`, file: relPath(d.filePath, src),
         pkg: p.name, version: p.version, rule: v.name,
         description: v.description, refs: refsOf(v.references || []),
       }));
@@ -162,7 +162,7 @@ export function parseSonar(data, { sonarUrl } = {}) {
     out.push(finding({
       tool: 'sonarqube', category: 'Security hotspot', severity: normSev(h.vulnerabilityProbability, 'medium'),
       title: h.message, file: compFile(h.component), line: h.line ?? h.textRange?.startLine, rule: h.ruleKey || h.securityCategory,
-      description: h.securityCategory ? `หมวด: ${h.securityCategory}` : '',
+      description: h.securityCategory ? `Category: ${h.securityCategory}` : '',
       refs: sonarUrl && h.key ? [`${sonarUrl}/security_hotspots?hotspots=${encodeURIComponent(h.key)}`] : [],
     }));
   }

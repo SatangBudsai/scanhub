@@ -22,7 +22,7 @@ export function ciRoutes({ db, queue, runner }) {
   r.use(ah(async (req, res, next) => {
     const m = /^Bearer\s+(\S+)$/i.exec(req.headers.authorization || '');
     const repo = m ? await db.get('SELECT * FROM repos WHERE token_hash = ?', sha256(m[1])) : null;
-    if (!repo) throw new HttpError(401, 'token ไม่ถูกต้อง หรือถูกสร้างใหม่แล้ว');
+    if (!repo) throw new HttpError(401, 'Invalid token, or it has been regenerated');
     req.repo = repo;
     next();
   }));
@@ -91,8 +91,8 @@ export function ciRoutes({ db, queue, runner }) {
     if (wantsText(req)) {
       return res.type('text/plain; charset=utf-8').send([
         'skip',
-        `ScanHub · ${req.repo.name} · ไม่สแกน ${KIND_L[ref.kind]} ${ref.name}: ${ref.decision.reason}`,
-        `ตั้งค่า branch และ tag ที่สแกนได้ที่ ${settings}`,
+        `ScanHub · ${req.repo.name} · not scanning ${KIND_L[ref.kind]} ${ref.name}: ${ref.decision.reason}`,
+        `Choose which branches and tags to scan at ${settings}`,
       ].join('\n') + '\n');
     }
     res.json({ skipped: true, kind: ref.kind, ref: ref.name, reason: ref.decision.reason, settingsUrl: settings });
@@ -111,14 +111,14 @@ export function ciRoutes({ db, queue, runner }) {
     const ref = refFrom(req);
     if (!ref.decision.scan) { req.resume(); return skip(req, res, ref); }
     const limit = config.maxUploadMb * 1024 * 1024;
-    if (Number(req.headers['content-length'] || 0) > limit) throw new HttpError(413, `ไฟล์ใหญ่เกิน ${config.maxUploadMb} MB`);
+    if (Number(req.headers['content-length'] || 0) > limit) throw new HttpError(413, `File larger than ${config.maxUploadMb} MB`);
     const tools = parseList(req.query.tools, TOOL_IDS);
     const file = path.join(ensureDir(dirs.uploads), `src-${req.repo.id}-${Date.now()}-${Math.random().toString(36).slice(2)}.tgz`);
     let size = 0;
     const counter = new Transform({
       transform(chunk, enc, cb) {
         size += chunk.length;
-        if (size > limit) return cb(new HttpError(413, `ไฟล์ใหญ่เกิน ${config.maxUploadMb} MB`));
+        if (size > limit) return cb(new HttpError(413, `File larger than ${config.maxUploadMb} MB`));
         cb(null, chunk);
       },
     });
@@ -126,9 +126,9 @@ export function ciRoutes({ db, queue, runner }) {
       await pipeline(req, counter, fs.createWriteStream(file));
     } catch (e) {
       rmrf(file);
-      throw e instanceof HttpError ? e : bad(`อัปโหลดไม่สำเร็จ: ${e.message}`);
+      throw e instanceof HttpError ? e : bad(`Upload failed: ${e.message}`);
     }
-    if (size === 0) { rmrf(file); throw bad('ไม่ได้รับไฟล์ ส่ง tar.gz ของ source มาใน body'); }
+    if (size === 0) { rmrf(file); throw bad('No file received. Send a tar.gz of the source in the body'); }
     const scan = await createScan(db, req.repo, {
       trigger: 'ci', branch: ref.name, commit: req.query.commit, tools: tools.length ? tools : null,
       refType: ref.kind, base: ref.base, group: ref.decision.group,
@@ -147,9 +147,9 @@ export function ciRoutes({ db, queue, runner }) {
   r.post('/reports', express.json({ limit: `${config.maxUploadMb}mb` }), ah(async (req, res) => {
     const b = req.body || {};
     const reports = Array.isArray(b.reports) ? b.reports : [];
-    if (!reports.length) throw bad('ต้องส่ง reports อย่างน้อย 1 รายการ');
+    if (!reports.length) throw bad('Send at least 1 report');
     const unknown = reports.find((x) => !PARSERS[x?.tool]);
-    if (unknown) throw bad(`ไม่รู้จักรูปแบบรายงาน: ${unknown?.tool}. ใช้ได้: ${Object.keys(PARSERS).join(', ')}`);
+    if (unknown) throw bad(`Unknown report format: ${unknown?.tool}. Supported: ${Object.keys(PARSERS).join(', ')}`);
     const ref = refFrom(req, b);
     if (!ref.decision.scan) return skip(req, res, ref);
     const scan = await createScan(db, req.repo, {
@@ -162,7 +162,7 @@ export function ciRoutes({ db, queue, runner }) {
   r.get('/scans/:id', ah(async (req, res) => {
     const id = Number(req.params.id);
     const s = Number.isInteger(id) ? await db.get('SELECT * FROM scans WHERE id = ? AND repo_id = ?', id, req.repo.id) : null;
-    if (!s) throw notFound('ไม่พบผลสแกน');
+    if (!s) throw notFound('Scan not found');
     res.json({ ...scanSummary(s), url: await scanUrl(s) });
   }));
 

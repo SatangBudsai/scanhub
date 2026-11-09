@@ -4,7 +4,7 @@ import { ADMIN } from '../lib/env.js';
 
 const row = (page, username) => page.locator('.users-table tbody tr', { hasText: username });
 
-test.describe.serial('ผู้ใช้ กลุ่ม และสิทธิ์', () => {
+test.describe.serial('Users, groups and access', () => {
   let P, Q, repoP;
 
   test.beforeAll(async () => {
@@ -20,170 +20,170 @@ test.describe.serial('ผู้ใช้ กลุ่ม และสิทธ�
     await api.dispose();
   });
 
-  test('admin เพิ่มผู้ใช้ทุก role จากหน้าผู้ใช้ และแถว admin จาก env ถูกล็อก', async ({ page, step, admin }) => {
+  test('Admin adds users of every role; the env admin row is locked', async ({ page, step, admin }) => {
     const names = Object.fromEntries(['ADMIN', 'MAINTAINER', 'ANALYST', 'VIEWER'].map((r) => [r, uid(r.toLowerCase())]));
 
-    await step(page, 'เปิดหน้าผู้ใช้ แถว admin ตั้งค่าจาก env แก้ไม่ได้', async () => {
+    await step(page, 'Open Users: the env admin row cannot be edited', async () => {
       await page.goto('/#login');
       await login(page);
-      await page.getByRole('link', { name: 'ผู้ใช้', exact: true }).click();
-      await expect(page.getByRole('heading', { name: 'ผู้ใช้', exact: true })).toBeVisible();
-      const r = row(page, ADMIN.username).filter({ hasText: 'ตั้งค่าจาก env' });
+      await page.getByRole('link', { name: 'Users', exact: true }).click();
+      await expect(page.getByRole('heading', { name: 'Users', exact: true })).toBeVisible();
+      const r = row(page, ADMIN.username).filter({ hasText: 'Set from env' });
       await expect(r).toHaveCount(1);
       await expect(r.getByRole('combobox')).toBeDisabled();
-      await expect(r.getByText('ทุกโปรเจกต์ (ผู้ดูแลระบบ)')).toBeVisible();
-      await expect(r.getByRole('button', { name: /รีเซ็ตรหัสผ่าน|ปิดใช้งาน/ })).toHaveCount(0);
+      await expect(r.getByText('All projects (admin)')).toBeVisible();
+      await expect(r.getByRole('button', { name: /Reset password|Disable/ })).toHaveCount(0);
     });
-    await step(page, 'รหัสชั่วคราวสั้นเกินไปถูกปฏิเสธ', async () => {
-      await page.getByLabel('ชื่อผู้ใช้').fill(names.ANALYST);
-      await page.getByLabel('รหัสผ่านชั่วคราว').fill('short');
-      await page.getByRole('button', { name: 'เพิ่มผู้ใช้' }).click();
-      await expect(page.locator('#uerr')).toHaveText('รหัสผ่านชั่วคราวต้องมีอย่างน้อย 8 ตัวอักษร');
+    await step(page, 'A too-short temporary password is rejected', async () => {
+      await page.getByLabel('Username').fill(names.ANALYST);
+      await page.getByLabel('Temporary password').fill('short');
+      await page.getByRole('button', { name: 'Add user' }).click();
+      await expect(page.locator('#uerr')).toHaveText('Temporary password must be at least 8 characters');
     });
     for (const role of ['MAINTAINER', 'ANALYST', 'VIEWER']) {
-      await step(page, `เพิ่มผู้ใช้ ${role} แล้วเลือกโปรเจกต์ที่เห็นทันที`, async () => {
-        await page.getByLabel('ชื่อผู้ใช้').fill(names[role]);
-        await page.getByLabel('รหัสผ่านชั่วคราว').fill('temp-pass-123');
+      await step(page, `Add a ${role} and pick their projects right away`, async () => {
+        await page.getByLabel('Username').fill(names[role]);
+        await page.getByLabel('Temporary password').fill('temp-pass-123');
         await page.getByLabel('Role', { exact: true }).selectOption(role);
-        await page.getByRole('button', { name: 'เพิ่มผู้ใช้' }).click();
-        const dlg = page.getByRole('dialog', { name: `เลือกโปรเจกต์ที่ ${names[role]} เห็น` });
+        await page.getByRole('button', { name: 'Add user' }).click();
+        const dlg = page.getByRole('dialog', { name: `Choose projects ${names[role]} can see` });
         await expect(dlg).toBeVisible();
         await dlg.locator(`[data-pc="${P.id}"]`).click();
-        await dlg.getByRole('button', { name: 'บันทึก', exact: true }).click();
+        await dlg.getByRole('button', { name: 'Save', exact: true }).click();
         await expect(dlg).toBeHidden();
         const r = row(page, names[role]);
-        await expect(r).toContainText('รอเปลี่ยนรหัสผ่านชั่วคราว');
+        await expect(r).toContainText('Must change temporary password');
         await expect(r.getByRole('combobox')).toHaveValue(role);
-        await expect(r.locator('.access-btn')).toContainText('1 โปรเจกต์');
+        await expect(r.locator('.access-btn')).toContainText('1 project');
       });
     }
-    await step(page, 'เพิ่มผู้ใช้ ADMIN (เห็นทุกโปรเจกต์โดยไม่ต้องเลือก)', async () => {
-      await page.getByLabel('ชื่อผู้ใช้').fill(names.ADMIN);
-      await page.getByLabel('รหัสผ่านชั่วคราว').fill('temp-pass-123');
+    await step(page, 'Add an ADMIN (sees all projects, nothing to pick)', async () => {
+      await page.getByLabel('Username').fill(names.ADMIN);
+      await page.getByLabel('Temporary password').fill('temp-pass-123');
       await page.getByLabel('Role', { exact: true }).selectOption('ADMIN');
-      await page.getByRole('button', { name: 'เพิ่มผู้ใช้' }).click();
-      await expect(row(page, names.ADMIN)).toContainText('ทุกโปรเจกต์ (ผู้ดูแลระบบ)');
+      await page.getByRole('button', { name: 'Add user' }).click();
+      await expect(row(page, names.ADMIN)).toContainText('All projects (admin)');
       await expect(page.getByRole('dialog')).toHaveCount(0);
     });
-    await step(page, 'เปลี่ยน role ของผู้ดูผลเป็นผู้ตรวจสอบ แล้วกลับ', async () => {
+    await step(page, 'Change the VIEWER to ANALYST and back', async () => {
       const sel = row(page, names.VIEWER).getByRole('combobox');
       await sel.selectOption('ANALYST');
-      await expect(page.locator('#toast')).toContainText(`เปลี่ยน role ของ ${names.VIEWER} เป็นผู้ตรวจสอบแล้ว`);
+      await expect(page.locator('#toast')).toContainText(`Changed role of ${names.VIEWER} to ANALYST`);
       await row(page, names.VIEWER).getByRole('combobox').selectOption('VIEWER');
       await expect(row(page, names.VIEWER).getByRole('combobox')).toHaveValue('VIEWER');
     });
-    await step(page, 'server มีผู้ใช้ครบทุก role', async () => {
+    await step(page, 'The server has a user for every role', async () => {
       const users = await admin.get('/api/users');
       for (const [role, n] of Object.entries(names)) expect(users.find((u) => u.username === n)?.role).toBe(role);
     });
-    await step(page, 'ตาราง "สิทธิ์ของแต่ละ role" เปิดดูได้', async () => {
-      await page.getByText('สิทธิ์ของแต่ละ role').click();
-      await expect(page.locator('details.perm table')).toContainText('จัดการผู้ใช้ กลุ่ม และสิทธิ์โปรเจกต์');
+    await step(page, 'Open the "Permissions by role" table', async () => {
+      await page.getByText('Permissions by role').click();
+      await expect(page.locator('details.perm table')).toContainText('Manage users, groups and project access');
     });
   });
 
-  test('แต่ละ role เห็นปุ่มและเมนูต่างกัน', async ({ page, step, browser, admin }) => {
+  test('Each role sees different buttons and menus', async ({ page, step, browser, admin }) => {
     const dev = await makeUser(admin, { role: 'VIEWER', projectIds: [P.id] });
     const qa = await makeUser(admin, { role: 'ANALYST', projectIds: [P.id] });
     const sa = await makeUser(admin, { role: 'MAINTAINER', projectIds: [P.id] });
 
     const d = await newUserPage(browser, dev);
-    await step(d.page, 'VIEWER: ไม่มีปุ่มสแกน ไม่มีเมนูตั้งค่าและผู้ใช้', async () => {
+    await step(d.page, 'VIEWER: no scan button, no Settings or Users menu', async () => {
       await d.page.goto(`/#repo/${repoP.id}`);
       await expect(d.page.locator('.scanbar')).toBeVisible();
       await expect(d.page.locator('#scanNow')).toHaveCount(0);
-      await expect(d.page.getByRole('button', { name: 'ตัวเลือกเพิ่มเติม' })).toHaveCount(0);
-      await expect(d.page.getByRole('link', { name: 'ตั้งค่า', exact: true })).toHaveCount(0);
-      await expect(d.page.getByRole('link', { name: 'ผู้ใช้', exact: true })).toHaveCount(0);
+      await expect(d.page.getByRole('button', { name: 'More options' })).toHaveCount(0);
+      await expect(d.page.getByRole('link', { name: 'Settings', exact: true })).toHaveCount(0);
+      await expect(d.page.getByRole('link', { name: 'Users', exact: true })).toHaveCount(0);
       await d.page.evaluate(() => { location.hash = '#settings'; });
       await expect(d.page).toHaveURL(/#projects/);
     });
     await d.ctx.close();
 
     const q = await newUserPage(browser, qa);
-    await step(q.page, 'ANALYST: เพิ่ม repo ไม่ได้ แต่สั่งสแกนและแชร์ได้', async () => {
+    await step(q.page, 'ANALYST: cannot add repos, but can scan and share', async () => {
       await expect(q.page.getByRole('heading', { name: P.name, exact: true })).toBeVisible();
       await expect(q.page.locator('#newRepo')).toHaveCount(0);
       await expect(q.page.locator('#newProj')).toHaveCount(0);
       await q.page.goto(`/#repo/${repoP.id}`);
       await expect(q.page.locator('#scanNow')).toBeVisible();
-      await expect(q.page.getByRole('button', { name: 'ตัวเลือกเพิ่มเติม' })).toHaveCount(0);
-      await q.page.getByRole('button', { name: 'รายงาน' }).click();
-      await expect(q.page.getByRole('button', { name: 'ลิงก์แชร์' })).toBeVisible();
+      await expect(q.page.getByRole('button', { name: 'More options' })).toHaveCount(0);
+      await q.page.getByRole('button', { name: 'Report' }).click();
+      await expect(q.page.getByRole('button', { name: 'Share link' })).toBeVisible();
       const res = await q.page.request.post('/api/repos', { data: { projectId: P.id, name: uid('nope'), lang: 'Go', branch: 'main' } });
       expect(res.status()).toBe(403);
     });
     await q.ctx.close();
 
     const s = await newUserPage(browser, sa);
-    await step(s.page, 'MAINTAINER: เห็นหน้าตั้งค่าแบบดูอย่างเดียว ไม่เห็นหน้าผู้ใช้', async () => {
-      await expect(s.page.getByRole('link', { name: 'ตั้งค่า', exact: true })).toBeVisible();
-      await expect(s.page.getByRole('link', { name: 'ผู้ใช้', exact: true })).toHaveCount(0);
-      await s.page.getByRole('link', { name: 'ตั้งค่า', exact: true }).click();
-      await expect(s.page.getByText('ดูได้อย่างเดียว เฉพาะ ADMIN แก้ไขการตั้งค่าได้')).toBeVisible();
-      await expect(s.page.getByRole('switch', { name: 'อัปเดตทุกวัน' })).toBeDisabled();
+    await step(s.page, 'MAINTAINER: Settings is read-only, no Users page', async () => {
+      await expect(s.page.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
+      await expect(s.page.getByRole('link', { name: 'Users', exact: true })).toHaveCount(0);
+      await s.page.getByRole('link', { name: 'Settings', exact: true }).click();
+      await expect(s.page.getByText('Read only. Only ADMIN can change settings')).toBeVisible();
+      await expect(s.page.getByRole('switch', { name: 'Update daily' })).toBeDisabled();
       await expect(s.page.locator('#saveGen')).toHaveCount(0);
       await expect(s.page.locator('[data-ttog]').first()).toBeDisabled();
     });
-    await step(s.page, 'MAINTAINER: เพิ่ม repo ได้', async () => {
-      await s.page.getByRole('link', { name: 'โปรเจกต์', exact: true }).click();
+    await step(s.page, 'MAINTAINER: can add repos', async () => {
+      await s.page.getByRole('link', { name: 'Projects', exact: true }).click();
       await expect(s.page.locator('#newRepo')).toBeEnabled();
     });
     await s.ctx.close();
   });
 
-  test('ให้สิทธิ์ผ่านกลุ่ม รายคน และเห็นทุกโปรเจกต์ แล้วดูว่าใครเห็นโปรเจกต์', async ({ page, step, browser, admin }) => {
+  test('Grant access by group, directly and to all projects, then check who can see a project', async ({ page, step, browser, admin }) => {
     const viaGroup = await makeUser(admin, { role: 'ANALYST', prefix: 'grp' });
     const direct = await makeUser(admin, { role: 'ANALYST', prefix: 'direct' });
     const everyone = await makeUser(admin, { role: 'ANALYST', prefix: 'all' });
-    const gname = uid('ทีม QA');
+    const gname = uid('QA team');
 
-    await step(page, 'ผู้ใช้ใหม่ยังไม่มีสิทธิ์', async () => {
+    await step(page, 'A new user has no access yet', async () => {
       await page.goto('/#login');
       await login(page);
       await page.goto('/#users');
-      await expect(row(page, viaGroup.username).locator('.access-btn')).toContainText('ยังไม่มีสิทธิ์');
+      await expect(row(page, viaGroup.username).locator('.access-btn')).toContainText('No access yet');
     });
-    await step(page, 'สร้างกลุ่มที่มีสมาชิกและโปรเจกต์ P', async () => {
-      await page.getByRole('tab', { name: /กลุ่ม/ }).click();
+    await step(page, 'Create a group with a member and project P', async () => {
+      await page.getByRole('tab', { name: /Groups/ }).click();
       await page.locator('#newGroup, #newGroup2').first().click();
-      const dlg = page.getByRole('dialog', { name: 'สร้างกลุ่ม' });
-      await dlg.getByLabel('ชื่อกลุ่ม').fill(gname);
+      const dlg = page.getByRole('dialog', { name: 'New group' });
+      await dlg.getByLabel('Group name').fill(gname);
       await dlg.locator('.tchip', { hasText: viaGroup.username }).click();
       await dlg.locator(`[data-pc="${P.id}"]`).click();
-      await dlg.getByRole('button', { name: 'สร้างกลุ่ม' }).click();
+      await dlg.getByRole('button', { name: 'New group' }).click();
       const g = page.locator('.grp-row', { hasText: gname });
-      await expect(g).toContainText('1 สมาชิก');
+      await expect(g).toContainText('1 Member');
       await expect(g).toContainText(P.name);
     });
-    await step(page, 'ให้สิทธิ์โปรเจกต์ P กับผู้ใช้โดยตรง', async () => {
-      await page.getByRole('tab', { name: /ผู้ใช้/ }).click();
+    await step(page, 'Grant project P to a user directly', async () => {
+      await page.getByRole('tab', { name: /Users/ }).click();
       await row(page, direct.username).locator('.access-btn').click();
-      const dlg = page.getByRole('dialog', { name: `สิทธิ์โปรเจกต์ของ ${direct.username}` });
+      const dlg = page.getByRole('dialog', { name: `Project access for ${direct.username}` });
       await dlg.locator(`[data-pc="${P.id}"]`).click();
-      await dlg.getByRole('button', { name: 'บันทึก', exact: true }).click();
-      await expect(row(page, direct.username).locator('.access-btn')).toContainText('1 โปรเจกต์');
+      await dlg.getByRole('button', { name: 'Save', exact: true }).click();
+      await expect(row(page, direct.username).locator('.access-btn')).toContainText('1 project');
     });
-    await step(page, 'เปิด "เห็นทุกโปรเจกต์" ให้อีกคน', async () => {
+    await step(page, 'Turn on "See all projects" for another user', async () => {
       await row(page, everyone.username).locator('.access-btn').click();
-      const dlg = page.getByRole('dialog', { name: `สิทธิ์โปรเจกต์ของ ${everyone.username}` });
-      await dlg.getByRole('switch', { name: 'เห็นทุกโปรเจกต์' }).click();
-      await dlg.getByRole('button', { name: 'บันทึก', exact: true }).click();
-      await expect(row(page, everyone.username).locator('.access-btn')).toContainText('ทุกโปรเจกต์');
+      const dlg = page.getByRole('dialog', { name: `Project access for ${everyone.username}` });
+      await dlg.getByRole('switch', { name: 'See all projects' }).click();
+      await dlg.getByRole('button', { name: 'Save', exact: true }).click();
+      await expect(row(page, everyone.username).locator('.access-btn')).toContainText('All projects');
     });
-    await step(page, 'เมนูโปรเจกต์ "ใครเห็นโปรเจกต์นี้" แสดงทั้งสามคนพร้อมที่มา', async () => {
-      await page.getByRole('link', { name: 'โปรเจกต์', exact: true }).click();
-      await page.getByRole('button', { name: `ตัวเลือกของ ${P.name}` }).click();
-      await page.getByRole('button', { name: 'ใครเห็นโปรเจกต์นี้' }).click();
-      const dlg = page.getByRole('dialog', { name: `ใครเห็น ${P.name}` });
-      await expect(dlg.locator('.acc-row', { hasText: viaGroup.username })).toContainText(`กลุ่ม ${gname}`);
-      await expect(dlg.locator('.acc-row', { hasText: direct.username })).toContainText('ให้สิทธิ์โดยตรง');
-      await expect(dlg.locator('.acc-row', { hasText: everyone.username })).toContainText('เห็นทุกโปรเจกต์');
+    await step(page, '"Who can see this project" lists all three and why', async () => {
+      await page.getByRole('link', { name: 'Projects', exact: true }).click();
+      await page.getByRole('button', { name: `Options for ${P.name}` }).click();
+      await page.getByRole('button', { name: 'Who can see this project' }).click();
+      const dlg = page.getByRole('dialog', { name: `Who can see ${P.name}` });
+      await expect(dlg.locator('.acc-row', { hasText: viaGroup.username })).toContainText(`Group ${gname}`);
+      await expect(dlg.locator('.acc-row', { hasText: direct.username })).toContainText('granted directly');
+      await expect(dlg.locator('.acc-row', { hasText: everyone.username })).toContainText('See all projects');
       await expect(dlg).toContainText(gname);
     });
-    for (const [u, label, seesQ] of [[viaGroup, 'ผ่านกลุ่ม', false], [direct, 'โดยตรง', false], [everyone, 'ทุกโปรเจกต์', true]]) {
+    for (const [u, label, seesQ] of [[viaGroup, 'via a group', false], [direct, 'directly', false], [everyone, 'all projects', true]]) {
       const s = await newUserPage(browser, u);
-      await step(s.page, `ผู้ใช้ที่ได้สิทธิ์${label} เห็น P${seesQ ? ' และ Q' : ' เท่านั้น'}`, async () => {
+      await step(s.page, `User granted ${label} sees ${seesQ ? 'P and Q' : 'only P'}`, async () => {
         await expect(s.page.getByRole('heading', { name: P.name, exact: true })).toBeVisible();
         await expect(s.page.getByRole('heading', { name: Q.name, exact: true })).toHaveCount(seesQ ? 1 : 0);
         if (!seesQ) {
@@ -197,55 +197,55 @@ test.describe.serial('ผู้ใช้ กลุ่ม และสิทธ�
     }
   });
 
-  test('ปิดใช้งานผู้ใช้แล้ว session จบทันที และรีเซ็ตรหัสผ่าน', async ({ page, step, browser, admin }) => {
+  test('Disabling a user ends their session at once; reset password', async ({ page, step, browser, admin }) => {
     const victim = await makeUser(admin, { role: 'ANALYST', prefix: 'off', projectIds: [P.id] });
     const forgot = await makeUser(admin, { role: 'ANALYST', prefix: 'reset', projectIds: [P.id] });
     const v = await newUserPage(browser, victim);
 
-    await step(v.page, 'ผู้ใช้กำลังใช้งานอยู่', async () => {
+    await step(v.page, 'The user is signed in and working', async () => {
       await expect(v.page.getByRole('heading', { name: P.name, exact: true })).toBeVisible();
     });
-    await step(page, 'admin ปิดใช้งานผู้ใช้ (ยืนยันก่อน)', async () => {
+    await step(page, 'Admin disables the user (after confirming)', async () => {
       await page.goto('/#login');
       await login(page);
       await page.goto('/#users');
-      await row(page, victim.username).getByRole('button', { name: 'ปิดใช้งาน' }).click();
-      const dlg = page.getByRole('dialog', { name: 'ปิดใช้งานผู้ใช้' });
+      await row(page, victim.username).getByRole('button', { name: 'Disable' }).click();
+      const dlg = page.getByRole('dialog', { name: 'Disable user' });
       await expect(dlg).toContainText(victim.username);
-      await dlg.getByRole('button', { name: 'ปิดใช้งาน' }).click();
-      await expect(row(page, victim.username).locator('.pill')).toHaveText('ปิดใช้งาน');
+      await dlg.getByRole('button', { name: 'Disable' }).click();
+      await expect(row(page, victim.username).locator('.pill')).toHaveText('Disabled');
     });
-    await step(v.page, 'ผู้ใช้ที่ถูกปิดถูกพากลับไปหน้า login ทันทีที่กดอะไร', async () => {
+    await step(v.page, 'The disabled user is sent to sign-in on the next click', async () => {
       await v.page.locator('.repo-row').first().click();
       await expect(v.page).toHaveURL(/#login/);
     });
-    await step(v.page, 'login อีกครั้งไม่ได้', async () => {
-      await v.page.getByLabel('ชื่อผู้ใช้').fill(victim.username);
-      await v.page.getByLabel('รหัสผ่าน', { exact: true }).fill(victim.password);
-      await v.page.getByRole('button', { name: 'เข้าสู่ระบบ' }).click();
-      await expect(v.page.locator('#lerr')).toHaveText('บัญชีนี้ถูกปิดใช้งาน ติดต่อ admin');
+    await step(v.page, 'Signing in again fails', async () => {
+      await v.page.getByLabel('Username').fill(victim.username);
+      await v.page.getByLabel('Password', { exact: true }).fill(victim.password);
+      await v.page.getByRole('button', { name: 'Sign in' }).click();
+      await expect(v.page.locator('#lerr')).toHaveText('This account is disabled. Contact an admin');
     });
     await v.ctx.close();
-    await step(page, 'เปิดใช้งานกลับได้', async () => {
-      await row(page, victim.username).getByRole('button', { name: 'เปิดใช้งาน' }).click();
-      await expect(row(page, victim.username).locator('.pill')).toHaveText('ใช้งาน');
+    await step(page, 'Enable the user again', async () => {
+      await row(page, victim.username).getByRole('button', { name: 'Enable' }).click();
+      await expect(row(page, victim.username).locator('.pill')).toHaveText('Active');
       const a = await apiAs(victim.username, victim.password);
       await a.dispose();
     });
 
     const f = await newUserPage(browser, forgot);
-    await step(page, 'admin รีเซ็ตรหัสผ่านให้อีกคน', async () => {
-      await row(page, forgot.username).getByRole('button', { name: 'รีเซ็ตรหัสผ่าน' }).click();
-      const dlg = page.getByRole('dialog', { name: 'รีเซ็ตรหัสผ่าน' });
-      await dlg.getByLabel('รหัสผ่านชั่วคราว').fill('fresh-temp-789');
-      await dlg.getByRole('button', { name: 'รีเซ็ตรหัสผ่าน' }).click();
-      await expect(row(page, forgot.username)).toContainText('รอเปลี่ยนรหัสผ่านชั่วคราว');
+    await step(page, "Admin resets another user's password", async () => {
+      await row(page, forgot.username).getByRole('button', { name: 'Reset password' }).click();
+      const dlg = page.getByRole('dialog', { name: 'Reset password' });
+      await dlg.getByLabel('Temporary password').fill('fresh-temp-789');
+      await dlg.getByRole('button', { name: 'Reset password' }).click();
+      await expect(row(page, forgot.username)).toContainText('Must change temporary password');
     });
-    await step(f.page, 'session เดิมของผู้ใช้จบ และต้องใช้รหัสชั่วคราวใหม่', async () => {
+    await step(f.page, 'The old session ends; the new temporary password is required', async () => {
       await f.page.reload();
       await expect(f.page).toHaveURL(/#login/);
       await login(f.page, forgot.username, 'fresh-temp-789', { expectHash: /#password/ });
-      await expect(f.page.getByRole('heading', { name: 'ตั้งรหัสผ่านใหม่' })).toBeVisible();
+      await expect(f.page.getByRole('heading', { name: 'Set a new password' })).toBeVisible();
     });
     await f.ctx.close();
   });

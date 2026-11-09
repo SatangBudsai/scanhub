@@ -5,19 +5,19 @@ export const DEFAULT_GATE = { mode: 'block', severities: ['critical', 'high'], s
 
 /** Validate a (partial) gate on top of the current one. Throws Error with a Thai message. */
 export function validGate(g, current = DEFAULT_GATE) {
-  if (g == null || typeof g !== 'object' || Array.isArray(g)) throw new Error('gate ไม่ถูกต้อง');
+  if (g == null || typeof g !== 'object' || Array.isArray(g)) throw new Error('Invalid gate');
   const out = { ...DEFAULT_GATE, ...current };
   if (g.mode !== undefined) {
-    if (!['block', 'report'].includes(g.mode)) throw new Error('gate.mode ต้องเป็น block หรือ report');
+    if (!['block', 'report'].includes(g.mode)) throw new Error('gate.mode must be block or report');
     out.mode = g.mode;
   }
   if (g.scope !== undefined) {
-    if (!['new', 'open'].includes(g.scope)) throw new Error('gate.scope ต้องเป็น new หรือ open');
+    if (!['new', 'open'].includes(g.scope)) throw new Error('gate.scope must be new or open');
     out.scope = g.scope;
   }
   if (g.severities !== undefined) {
     if (!Array.isArray(g.severities) || !g.severities.length || g.severities.some((s) => !SEV.includes(s))) {
-      throw new Error('gate.severities ต้องเป็นรายการระดับความรุนแรงอย่างน้อย 1 ระดับ');
+      throw new Error('gate.severities must list at least 1 severity');
     }
     out.severities = SEV.filter((s) => g.severities.includes(s));
   }
@@ -38,28 +38,28 @@ export function evaluateGate(gate, findings) {
     matched[f.severity]++;
   }
   const hits = SEV.filter((s) => matched[s] > 0);
-  const what = gate.scope === 'new' ? 'ปัญหาใหม่' : 'ปัญหาที่ยังเปิดอยู่';
+  const what = gate.scope === 'new' ? 'new issues' : 'open issues';
   const found = hits.map((s) => `${SEV_LABEL[s]} ${matched[s]}`).join(', ');
   let reason = '';
-  if (hits.length) reason = gate.mode === 'block' ? `พบ${what} ${found}` : `พบ${what} ${found} (โหมดรายงานอย่างเดียว ไม่ทำให้ pipeline ล้ม)`;
+  if (hits.length) reason = gate.mode === 'block' ? `Found ${what}: ${found}` : `Found ${what}: ${found} (report-only mode, the pipeline does not fail)`;
   return { ...gate, failed: gate.mode === 'block' && hits.length > 0, matched, reason };
 }
 
 /** Short plain-text summary for the CI log */
 export function summaryText({ repoName, scan, counts, newCount, fixedCount, gate, url }) {
-  const head = `ScanHub · ${repoName} · สแกน #${scan.num}`;
-  if (scan.status === 'failed') return `${head}\nสแกนไม่สำเร็จ: ${scan.error || 'ไม่ทราบสาเหตุ'}\nดูรายละเอียด: ${url}\n`;
-  if (scan.status !== 'done') return `${head}\nยังสแกนไม่เสร็จ (สถานะ ${scan.status}) ดูผลภายหลังที่: ${url}\n`;
+  const head = `ScanHub · ${repoName} · scan #${scan.num}`;
+  if (scan.status === 'failed') return `${head}\nScan failed: ${scan.error || 'unknown reason'}\nDetails: ${url}\n`;
+  if (scan.status !== 'done') return `${head}\nScan not finished yet (status ${scan.status}). See results later at: ${url}\n`;
   const open = counts.reduce((a, b) => a + b, 0);
   const lines = [
     head,
-    `ยังเปิดอยู่ ${open} รายการ (${SEV.map((s, i) => `${SEV_LABEL[s]} ${counts[i]}`).join(' · ')})`,
-    `ใหม่ ${newCount} · แก้แล้ว ${fixedCount} เทียบกับสแกนก่อนหน้า`,
+    `Open:    ${open} issues (${SEV.map((s, i) => `${SEV_LABEL[s]} ${counts[i]}`).join(' · ')})`,
+    `Changes: ${newCount} new · ${fixedCount} fixed since the previous scan`,
   ];
-  const rule = `${gate.mode === 'block' ? 'block' : 'report only'} · ${gate.scope === 'new' ? 'เฉพาะปัญหาใหม่' : 'ทุกปัญหาที่เปิดอยู่'} · ${gate.severities.join(', ')}`;
-  if (gate.failed) lines.push(`ผลการตรวจ: ไม่ผ่าน (${rule}) ${gate.reason}`);
-  else if (gate.reason) lines.push(`ผลการตรวจ: ผ่าน (${rule}) ${gate.reason}`);
-  else lines.push(`ผลการตรวจ: ผ่าน (${rule})`);
-  lines.push(`ดูผล: ${url}`);
+  const rule = `${gate.mode === 'block' ? 'block' : 'report only'} · ${gate.scope === 'new' ? 'new issues only' : 'all open issues'} · ${gate.severities.join(', ')}`;
+  if (gate.failed) lines.push(`Gate:    FAILED (${rule}) ${gate.reason}`);
+  else if (gate.reason) lines.push(`Gate:    PASSED (${rule}) ${gate.reason}`);
+  else lines.push(`Gate:    PASSED (${rule})`);
+  lines.push(`Results: ${url}`);
   return lines.join('\n') + '\n';
 }
