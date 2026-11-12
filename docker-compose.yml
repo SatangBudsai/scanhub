@@ -1,5 +1,10 @@
 # ScanHub: this is the only file you need. Edit the 3 required values, then run:  docker compose up -d
-# Everything runs in one container: the web app, PostgreSQL and every scanner.
+# ScanHub runs in one container (web app, PostgreSQL, every scanner). SonarQube Community Edition runs
+# next to it in two more containers (sonarqube + sonarqube-db) and is connected automatically.
+# SonarQube needs on the host (Linux, once):  sudo sysctl -w vm.max_map_count=262144
+#   (keep it after reboot: echo vm.max_map_count=262144 | sudo tee /etc/sysctl.d/99-sonarqube.conf)
+# Don't want SonarQube? Delete the sonarqube and sonarqube-db services, their 3 volumes at the bottom
+# and the SONAR_URL line below. ScanHub then runs alone (about 1-2 GB less RAM).
 # Update to the newest version:  docker compose pull  then  docker compose up -d
 #
 # Lines that start with # are optional. Remove the # to use them.
@@ -27,7 +32,12 @@ services:
       # Use an existing PostgreSQL instead of the one inside the container
       # DATABASE_URL: postgres://scanhub:password@db.example.com:5432/scanhub
 
-      # Your SonarQube server (both needed). Set here = read-only in the settings page
+      # SonarQube. With only SONAR_URL, ScanHub sets up the bundled server itself: it replaces the default
+      # admin/admin password with a random one (kept encrypted in ScanHub's database) and creates a token.
+      SONAR_URL: ${SONAR_URL:-http://sonarqube:9000}
+      # Admin password to set on the bundled SonarQube instead of a random one (12+ chars, upper, lower, digit, symbol)
+      # SONAR_ADMIN_PASSWORD: ${SONAR_ADMIN_PASSWORD}
+      # Use your own SonarQube server instead: set both lines (and remove the sonarqube services)
       # SONAR_URL: https://sonarqube.example.com
       # SONAR_TOKEN: squ_xxxxxxxxxxxxxxxx
 
@@ -55,5 +65,48 @@ services:
       # Max source upload from CI, in MB
       # MAX_UPLOAD_MB: "500"
 
+  # SonarQube Community Edition (LGPL-3.0). Reached by ScanHub at http://sonarqube:9000, not published.
+  sonarqube:
+    image: sonarqube:community
+    depends_on:
+      - sonarqube-db
+    # ports:
+    #   - "9000:9000"          # remove the # to open the SonarQube web UI (log in as admin, see README)
+    volumes:
+      - sonarqube-data:/opt/sonarqube/data
+      - sonarqube-extensions:/opt/sonarqube/extensions
+      - sonarqube-logs:/opt/sonarqube/logs
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonarqube-db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar     # only reachable inside this compose network
+      # Keep SonarQube around 2 GB: web, compute engine and Elasticsearch heaps
+      SONAR_WEB_JAVAOPTS: "-Xmx512m -Xms128m"
+      SONAR_CE_JAVAOPTS: "-Xmx512m -Xms128m"
+      SONAR_SEARCH_JAVAOPTS: "-Xmx512m -Xms512m -XX:MaxDirectMemorySize=256m"
+      # Only if you cannot set vm.max_map_count on the host (not recommended):
+      # SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    mem_limit: 2g
+    ulimits:
+      nofile: { soft: 131072, hard: 131072 }
+    restart: unless-stopped
+    stop_grace_period: 60s
+
+  # Database for SonarQube only (SonarQube's built-in H2 is for evaluation and cannot be upgraded)
+  sonarqube-db:
+    image: postgres:16-alpine
+    volumes:
+      - sonarqube-db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+      POSTGRES_DB: sonar
+    mem_limit: 256m
+    restart: unless-stopped
+
 volumes:
   scanhub-data:
+  sonarqube-data:
+  sonarqube-extensions:
+  sonarqube-logs:
+  sonarqube-db:

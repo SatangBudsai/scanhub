@@ -22,8 +22,8 @@ export const linuxArch = () => (process.arch === 'arm64' ? 'arm64' : 'x64');
 export const CATALOG = [
   {
     id: 'sonarqube', name: 'SonarQube', needsConfig: true,
-    license: { component: 'SonarQube Scanner CLI', spdx: 'LGPL-3.0', url: 'https://github.com/SonarSource/sonar-scanner-cli', licenseUrl: spdxUrl('LGPL-3.0'), note: 'The SonarQube server is your own and is not bundled' },
-    desc: 'Code quality and SAST: bugs, code smells, security hotspots (uses your existing SonarQube server)',
+    license: { component: 'SonarQube Scanner CLI', spdx: 'LGPL-3.0', url: 'https://github.com/SonarSource/sonar-scanner-cli', licenseUrl: spdxUrl('LGPL-3.0'), note: 'The default docker-compose.yml also runs the official SonarQube Community Edition image (LGPL-3.0) in its own container; you can use your own server instead' },
+    desc: 'Code quality and SAST: bugs, code smells, security hotspots (bundled SonarQube Community Edition or your own server)',
     source: 'sonar', binName: 'sonar-scanner', versionArgs: ['--version'],
   },
   {

@@ -31,6 +31,17 @@ You only need Docker. Everything comes from a single `docker-compose.yml`; no cl
 | macOS | [Docker Desktop](https://docs.docker.com/desktop/setup/install/mac-install/) | Intel and Apple Silicon (M1 and later) |
 | Linux server | Docker Engine + Compose plugin | x86_64 and arm64 |
 
+**Requirements.** About 4 GB of free RAM for the default install (ScanHub with its scanners ~1.5–2 GB, SonarQube capped at 2 GB, its PostgreSQL 256 MB) and 10 GB+ of disk. An 8 GB host that runs other apps is enough. Without SonarQube (see below) ScanHub alone needs about 2 GB.
+
+**SonarQube needs one host setting** (its Elasticsearch refuses to start without it). On Linux run once:
+
+```sh
+sudo sysctl -w vm.max_map_count=262144
+echo vm.max_map_count=262144 | sudo tee /etc/sysctl.d/99-sonarqube.conf   # keep it after reboot
+```
+
+Docker Desktop (Windows / macOS) usually already has a high enough value; if the `sonarqube` container keeps restarting with `max virtual memory areas vm.max_map_count [65530] is too low`, run `wsl -d docker-desktop sysctl -w vm.max_map_count=262144` on Windows.
+
 The image is published for amd64 and arm64; Docker picks the right one. You can use ScanHub from an iPhone / iPad / Android browser, but it must be installed on one of the systems above.
 
 1. Download `docker-compose.yml` into an empty folder.
@@ -63,6 +74,15 @@ The image is published for amd64 and arm64; Docker picks the right one. You can 
 ![First-time setup: choose scanners and the automatic update time](docs/media/setup.gif)
 
 ScanHub refuses to start while the admin password is still the example value. All data is stored in the `scanhub-data` volume.
+
+### SonarQube (included)
+
+The file also starts [SonarQube Community Edition](https://www.sonarsource.com/open-source-editions/sonarqube-community-edition/) (`sonarqube:community`) with its own PostgreSQL (`sonarqube-db`). It is only reachable from ScanHub (`http://sonarqube:9000`), no port is published. You don't need to configure anything: on start ScanHub waits for SonarQube (the first start takes 1–3 minutes), replaces the default `admin`/`admin` password with a random one, creates an access token and saves both encrypted in its own database. Scans that run before SonarQube is ready skip SonarQube with a note. This is repeated safely on every start and never touches a `SONAR_TOKEN` you set yourself.
+
+- **Open the SonarQube UI:** remove the `#` in front of `ports:` and `- "9000:9000"` under `sonarqube`. To log in as `admin`, set `SONAR_ADMIN_PASSWORD` (12+ characters with upper and lower case, a digit and a symbol) before the first start, or set it later and restart ScanHub: it changes the password to that value as long as it still knows the current one.
+- **Use your own SonarQube server instead:** set `SONAR_URL` and `SONAR_TOKEN` and remove the two SonarQube services.
+- **Don't want SonarQube:** delete the `sonarqube` and `sonarqube-db` services, the volumes `sonarqube-data`, `sonarqube-extensions`, `sonarqube-logs`, `sonarqube-db` at the bottom, and the `SONAR_URL` line; then `docker compose up -d --remove-orphans`. The SonarQube scanner then shows as not configured and is skipped.
+- If the admin password was changed outside ScanHub, auto-setup stops with a message in the logs (`docker compose logs scanhub | grep sonarqube`): set `SONAR_ADMIN_PASSWORD` to the current password, or `SONAR_TOKEN`.
 
 ### Update
 
@@ -99,7 +119,9 @@ Everything lives in `docker-compose.yml`. Remove the `#` at the start of a line 
 | Setting | Purpose |
 | --- | --- |
 | `DATABASE_URL` | Use an existing PostgreSQL. When set, the bundled PostgreSQL is not started |
-| `SONAR_URL`, `SONAR_TOKEN` | An existing SonarQube server. ScanHub sends code for analysis and pulls the results back |
+| `SONAR_URL` | SonarQube server. Default `http://sonarqube:9000` (the bundled one, set up automatically when `SONAR_TOKEN` is empty) |
+| `SONAR_TOKEN` | Token for your own SonarQube server; turns auto-setup off |
+| `SONAR_ADMIN_PASSWORD` | Admin password ScanHub sets on the bundled SonarQube (default: random, stored encrypted). `SONAR_AUTO=0` turns auto-setup off |
 | `SEMGREP_RULES`, `SEMGREP_RULES_LICENSE_ACCEPTED` | Rules for Semgrep (`--config`: a registry id such as `p/default`, a URL or a path). Registry rules need `SEMGREP_RULES_LICENSE_ACCEPTED=true`, which accepts the [Semgrep Rules License](https://semgrep.dev/legal/rules-license) |
 | `NVD_API_KEY` | Speeds up OWASP Dependency-Check's first database download (free at nvd.nist.gov) |
 | `GITHUB_TOKEN`, `GITHUB_API_URL` | Connect GitHub / GitHub Enterprise for automatic CI setup |
@@ -265,7 +287,7 @@ Every page adapts to the screen size: the top menu collapses into one button and
 
 ## Licenses
 
-ScanHub has no license chosen yet. Every bundled scanner and runtime component keeps its own license: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (also in the image at `/app/THIRD_PARTY_NOTICES.md`) or Settings → About and licenses in the app. Semgrep Registry rules are under the [Semgrep Rules License](https://semgrep.dev/legal/rules-license) and are used only after you accept it. Product names and logos belong to their owners; ScanHub is not affiliated with or endorsed by them.
+ScanHub has no license chosen yet. Every bundled scanner and runtime component keeps its own license: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (also in the image at `/app/THIRD_PARTY_NOTICES.md`) or Settings → About and licenses in the app. The default `docker-compose.yml` also pulls the official, unmodified `sonarqube:community` image (SonarQube Community Edition, [LGPL-3.0](https://spdx.org/licenses/LGPL-3.0.html), by SonarSource) and `postgres:16-alpine` ([PostgreSQL License](https://www.postgresql.org/about/licence/)) as separate containers; they are not part of the ScanHub image. Semgrep Registry rules are under the [Semgrep Rules License](https://semgrep.dev/legal/rules-license) and are used only after you accept it. Product names and logos belong to their owners; ScanHub is not affiliated with or endorsed by them.
 
 ---
 

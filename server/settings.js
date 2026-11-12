@@ -1,4 +1,5 @@
 import { config } from './config.js';
+import { SONAR_STARTING_NOTE, sonarAutoStatus, sonarAutoToken } from './sonar-auto.js';
 
 export const DEFAULT_SCHEDULE = { enabled: true, time: '03:00', updateDb: true };
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -10,6 +11,11 @@ export async function getServerUrl(db) {
 /** SonarQube server in use: env wins when both SONAR_URL and SONAR_TOKEN are set */
 export async function effectiveSonar(db) {
   if (config.sonarFromEnv) return { url: config.sonarUrl, token: config.sonarToken, fromEnv: true };
+  if (config.sonarAuto) {
+    const token = await sonarAutoToken(db);
+    const st = sonarAutoStatus();
+    return { url: config.sonarUrl, token, fromEnv: true, auto: true, note: token ? null : st.state === 'error' ? st.message : SONAR_STARTING_NOTE };
+  }
   const url = String((await db.getSetting('sonarUrl', '')) || '').replace(/\/+$/, '');
   const token = (await db.getSetting('sonarToken', '')) || '';
   return { url, token, fromEnv: false };
@@ -100,6 +106,8 @@ export async function readSettings(db) {
   const get = (k, d) => (rows[k] === undefined || rows[k] === null ? d : rows[k]);
   const sonar = config.sonarFromEnv
     ? { url: config.sonarUrl, tokenSet: true, fromEnv: true }
+    : config.sonarAuto
+    ? { url: config.sonarUrl, tokenSet: !!(rows.sonarAuto && rows.sonarAuto.token), fromEnv: true, auto: true, status: sonarAutoStatus() }
     : { url: get('sonarUrl', '') || '', tokenSet: !!get('sonarToken', ''), fromEnv: false };
   return {
     serverUrl: String(get('serverUrl', '') || config.serverUrl).replace(/\/+$/, ''),

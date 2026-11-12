@@ -92,7 +92,7 @@ test.describe.serial('Users, groups and access', () => {
       await d.page.goto(`/#repo/${repoP.id}`);
       await expect(d.page.locator('.scanbar')).toBeVisible();
       await expect(d.page.locator('#scanNow')).toHaveCount(0);
-      await expect(d.page.getByRole('button', { name: 'More options' })).toHaveCount(0);
+      await expect(d.page.getByRole('button', { name: 'Repo settings' })).toHaveCount(0);
       await expect(d.page.getByRole('link', { name: 'Settings', exact: true })).toHaveCount(0);
       await expect(d.page.getByRole('link', { name: 'Users', exact: true })).toHaveCount(0);
       await d.page.evaluate(() => { location.hash = '#settings'; });
@@ -107,7 +107,7 @@ test.describe.serial('Users, groups and access', () => {
       await expect(q.page.locator('#newProj')).toHaveCount(0);
       await q.page.goto(`/#repo/${repoP.id}`);
       await expect(q.page.locator('#scanNow')).toBeVisible();
-      await expect(q.page.getByRole('button', { name: 'More options' })).toHaveCount(0);
+      await expect(q.page.getByRole('button', { name: 'Repo settings' })).toHaveCount(0);
       await q.page.getByRole('button', { name: 'Report' }).click();
       await expect(q.page.getByRole('button', { name: 'Share link' })).toBeVisible();
       const res = await q.page.request.post('/api/repos', { data: { projectId: P.id, name: uid('nope'), lang: 'Go', branch: 'main' } });

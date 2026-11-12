@@ -28,7 +28,9 @@ The Semgrep engine is LGPL-2.1, but the rules in the Semgrep Registry (for examp
 
 ScanHub does not ship these rules and does not accept this license for you. Semgrep runs only after the person who installs ScanHub either accepts the license and picks the registry rules (Settings, first-time setup, or `SEMGREP_RULES=p/default` with `SEMGREP_RULES_LICENSE_ACCEPTED=true`), or sets custom rules. Until then Semgrep is skipped in scans.
 
-The SonarQube server itself is not bundled; ScanHub connects to a server you run.
+### SonarQube server
+
+The SonarQube server is not inside the ScanHub image. The default `docker-compose.yml` runs the official, unmodified `sonarqube:community` image (SonarQube Community Edition, LGPL-3.0, https://github.com/SonarSource/sonarqube) and `postgres:16-alpine` (PostgreSQL License, https://www.postgresql.org/about/licence/) as separate containers pulled from Docker Hub. Each keeps its own license and notices inside its image. You can remove them and connect ScanHub to a SonarQube server you run.
 
 ## Runtime components
 

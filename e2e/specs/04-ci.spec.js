@@ -81,6 +81,48 @@ test.describe('CI sends code to scan', () => {
     });
   });
 
+  test('Scanners are chosen in ScanHub; a pipeline can override them with SCANHUB_TOOLS', async ({ page, step, admin }) => {
+    const { repo, token } = await projectWithRepo(admin);
+    await admin.patch(`/api/repos/${repo.id}`, { tools: ['gitleaks', 'trivy'] });
+
+    await step(page, 'Every CI snippet forwards SCANHUB_TOOLS only when set and bakes in no scanners', async () => {
+      await page.goto('/#login');
+      await login(page);
+      await page.goto(`/#connect/${repo.id}`);
+      for (const ci of ['github', 'gitlab', 'jenkins', 'azure', 'bitbucket', 'cli']) {
+        await page.locator(`[data-ci="${ci}"]`).click();
+        const snip = page.locator('#snip');
+        await expect(snip).toContainText('Scanners are chosen in ScanHub. To override here, set SCANHUB_TOOLS=trivy,gitleaks');
+        await expect(snip).toContainText('wait=1${SCANHUB_TOOLS:+&tools=$SCANHUB_TOOLS}');
+        await expect(snip).not.toContainText('tools=gitleaks');
+      }
+    });
+
+    await step(page, 'Clicking a scanner chip saves it to the repo right away', async () => {
+      const chip = page.locator('#ciTools [data-ct="trivy"]');
+      await expect(chip).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('#ciTools [data-ct="semgrep"]')).toHaveAttribute('aria-pressed', 'false');
+      await chip.click();
+      await expect(page.locator('#toast')).toContainText('Saved · scanning with Gitleaks');
+      await expect(page.locator('#ciTools [data-ct="trivy"]')).toHaveAttribute('aria-pressed', 'false');
+      expect((await admin.get(`/api/repos/${repo.id}`)).tools).toEqual(['gitleaks']);
+      await expect(page.getByText('without editing the pipeline').first()).toBeVisible();
+    });
+
+    await step(page, 'A pipeline without tools uses the repo choice; an explicit tools param wins', async () => {
+      const a = await uploadSource(token, tgz(SAMPLE_APP), { query: 'branch=main&commit=4444444dddd&wait=1' });
+      expect([200, 422]).toContain(a.status);
+      let scans = await admin.get(`/api/repos/${repo.id}/scans`);
+      let d = await admin.get(`/api/scans/${scans[0].id}`);
+      expect(d.runs.map((r) => r.tool)).toEqual(['gitleaks']);
+      const b = await uploadSource(token, tgz(SAMPLE_APP), { query: 'branch=main&commit=5555555eeee&wait=1&tools=trivy' });
+      expect([200, 422]).toContain(b.status);
+      scans = await admin.get(`/api/repos/${repo.id}/scans`);
+      d = await admin.get(`/api/scans/${scans[0].id}`);
+      expect(d.runs.map((r) => r.tool)).toEqual(['trivy']);
+    });
+  });
+
   test('Upload results from scanners already in CI (/api/v1/reports)', async ({ page, step, admin }) => {
     const { repo, token } = await projectWithRepo(admin);
 

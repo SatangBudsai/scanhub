@@ -136,8 +136,9 @@ export function integrationRoutes({ db }) {
     try { gate = validGate(b.gate || {}, json(repo.gate, {})); } catch (e) { throw bad(e.message); }
     const { row: integ, api } = await integrationClient(db, b.integrationId);
 
-    // The pipeline reads its gate from the repo, so save it first
+    // The pipeline reads its gate and scanners from the repo, so save them first
     await db.run('UPDATE repos SET gate = ?::jsonb WHERE id = ?', JSON.stringify(gate), repo.id);
+    if (tools) await db.run('UPDATE repos SET tools = ?::jsonb WHERE id = ?', JSON.stringify(tools.length ? tools : null), repo.id);
 
     const steps = [];
     let failed = false;
@@ -162,7 +163,7 @@ export function integrationRoutes({ db }) {
         return 'Generated a new repo token (the old token no longer works)';
       });
       result = await api.autoSetup({
-        fullName: remoteRepo, branch: b.branch ? String(b.branch) : null, mode, tools,
+        fullName: remoteRepo, branch: b.branch ? String(b.branch) : null, mode,
         scanhubToken, scanhubUrl: await getServerUrl(db),
       }, step);
       await step('link', async () => {

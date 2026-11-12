@@ -38,7 +38,7 @@ test('github: test, repo search', async () => {
   assert.deepEqual((await gh.test()).missing, ['workflow']);
   fake.state.ghScopes = 'repo, workflow';
   const repos = await gh.repos('pay');
-  assert.deepEqual(repos, [{ fullName: 'acme/payment-api', defaultBranch: 'main', cloneUrl: 'https://github.test/acme/payment-api.git', webUrl: 'https://github.test/acme/payment-api', private: true }]);
+  assert.deepEqual(repos, [{ fullName: 'acme/payment-api', defaultBranch: 'main', cloneUrl: 'https://github.test/acme/payment-api.git', webUrl: 'https://github.test/acme/payment-api', private: true, language: 'Go' }]);
   assert.equal(fake.state.calls.at(-1).auth, 'Bearer ghp_test');
 });
 
@@ -59,7 +59,11 @@ test('github: PR flow sets the secret, variable, workflow on scanhub/setup and o
   const wf = fake.state.gh.files[SETUP_BRANCH]['.github/workflows/scanhub.yml'].content;
   assert.match(wf, /\$\{\{ vars\.SCANHUB_URL \}\}/);
   assert.match(wf, /\$\{\{ secrets\.SCANHUB_TOKEN \}\}/);
-  assert.match(wf, /wait=1&tools=trivy,gitleaks/);
+  // scanners come from the repo settings in ScanHub; the pipeline only forwards SCANHUB_TOOLS when set
+  assert.ok(!wf.includes('tools=trivy'), 'the selected scanners are not baked into the pipeline');
+  assert.ok(wf.includes('wait=1${SCANHUB_TOOLS:+&tools=$SCANHUB_TOOLS}"'), 'forwards the SCANHUB_TOOLS override when set');
+  assert.ok(wf.includes('Scanners are chosen in ScanHub. To override here, set SCANHUB_TOOLS=trivy,gitleaks'));
+  assert.match(wf, /SCANHUB_TOOLS: \$\{\{ vars\.SCANHUB_TOOLS \}\}/);
   assert.ok(wf.includes('-H "Accept: text/plain"'));
   assert.ok(!wf.includes('fail_on'), 'block / report comes from the repo gate');
   assert.match(wf, /rc=\$\?\n\s+cat scanhub-result\.txt[^\n]*\n\s+exit \$rc/, 'prints the summary and keeps the exit code');
@@ -83,7 +87,7 @@ test('github: PR flow sets the secret, variable, workflow on scanhub/setup and o
   assert.ok(calls.find((c) => c.method === 'PUT' && c.path.includes('/contents/')).body.sha);
   assert.ok(!calls.some((c) => c.method === 'POST' && c.path.endsWith('/pulls')), 'no second PR');
   assert.equal(out2.prUrl, 'https://github.test/acme/payment-api/pull/7');
-  assert.ok(!fake.state.gh.files[SETUP_BRANCH]['.github/workflows/scanhub.yml'].content.includes('tools='));
+  assert.ok(!fake.state.gh.files[SETUP_BRANCH]['.github/workflows/scanhub.yml'].content.includes('tools=trivy'));
 });
 
 test('github: commit mode writes to the default branch without a PR', async () => {
@@ -119,7 +123,7 @@ test('gitlab: test, search, masked variables, job file, include merged once, MR'
   assert.deepEqual([fake.state.gl.variables.SCANHUB_TOKEN.masked, fake.state.gl.variables.SCANHUB_TOKEN.value], [true, 'shr_glToken_123']);
   assert.equal(fake.state.gl.variables.SCANHUB_URL.masked, false);
   const files = fake.state.gl.files[SETUP_BRANCH];
-  assert.match(files['.gitlab/scanhub.yml'], /\$SCANHUB_URL\/api\/v1\/scan\?\$Q&commit=\$CI_COMMIT_SHA&wait=1"/);
+  assert.match(files['.gitlab/scanhub.yml'], /\$SCANHUB_URL\/api\/v1\/scan\?\$Q&commit=\$CI_COMMIT_SHA&wait=1\$\{SCANHUB_TOOLS:\+&tools=\$SCANHUB_TOOLS\}"/);
   assert.match(files['.gitlab/scanhub.yml'], /elif \[ -n "\$CI_COMMIT_TAG" \]; then KIND=tag/, 'tags are sent as tags');
   assert.ok(files['.gitlab/scanhub.yml'].includes('-H "Accept: text/plain"'));
   assert.match(files['.gitlab/scanhub.yml'], /rc=\$\?\n\s+cat scanhub-result\.txt[^\n]*\n\s+exit \$rc/);

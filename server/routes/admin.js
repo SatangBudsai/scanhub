@@ -88,7 +88,7 @@ export function settingsRoutes({ db }) {
       writes.push(() => db.setSetting('scanTime', b.scanTime));
     }
     // Fields that come from env are read-only: ignored here
-    if (b.sonar && !config.sonarFromEnv) {
+    if (b.sonar && !config.sonarFromEnv && !config.sonarAuto) {
       if (b.sonar.url !== undefined) {
         const u = String(b.sonar.url || '').trim().replace(/\/+$/, '');
         if (u && !URL_RE.test(u)) throw bad('SonarQube URL must start with http:// or https://');

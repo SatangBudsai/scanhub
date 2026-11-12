@@ -21,6 +21,8 @@ export const config = {
   nvdApiKey: env.NVD_API_KEY || '',
   sonarUrl: (env.SONAR_URL || '').replace(/\/+$/, ''),
   sonarToken: env.SONAR_TOKEN || '',
+  // Admin password ScanHub sets on the bundled SonarQube (auto-setup); empty = random, kept in the db
+  sonarAdminPassword: env.SONAR_ADMIN_PASSWORD || '',
   // Semgrep --config value; registry rulesets also need SEMGREP_RULES_LICENSE_ACCEPTED=true
   semgrepRules: (env.SEMGREP_RULES || '').trim(),
   semgrepLicenseAccepted: String(env.SEMGREP_RULES_LICENSE_ACCEPTED || '').trim().toLowerCase() === 'true',
@@ -31,6 +33,8 @@ export const config = {
 
 // Values given in env configure the tool and are read-only in the settings page
 config.sonarFromEnv = !!(config.sonarUrl && config.sonarToken);
+// SONAR_URL without SONAR_TOKEN: ScanHub sets up the (bundled) SonarQube itself. SONAR_AUTO=0 turns this off.
+config.sonarAuto = !!(config.sonarUrl && !config.sonarToken && String(env.SONAR_AUTO ?? '1').trim() !== '0');
 config.nvdFromEnv = !!config.nvdApiKey;
 config.semgrepFromEnv = !!config.semgrepRules;
 

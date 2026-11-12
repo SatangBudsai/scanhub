@@ -40,7 +40,6 @@ test.describe('Projects and repos', () => {
       await dlg.getByRole('button', { name: 'Add and connect' }).click();
       await expect(dlg.locator('#mErr')).toContainText('Repo name may only use');
       await dlg.getByLabel('Repo name').fill(repoName);
-      await dlg.getByLabel('Main language').selectOption('Go');
       await dlg.getByRole('button', { name: 'Add and connect' }).click();
     });
     await step(page, 'Connect CI opens with a token shown once', async () => {
@@ -48,13 +47,14 @@ test.describe('Projects and repos', () => {
       await expect(page.getByRole('heading', { name: 'Connect CI' })).toBeVisible();
       await expect(page.locator('#tokVal')).toHaveValue(/^shr_/);
       await expect(page.getByText('Copy it now. It is shown only once', { exact: false })).toBeVisible();
+      await expect(page.getByLabel('Git URL')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Open repo settings' })).toBeVisible();
     });
     await step(page, 'The repo page has no scan results yet', async () => {
       await page.locator('.crumb').getByRole('link', { name: repoName }).click();
       await expect(page.getByRole('heading', { name: 'No scan results yet' })).toBeVisible();
     });
     await step(page, 'Repo settings: a daily scan without a Git URL is rejected', async () => {
-      await page.getByRole('button', { name: 'More options' }).click();
       await page.getByRole('button', { name: 'Repo settings' }).click();
       const dlg = page.getByRole('dialog', { name: 'Repo settings' });
       await dlg.getByLabel('Automatic scan').selectOption('daily');
@@ -87,14 +87,13 @@ test.describe('Projects and repos', () => {
     });
     await step(page, 'Delete the repo from Repo settings (click twice)', async () => {
       await group().getByRole('link', { name: new RegExp(repoName) }).click();
-      await page.getByRole('button', { name: 'More options' }).click();
       await page.getByRole('button', { name: 'Repo settings' }).click();
       const del = page.locator('#rsDel');
       await del.click();
       await expect(del).toContainText('Click again to delete');
       await del.click();
       await expect(page).toHaveURL(/#projects/);
-      await expect(group().getByText('No repos yet')).toBeVisible();
+      await expect(group().getByText('No repos in this project yet')).toBeVisible();
     });
     await step(page, 'Delete the now-empty project', async () => {
       await page.getByRole('button', { name: `Options for ${renamed}` }).click();

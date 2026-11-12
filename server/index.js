@@ -10,6 +10,7 @@ import { createToolManager } from './tools/manager.js';
 import { cleanWorkDirs, createRunner } from './scan/runner.js';
 import { createQueue } from './scan/queue.js';
 import { startScheduler } from './scheduler.js';
+import { runSonarAutoSetup } from './sonar-auto.js';
 import { authRoutes } from './routes/auth.js';
 import { userRoutes } from './routes/users.js';
 import { settingsRoutes, setupRoutes, toolRoutes } from './routes/admin.js';
@@ -104,6 +105,8 @@ async function main() {
   await startScheduler({ ...ctx, tz: config.tz });
   // Register scanners already on disk (e.g. after a database reset), in the background
   tools.reconcile().catch((e) => console.error('[tools] reconcile failed:', e.message));
+  // Bundled SonarQube (SONAR_URL without SONAR_TOKEN): connect in the background, scans skip Sonar until ready
+  if (config.sonarAuto) runSonarAutoSetup({ db });
 
   const shutdown = () => {
     server.close();

@@ -42,6 +42,15 @@ test.describe.serial('One-click CI setup', () => {
       await expect(page.locator('#autoPick .picker-sel')).toContainText('acme/payment-api');
       await expect(page.locator('[data-amode="pr"]')).toHaveClass(/on/);
     });
+    await step(page, 'Turn off Checkov: saved to the repo in ScanHub, not written into the pipeline', async () => {
+      await page.locator('#ciTools [data-ct="checkov"]').click();
+      await expect(page.locator('#toast')).toContainText('Saved · scanning with');
+      await expect(page.locator('#ciTools [data-ct="checkov"]')).toHaveAttribute('aria-pressed', 'false');
+      await expect(page.locator('#autoPick .picker-sel')).toContainText('acme/payment-api');
+      const r = await admin.get(`/api/repos/${repo.id}`);
+      expect(r.tools).not.toContain('checkov');
+      expect(r.tools).toContain('trivy');
+    });
     await step(page, 'Run automatic setup: every step succeeds', async () => {
       await page.locator('#autoGo').click();
       await expect(page.locator('#toast')).toContainText('Setup complete', { timeout: 60_000 });
@@ -69,6 +78,9 @@ test.describe.serial('One-click CI setup', () => {
       expect(wf).toContain('Accept: text/plain');
       expect(wf).toContain('secrets.SCANHUB_TOKEN');
       expect(wf).not.toContain('fail_on');
+      expect(wf).not.toContain('tools=trivy');
+      expect(wf).toContain('Scanners are chosen in ScanHub. To override here, set SCANHUB_TOOLS=trivy,gitleaks');
+      expect(wf).toContain('${SCANHUB_TOOLS:+&tools=$SCANHUB_TOOLS}');
       expect(st.gh.pulls).toHaveLength(1);
       expect(st.gh.pulls[0].head).toBe('scanhub/setup');
     });
@@ -127,6 +139,68 @@ test.describe.serial('One-click CI setup', () => {
       const ci = st.gl.files['scanhub/setup']['.gitlab-ci.yml'];
       expect(ci.split('.gitlab/scanhub.yml').length - 1).toBe(1);
       expect(st.gl.mrs).toHaveLength(1);
+    });
+  });
+
+  test('Add repo: pick it from the Git connection, no language needed', async ({ page, step, admin }) => {
+    await connections(admin);
+    const project = await admin.post('/api/projects', { name: uid('Pick') });
+    const name = 'payment-api';
+    await step(page, 'Add repo opens with the connection repo list', async () => {
+      await page.goto('/#login');
+      await login(page);
+      await page.getByRole('button', { name: `Options for ${project.name}` }).click();
+      await page.locator('.pop:not([hidden])').getByRole('button', { name: 'Add repo' }).click();
+      const dlg = page.getByRole('dialog', { name: 'Add repo' });
+      await expect(dlg.getByLabel('Main language')).toHaveCount(0);
+      if (await dlg.locator('#mrConn').count()) await dlg.locator('#mrConn').selectOption(String(gh.id));
+      await expect(dlg.locator('#mrQ')).toBeFocused();
+      await dlg.locator('#mrQ').fill('payment');
+      await expect(dlg.locator('#mrList .picker-item').first()).toContainText('acme/payment-api');
+      await expect(dlg.locator('#mrList .picker-item.hi')).toContainText('acme/payment-api');
+      await page.keyboard.press('Enter');
+      await expect(dlg.getByLabel('Repo name')).toHaveValue(name);
+      await expect(dlg.getByLabel('Repo name')).toBeFocused();
+      await expect(dlg.getByLabel(/Git URL/)).toHaveValue('https://github.test/acme/payment-api.git');
+      await expect(dlg.locator('.picked')).toContainText('acme/payment-api');
+      await page.keyboard.press('Enter');
+    });
+    await step(page, 'Connect CI opens with the picked repo ready for automatic setup', async () => {
+      await expect(page).toHaveURL(/#connect\//);
+      await expect(page.locator('#autoPick .picker-sel')).toContainText('acme/payment-api');
+    });
+    await step(page, 'The server saved Git URL and the detected language', async () => {
+      const p = (await admin.get('/api/projects')).find((x) => x.id === project.id);
+      const repo = await admin.get(`/api/repos/${p.repos[0].id}`);
+      expect(repo).toMatchObject({ name, gitUrl: 'https://github.test/acme/payment-api.git', lang: 'Go' });
+    });
+  });
+
+  test('Add repo: paste a Git URL to fill the name and select the remote', async ({ page, step, admin }) => {
+    await connections(admin);
+    const project = await admin.post('/api/projects', { name: uid('Paste') });
+    // payment-api already exists: the previous test added it
+    await step(page, 'Paste a GitHub URL in manual mode', async () => {
+      await page.goto('/#login');
+      await login(page);
+      await page.getByRole('button', { name: `Options for ${project.name}` }).click();
+      await page.locator('.pop:not([hidden])').getByRole('button', { name: 'Add repo' }).click();
+      const dlg = page.getByRole('dialog', { name: 'Add repo' });
+      await dlg.getByRole('button', { name: 'Enter the repo manually instead' }).click();
+      await dlg.getByLabel(/Git URL/).fill('git@github.test:acme/website.git');
+      await expect(dlg.getByLabel('Repo name')).toHaveValue('website');
+      await expect(dlg.locator('#mrGHint')).toContainText('Detected GitHub · acme/website');
+      await dlg.getByLabel(/Git URL/).fill('https://github.test/acme/payment-api');
+      await expect(dlg.getByLabel('Repo name')).toHaveValue('payment-api');
+      await expect(dlg.locator('.picked')).toContainText('acme/payment-api');
+    });
+    await step(page, 'The name clashes with an existing repo: inline error before submit', async () => {
+      const dlg = page.getByRole('dialog', { name: 'Add repo' });
+      await expect(dlg.locator('#mrNErr')).toContainText('A repo with this name already exists');
+      await dlg.getByLabel('Repo name').fill('payment-api-2');
+      await expect(dlg.locator('#mrNErr')).toHaveText('');
+      await dlg.getByLabel(/Git URL/).fill('https://github.test/acme/other');
+      await expect(dlg.getByLabel('Repo name')).toHaveValue('payment-api-2');
     });
   });
 

@@ -99,7 +99,7 @@ export function projectRoutes({ db, queue, runner }) {
     res.json(projects.map((p) => ({
       id: p.id, name: p.name,
       repos: repos.filter((x) => x.project_id === p.id).map((repo) => ({
-        id: repo.id, name: repo.name, lang: repo.lang, branch: repo.branch, gitUrl: repo.git_url || '', schedule: repo.schedule,
+        id: repo.id, name: repo.name, lang: repo.lang, branch: repo.branch, gitUrl: repo.git_url || '', schedule: repo.schedule, linked: !!repo.remote_integration_id,
         lastScan: lastBy.has(repo.id) ? scanSummary(lastBy.get(repo.id)) : null, running: running.has(repo.id),
       })),
     })));

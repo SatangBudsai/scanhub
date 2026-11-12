@@ -17,7 +17,7 @@ export async function startFakeGit() {
     // ---------- GitHub ----------
     ['GET', /^\/gh\/user$/, (m, q, b, res) => { res.setHeader('x-oauth-scopes', state.ghScopes); return [200, { login: 'octo' }]; }],
     ['GET', /^\/gh\/user\/repos$/, () => [200, [
-      { full_name: 'acme/payment-api', default_branch: 'main', clone_url: 'https://github.test/acme/payment-api.git', html_url: 'https://github.test/acme/payment-api', private: true },
+      { full_name: 'acme/payment-api', default_branch: 'main', clone_url: 'https://github.test/acme/payment-api.git', html_url: 'https://github.test/acme/payment-api', private: true, language: 'Go' },
       { full_name: 'acme/website', default_branch: 'master', clone_url: 'https://github.test/acme/website.git', html_url: 'https://github.test/acme/website', private: false },
     ]]],
     ['GET', /^\/gh\/repos\/acme\/payment-api$/, () => [200, { default_branch: 'main', clone_url: 'https://github.test/acme/payment-api.git', html_url: 'https://github.test/acme/payment-api' }]],

@@ -52,7 +52,7 @@ export async function createProject(api, name = uid('proj')) {
   return api.post('/api/projects', { name });
 }
 export async function createRepo(api, projectId, extra = {}) {
-  const r = await api.post('/api/repos', { projectId, name: uid('repo'), lang: 'Go', branch: 'main', ...extra });
+  const r = await api.post('/api/repos', { projectId, name: uid('repo'), branch: 'main', ...extra });
   return { repo: r.repo, token: r.token };
 }
 /** Project + repo in one go */

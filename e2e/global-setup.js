@@ -56,7 +56,9 @@ async function prewarm(url) {
 }
 
 export default async function globalSetup() {
-  fs.rmSync(GIF_DIR, { recursive: true, force: true });
+  // A shell or editor sitting in the folder locks it on Windows: empty it instead of failing
+  try { fs.rmSync(GIF_DIR, { recursive: true, force: true }); }
+  catch { for (const f of fs.readdirSync(GIF_DIR)) fs.rmSync(path.join(GIF_DIR, f), { recursive: true, force: true }); }
   fs.mkdirSync(GIF_DIR, { recursive: true });
 
   const external = !!process.env.E2E_BASE_URL;

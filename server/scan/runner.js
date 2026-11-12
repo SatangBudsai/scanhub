@@ -33,8 +33,8 @@ export function createRunner(db, tools, lock) {
       const bin = await tools.installedBin(id);
       if (!bin) return { skip: 'Scanner not installed' };
       if (id === 'sonarqube') {
-        const { url, token } = await effectiveSonar(db);
-        if (!url || !token) return { skip: 'SonarQube URL and token are not set' };
+        const { url, token, note } = await effectiveSonar(db);
+        if (!url || !token) return { skip: note || 'SonarQube URL and token are not set' };
         return { ...(await runSonar({ bin, src, out, repo, url, token })), ctx: { sonarUrl: url } };
       }
       if (id === 'semgrep') {

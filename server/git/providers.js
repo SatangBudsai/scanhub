@@ -38,18 +38,17 @@ const enc = encodeURIComponent;
 const encPath = (p) => p.split('/').map(enc).join('/');
 
 /**
- * Query string the CI job sends to ScanHub. Block or report-only comes from the repo's gate in ScanHub,
- * so changing it never needs a pipeline change. The job sends Accept: text/plain to get a readable summary for the CI log.
+ * Scanners come from the repo settings in ScanHub, so changing them never needs a pipeline change.
+ * A pipeline can still override them by setting SCANHUB_TOOLS (e.g. trivy,gitleaks); it is sent only when set.
  */
-function toolsQuery({ tools }) {
-  return tools && tools.length ? `&tools=${tools.join(',')}` : '';
-}
+export const TOOLS_COMMENT = '# Scanners are chosen in ScanHub. To override here, set SCANHUB_TOOLS=trivy,gitleaks';
+export const TOOLS_PARAM = '${SCANHUB_TOOLS:+&tools=$SCANHUB_TOOLS}';
 
 /**
  * Shell lines run by every generated pipeline. `detect` sets KIND (branch | tag | pr), REF and BASE.
  * The job asks ScanHub first, so which branches and tags get scanned is set on the repo page, not in the pipeline.
  */
-function scanScript(opts, detect, commitVar) {
+function scanScript(detect, commitVar) {
   return [
     'set +e',
     ...detect,
@@ -57,9 +56,10 @@ function scanScript(opts, detect, commitVar) {
     'Q=$(printf \'kind=%s&branch=%s&base=%s\' "$KIND" "$REF" "$BASE" | sed \'s/+/%2B/g\')',
     'D=$(curl -sS -H "Authorization: Bearer $SCANHUB_TOKEN" -H "Accept: text/plain" "$SCANHUB_URL/api/v1/check?$Q" || echo scan)',
     'case "$D" in skip*) echo "$D"; exit 0;; esac',
+    TOOLS_COMMENT,
     'tar --exclude=.git -czf - . | curl --fail-with-body -sS -X POST -T - -o scanhub-result.txt \\',
     '  -H "Authorization: Bearer $SCANHUB_TOKEN" -H "Content-Type: application/gzip" -H "Accept: text/plain" \\',
-    `  "$SCANHUB_URL/api/v1/scan?$Q&commit=${commitVar}&wait=1${toolsQuery(opts)}"`,
+    `  "$SCANHUB_URL/api/v1/scan?$Q&commit=${commitVar}&wait=1${TOOLS_PARAM}"`,
     'rc=$?',
     'cat scanhub-result.txt 2>/dev/null; echo',
     'exit $rc',
@@ -93,8 +93,9 @@ jobs:
         env:
           SCANHUB_URL: \${{ vars.SCANHUB_URL }}
           SCANHUB_TOKEN: \${{ secrets.SCANHUB_TOKEN }}
+          SCANHUB_TOOLS: \${{ vars.SCANHUB_TOOLS }}  # optional override; scanners are chosen in ScanHub
         run: |
-${indent(scanScript(opts, detect, '$GITHUB_SHA'), '          ')}
+${indent(scanScript(detect, '$GITHUB_SHA'), '          ')}
 `;
 }
 
@@ -112,7 +113,7 @@ scanhub:
   image: curlimages/curl:latest
   script:
     - |
-${indent(scanScript(opts, detect, '$CI_COMMIT_SHA'), '      ')}
+${indent(scanScript(detect, '$CI_COMMIT_SHA'), '      ')}
 `;
 }
 
@@ -177,7 +178,7 @@ function github(baseUrl, token) {
     return (data || [])
       .filter((r) => !needle || r.full_name.toLowerCase().includes(needle))
       .slice(0, 50)
-      .map((r) => ({ fullName: r.full_name, defaultBranch: r.default_branch, cloneUrl: r.clone_url, webUrl: r.html_url, private: !!r.private }));
+      .map((r) => ({ fullName: r.full_name, defaultBranch: r.default_branch, cloneUrl: r.clone_url, webUrl: r.html_url, private: !!r.private, language: r.language || '' }));
   }
 
   async function autoSetup(p, step) {
@@ -246,7 +247,7 @@ function gitlab(baseUrl, token) {
     const { data } = await api('GET', `/projects?membership=true&simple=true&order_by=last_activity_at&sort=desc&per_page=50${search}`);
     return (data || []).slice(0, 50).map((r) => ({
       fullName: r.path_with_namespace, defaultBranch: r.default_branch, cloneUrl: r.http_url_to_repo, webUrl: r.web_url,
-      private: r.visibility ? r.visibility !== 'public' : true,
+      private: r.visibility ? r.visibility !== 'public' : true, language: '',
     }));
   }
 

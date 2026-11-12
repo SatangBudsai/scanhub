@@ -169,6 +169,23 @@ code{font-family:var(--mono);font-size:12px;background:var(--raised);border:1px 
 .is-on .check{background:var(--acc);border-color:var(--acc)}
 .is-on .check svg{opacity:1}
 .empty{padding:40px 24px;text-align:center;color:var(--t3)}
+.ob{margin-bottom:32px;padding:20px 24px}
+.ob-h{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px}
+.ob-h h2{font-size:16px;font-weight:500;margin:0}
+.ob-h p{margin:2px 0 0}
+.ob-bar{height:4px;border-radius:2px;background:var(--raised);overflow:hidden;margin:0 0 8px}
+.ob-bar>span{display:block;height:100%;background:var(--acc);transition:width .2s var(--ease)}
+.ob-grp{font-size:12px;line-height:16px;color:var(--t3);margin:16px 0 4px}
+.ob-step{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.ob-step:first-of-type{border-top:0}
+.ob-n{width:28px;height:28px;border-radius:50%;border:1px solid var(--line2);display:grid;place-items:center;font:500 12px/1 var(--mono);color:var(--t2);background:var(--card)}
+.ob-step.is-done .ob-n{background:var(--acc);border-color:var(--acc);color:var(--acc-ink)}
+.ob-n svg{width:14px;height:14px;stroke-width:2.5}
+.ob-step.is-done .ob-t{color:var(--t2)}
+.ob-t{font-weight:500}
+.ob-acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.step-tag{display:inline-block;font:500 12px/16px var(--mono);color:var(--acc-text);margin-bottom:4px}
+@media screen and (max-width:640px){.ob{padding:16px}.ob-step{grid-template-columns:28px minmax(0,1fr)}.ob-acts{grid-column:2;justify-content:flex-start}}
 .empty-big{padding:56px 24px;text-align:center}
 .empty-big>svg{width:24px;height:24px;color:var(--t3)}
 .empty-big h2{font-size:18px;font-weight:500;margin:12px 0 4px}
@@ -613,7 +630,7 @@ details.perm[open] summary svg{transform:rotate(90deg)}
 .picker-list{border:1px solid var(--line);border-radius:10px;max-height:232px;overflow-y:auto;background:var(--field)}
 .picker-item{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:40px;padding:8px 12px;text-align:left;transition:background-color .12s var(--ease)}
 .picker-item+.picker-item{border-top:1px solid var(--line)}
-.picker-item:hover{background:var(--hover)}
+.picker-item:hover,.picker-item.hi{background:var(--hover)}
 .picker-item.on{background:var(--acc-soft);box-shadow:inset 2px 0 0 var(--acc)}
 .picker-item .small{display:inline-flex;align-items:center;gap:6px;flex:none}
 .picker-item .small svg{width:12px;height:12px}
@@ -778,7 +795,6 @@ const CAN = { scan: ['ADMIN', 'MAINTAINER', 'ANALYST'], manage: ['ADMIN', 'MAINT
 const has = k => !!S.me && CAN[k].includes(S.me.role);
 const TRIG = { ci: ['git-pull-request', 'CI'], manual: ['play', 'Manual'], schedule: ['calendar-clock', 'Scheduled'], upload: ['upload', 'Uploaded from CI'] };
 const trigL = t => (TRIG[t] || ['circle', t || '—'])[1];
-const LANGS = ['Go', 'TypeScript', 'JavaScript', 'Java', 'Kotlin', 'Node.js', 'Python', 'PHP', 'C#', 'Ruby', 'Other'];
 // One shared Merge lockup across navigation, account screens, and setup.
 const MARK = ScanHubBrand.logo;
 const isActive = s => s && (s.status === 'queued' || s.status === 'running');
@@ -788,7 +804,7 @@ const S = {
   me: null, setupDone: false, serverUrl: '',
   projects: null,
   fs: { scan: null },
-  ci: { repo: null, tab: store.get('ciTab', 'github'), tools: null, toolsOpen: false },
+  ci: { repo: null, tab: store.get('ciTab', 'github') },
   newToken: null,
   alt: { reports: false, git: false },
   auto: { integrationId: null, remote: null, mode: 'pr', running: false, result: null, redo: false },
@@ -871,6 +887,7 @@ function shell(body) {
         <div class="acct-h"><span class="avatar avatar-lg">${esc(u.slice(0, 2).toUpperCase())}</span><div class="acct-id"><div class="acct-name">${esc(u)}</div><div class="acct-tags"><span class="role-tag">${esc(roleL(S.me && S.me.role))}</span>${S.me && S.me.fromEnv ? '<span class="lock"><i data-lucide="lock"></i>Set from env</span>' : ''}</div></div></div>
         <div class="acct-sec"><div class="acct-lbl" id="themeLbl">Theme</div>
           <div class="seg acct-theme" role="radiogroup" aria-labelledby="themeLbl">${[['light', 'Light', 'sun'], ['dark', 'Dark', 'moon'], ['system', 'System', 'monitor']].map(([k, l, ic]) => `<button role="menuitemradio" aria-checked="${THEME.get() === k}" data-theme-set="${k}" class="${THEME.get() === k ? 'on' : ''}"><i data-lucide="${ic}"></i>${l}</button>`).join('')}</div></div>
+        <button class="pop-row" role="menuitem" id="obOpen"><span>Getting started</span><i data-lucide="list-checks"></i></button>
         ${S.me && !S.me.fromEnv ? '<a class="pop-row" role="menuitem" href="#password"><span>Change password</span><i data-lucide="key-round"></i></a>' : ''}
         <hr><button class="pop-row" role="menuitem" id="logout"><span>Sign out</span><i data-lucide="log-out"></i></button>
       </div></div>
@@ -917,6 +934,7 @@ function bindShell() {
   bindPops();
   $$('[data-theme-set]').forEach(b => b.onclick = e => { e.stopPropagation(); store.set('theme', b.dataset.themeSet); THEME.apply(); $$('[data-theme-set]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', String(x === b)); }); });
   const lo = $('#logout'); if (lo) lo.onclick = logout;
+  const ob = $('#obOpen'); if (ob) ob.onclick = () => { closePops(); OB.set({ dismissed: false, reopened: true }); if (/^#?(projects)?$/.test(location.hash)) render(); else go('#projects'); };
 }
 
 /* ---------- modal ---------- */
@@ -1138,9 +1156,85 @@ function bindSetup() {
   }
 }
 
+/* ---------- getting started checklist (per user; there is no server-side user prefs store, so it lives in localStorage) ---------- */
+const OB = {
+  key: () => 'onboard.' + (S.me ? S.me.username : ''),
+  get() { const v = store.get(OB.key(), null); return v && typeof v === 'object' ? v : {}; },
+  set(v) { store.set(OB.key(), v); }
+};
+// Required steps 1-4 come from real data; the card hides itself once they are done unless it was reopened from the user menu
+function obSteps(admin) {
+  const repos = allRepos(), ps = S.projects || [], m = has('manage');
+  const scanned = repos.find(r => r.lastScan && r.lastScan.status === 'done');
+  const started = repos.find(r => r.lastScan || r.running);
+  const target = repos.find(r => !r.lastScan && !r.running && !r.linked) || repos[0];
+  const ask = '<span class="small t3">An admin or maintainer does this</span>';
+  const btn = (attrs, label, primary) => `<button type="button" class="btn btn-sm ${primary ? 'btn-primary' : ''}" ${attrs}>${label}</button>`;
+  const core = [
+    { k: 'project', t: 'Create a project', d: 'A project groups the repos of one system or team', done: ps.length > 0,
+      act: m ? btn('data-ob="project"', 'Create a project', true) : ask },
+    { k: 'repo', t: 'Add a repo', d: 'Pick it from GitHub or GitLab, or paste its Git URL', done: repos.length > 0,
+      act: m ? btn(`data-ob="repo" ${ps.length ? '' : 'disabled title="Create a project first"'}`, 'Add a repo', true) : ask },
+    { k: 'ci', t: 'Connect CI or scan now', d: 'Set up CI in one click or copy a snippet, so every push is scanned. Or scan once from the Git URL', done: repos.some(r => r.linked || r.lastScan || r.running),
+      act: target ? `${m ? `<a class="btn btn-sm btn-primary" href="#connect/${enc(target.id)}" data-obgo>Connect CI</a>` : ''}${has('scan') ? `<a class="btn btn-sm" href="#repo/${enc(target.id)}" data-obgo>Scan now</a>` : ''}` || ask : '<span class="small t3">Add a repo first</span>' },
+    { k: 'results', t: 'See your first results', d: scanned ? 'Findings from every scanner, merged into one list' : started ? 'A scan is on its way. Results show up here when it finishes' : 'Results show up after the first scan', done: !!scanned,
+      act: scanned ? `<a class="btn btn-sm btn-primary" href="#repo/${enc(scanned.id)}" data-obgo>See results</a>` : started ? `<a class="btn btn-sm" href="#repo/${enc(started.id)}" data-obgo>Open repo</a>` : '' }
+  ];
+  const any = scanned || started || repos[0];
+  const extra = [];
+  if (has('users')) extra.push({ k: 'invite', t: 'Invite teammates', d: 'Give people a role and the projects they can see', done: admin && admin.users > 1, act: '<a class="btn btn-sm" href="#users" data-obgo>Invite</a>' });
+  if (m && any) extra.push({ k: 'gate', t: 'Set the CI gate', d: 'Block the pipeline on new Critical and High, or only report', act: `<a class="btn btn-sm" href="#connect/${enc(any.id)}" data-obgo>Set the gate</a>` });
+  if (has('scan') && scanned) extra.push({ k: 'report', t: 'Share a report', d: 'Send a scan report to a client or manager', act: `<a class="btn btn-sm" href="#repo/${enc(scanned.id)}" data-obgo>Open report</a>` });
+  const setup = [];
+  if (admin && has('editSettings')) {
+    const tool = id => (admin.tools || []).find(t => t.id === id);
+    const sg = tool('semgrep'), sq = tool('sonarqube');
+    setup.push({ k: 'git', t: 'Connect GitHub or GitLab', d: 'Pick repos from a list and set up CI in one click', done: (admin.integrations || []).length > 0, act: btn('data-obsec="secGit"', 'Add connection') });
+    if (sg && sg.enabled !== false) setup.push({ k: 'semgrep', t: 'Choose Semgrep rules', d: 'Accept the Semgrep Rules License or set your own rules', done: !!sg.configured, act: btn('data-obsec="secSemgrep"', 'Choose rules') });
+    if (sq && sq.enabled !== false) setup.push({ k: 'sonar', t: 'Check SonarQube', d: sq.configured ? 'Connected' : 'Set the SonarQube server URL and token, or turn SonarQube off', done: !!sq.configured, act: btn('data-obsec="secSonar"', 'Open SonarQube settings') });
+  }
+  return { core, extra, setup };
+}
+function onboardCard(admin) {
+  const st = OB.get();
+  if (st.dismissed) return '';
+  const { core, extra, setup } = obSteps(admin);
+  const left = core.filter(x => !x.done).length;
+  if (!left && !st.reopened) return '';
+  const row = (x, n) => `<div class="ob-step ${x.done ? 'is-done' : ''}" data-obstep="${x.k}" data-done="${!!x.done}">
+      <span class="ob-n" aria-hidden="true">${x.done ? '<i data-lucide="check"></i>' : n}</span>
+      <div><div class="ob-t">${x.t}${x.done ? '<span class="sr"> (done)</span>' : ''}</div><div class="small t3">${x.d}</div></div>
+      <div class="ob-acts">${x.done ? '<span class="small pos">Done</span>' : x.act}</div></div>`;
+  const pct = Math.round((core.length - left) / core.length * 100);
+  return `<section class="card ob" id="onboard" aria-labelledby="obH">
+    <div class="ob-h"><div><h2 id="obH">Getting started</h2><p class="small t3">${left ? `${core.length - left} of ${core.length} steps done · each step takes you straight there` : 'All set. Every push is scanned and results land here'}</p></div>
+      <button type="button" class="btn btn-sm btn-ghost" id="obHide" title="Reopen anytime from your account menu"><i data-lucide="x"></i>${left ? 'Dismiss' : 'Close'}</button></div>
+    <div class="ob-bar" role="progressbar" aria-label="Getting started progress" aria-valuemin="0" aria-valuemax="${core.length}" aria-valuenow="${core.length - left}"><span style="width:${pct}%"></span></div>
+    ${core.map((x, i) => row(x, i + 1)).join('')}
+    ${extra.length ? `<div class="ob-grp">Optional</div>${extra.map(x => row(x, 5)).join('')}` : ''}
+    ${setup.length ? `<div class="ob-grp">Admin setup</div>${setup.map((x, i) => row(x, '·')).join('')}` : ''}
+  </section>`;
+}
+function bindOnboard() {
+  const h = $('#obHide'); if (h) h.onclick = () => { OB.set({ dismissed: true }); const c = $('#onboard'); if (c) c.remove(); toast('Hidden · reopen it from your account menu under Getting started'); };
+  $$('[data-ob="project"]').forEach(b => b.onclick = () => projectNameModal(null));
+  $$('[data-ob="repo"]').forEach(b => b.onclick = () => addRepoModal(null));
+  $$('[data-obsec]').forEach(b => b.onclick = () => { S.gotoSec = b.dataset.obsec; go('#settings'); });
+}
+
 /* ---------- projects ---------- */
-async function loadProjects() { await ensureProjects(true); }
-function viewProjects() {
+async function loadProjects() {
+  await ensureProjects(true);
+  // Admin setup and invite steps need more data; only fetched while the checklist can show
+  if (!has('users') || OB.get().dismissed) return null;
+  const [tools, integrations, users] = await Promise.all([
+    api('GET', '/api/tools').catch(e => { if (e.handled) throw e; return []; }),
+    loadIntegrations(),
+    api('GET', '/api/users').catch(e => { if (e.handled) throw e; return []; })
+  ]);
+  return { tools, integrations: integrations || [], users: Array.isArray(users) ? users.length : (users && users.users ? users.users.length : 0) };
+}
+function viewProjects(admin) {
   const ps = S.projects || [], repos = allRepos();
   const done = repos.map(r => r.lastScan).filter(l => l && l.status === 'done');
   const c = [0, 0, 0, 0, 0]; done.forEach(l => (l.counts || []).forEach((v, i) => c[i] += v));
@@ -1155,68 +1249,142 @@ function viewProjects() {
       </div>
       <div class="sevblock">${sevBreak(c, false)}</div>
     </section>` : '';
-  const groups = ps.map(p => { const rs = p.repos || []; return `<section class="group"><div class="group-h"><h2>${esc(p.name)}</h2><span class="small t3">${rs.length} repo</span>
+  const groups = ps.map(p => { const rs = p.repos || []; return `<section class="group"><div class="group-h"><h2>${esc(p.name)}</h2><span class="small t3">${rs.length} ${rs.length === 1 ? 'repo' : 'repos'}</span>
       ${m ? `<div class="pop-wrap gh-act"><button class="btn btn-icon btn-ghost btn-sm" data-pop="pm-${esc(p.id)}" aria-haspopup="true" aria-expanded="false" aria-label="Options for ${esc(p.name)}" title="Options"><i data-lucide="ellipsis"></i></button><div class="pop pop-r pop-menu" id="pm-${esc(p.id)}" hidden><button class="pop-row" data-addto="${esc(p.id)}"><span>Add repo</span><i data-lucide="plus"></i></button><button class="pop-row" data-prename="${esc(p.id)}"><span>Rename project</span><i data-lucide="pencil"></i></button>${has('users') ? `<button class="pop-row" data-paccess="${esc(p.id)}"><span>Who can see this project</span><i data-lucide="eye"></i></button>` : ''}<hr><button class="pop-row pop-danger" data-pdel="${esc(p.id)}"><span>Delete project</span><i data-lucide="trash-2"></i></button></div></div>` : ''}</div>
       <div class="card list">${rs.length ? rs.map(r => { const l = r.lastScan; return `<a class="repo-row" href="#repo/${enc(r.id)}">
         <div class="rr-name"><span class="nm">${esc(r.name)}</span><span class="small t3">${esc(r.lang || '')}</span></div>
         <div class="rr-st">${l && l.status === 'done' && l.newCount ? `<span class="newtag">New +${l.newCount}</span>` : ''}${statusPill(r)}</div>
         <div class="rr-time small t3">${l ? rel(l.finishedAt || l.startedAt) : 'Not connected'}</div>
-        <i data-lucide="chevron-right" class="t3"></i></a>`; }).join('') : `<div class="empty small">No repos yet${m ? ` · <button class="linkbtn" data-addto="${esc(p.id)}">Add repo</button>` : ''}</div>`}</div></section>`; }).join('');
+        <i data-lucide="chevron-right" class="t3"></i></a>`; }).join('') : `<div class="empty small">${m ? `<span class="step-tag">Step 2</span><br>` : ''}No repos in this project yet${m ? ` · <button class="linkbtn" data-addto="${esc(p.id)}">Add a repo</button> to start scanning` : ''}</div>`}</div></section>`; }).join('');
   const isAdmin = S.me && S.me.role === 'ADMIN';
   const empty = isAdmin
-    ? `<div class="card empty-big"><i data-lucide="folder-open"></i><h2>No projects yet</h2><p class="t2">Create a project, then add the repos you want to scan</p><div class="actions" style="justify-content:center"><button class="btn btn-primary" id="newProj2"><i data-lucide="folder-plus"></i>New project</button></div></div>`
-    : `<div class="card empty-big"><i data-lucide="lock"></i><h2>No projects you can see yet</h2><p class="t2">Ask an admin for access${m ? ' or create your own project' : ''}</p>${m ? '<div class="actions" style="justify-content:center"><button class="btn" id="newProj2"><i data-lucide="folder-plus"></i>New project</button></div>' : ''}</div>`;
+    ? `<div class="card empty-big"><i data-lucide="folder-open"></i><div class="step-tag">Step 1 of 3</div><h2>No projects yet</h2><p class="t2">Create a project, then add the repos you want to scan and connect them to CI</p><div class="actions" style="justify-content:center"><button class="btn btn-primary" id="newProj2"><i data-lucide="folder-plus"></i>New project</button></div></div>`
+    : `<div class="card empty-big"><i data-lucide="lock"></i>${m ? '<div class="step-tag">Step 1 of 3</div>' : ''}<h2>No projects you can see yet</h2><p class="t2">Ask an admin for access${m ? ' or create your own project' : ''}</p>${m ? '<div class="actions" style="justify-content:center"><button class="btn" id="newProj2"><i data-lucide="folder-plus"></i>New project</button></div>' : ''}</div>`;
   return shell(`<div class="head"><div><h1>Projects</h1><p class="t2">${repos.length} ${repos.length === 1 ? 'repo' : 'repos'} in ${ps.length} ${ps.length === 1 ? 'project' : 'projects'}${done.length ? ` · latest scans found ${totalNew} new ${totalNew === 1 ? 'finding' : 'findings'}` : ''}</p></div>
-    ${m ? `<div class="actions"><button class="btn" id="newProj"><i data-lucide="folder-plus"></i>New project</button><button class="btn btn-primary" id="newRepo" ${ps.length ? '' : 'disabled'}><i data-lucide="plus"></i>Add repo</button></div>` : ''}</div>
-    ${overview}${ps.length ? groups : empty}`);
+    ${m ? `<div class="actions"><button class="btn" id="newProj"><i data-lucide="folder-plus"></i>New project</button><button class="btn btn-primary" id="newRepo" ${ps.length ? '' : 'disabled title="Create a project first"'}><i data-lucide="plus"></i>Add repo</button></div>` : ''}</div>
+    ${onboardCard(admin)}${overview}${ps.length ? groups : empty}`);
+}
+// Git URL / "owner/name" → { kind, host, path, name, cloneUrl }. Credentials in an https URL are kept as typed.
+function parseGitUrl(raw) {
+  const s = String(raw || '').trim(); if (!s) return null;
+  const clean = p => p.replace(/\/-\/.*$/, '').replace(/\.git$/i, '').replace(/^\/+|\/+$/g, '');
+  const kindOf = h => /github/i.test(h) ? 'GitHub' : /gitlab/i.test(h) ? 'GitLab' : 'Git';
+  let host = '', path = '', cloneUrl = '', m;
+  if ((m = s.match(/^(?:ssh:\/\/)?[\w.-]+@([\w.-]+(?::\d+)?)[:/](.+)$/)) && !/^https?:/i.test(s)) {
+    host = m[1].replace(/:\d+$/, ''); path = clean(m[2]); cloneUrl = `https://${host}/${path}.git`;
+  } else if ((m = s.match(/^(https?:\/\/)([^/@]+@)?([^/]+)\/(.+)$/i))) {
+    host = m[3]; path = clean(m[4].split(/[?#]/)[0]);
+    if (/github/i.test(host)) path = path.split('/').slice(0, 2).join('/');
+    cloneUrl = `${m[1].toLowerCase()}${m[2] || ''}${host}/${path}.git`;
+  } else if ((m = s.match(/^([\w.-]+(?:\/[\w.-]+)+?)(?:\.git)?\/?$/)) && !/\s/.test(s)) {
+    path = clean(m[1]); host = 'github.com'; cloneUrl = `https://github.com/${path}.git`;
+    if (path.split('/').length < 2) return null;
+    return { kind: 'Git', host: '', path, name: path.split('/').pop(), cloneUrl, bare: true };
+  } else return null;
+  if (!path || path.split('/').length < 2) return null;
+  return { kind: kindOf(host), host, path, name: path.split('/').pop(), cloneUrl };
 }
 function addRepoModal(pid) {
   const ps = S.projects || [];
-  let ints = null, picked = null, pickOpen = false, connId = null;
-  const slug = s => String(s || '').split('/').pop().toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+  const last = store.get('lastProject', null);
+  if (pid == null) pid = ps.some(p => String(p.id) === String(last)) ? last : ps[0] && ps[0].id;
+  let ints = null, picked = null, pickOpen = false, connId = null, nameEdited = false, matchSeq = 0, matchT = null;
+  const slug = s => String(s || '').split('/').pop().toLowerCase().replace(/\.git$/, '').replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+  // Repo names are unique across ScanHub (CI finds the repo by name)
+  const clash = () => {
+    const n = $('#mrN').value.trim().toLowerCase();
+    return n ? ps.find(p => (p.repos || []).some(r => String(r.name).toLowerCase() === n)) || null : null;
+  };
+  const checkName = () => {
+    const e = $('#mrNErr'); if (!e) return;
+    const p = clash();
+    e.textContent = p ? `A repo with this name already exists in ${p.name}` : '';
+    $('#mrN').setAttribute('aria-invalid', p ? 'true' : 'false');
+  };
+  const setName = v => { if (nameEdited) return; $('#mrN').value = slug(v); checkName(); };
   const drawPick = () => {
     const el = $('#mrRemote'); if (!el) return;
-    if (!ints || !ints.length) { el.innerHTML = ''; return; }
+    if (ints === null) { el.innerHTML = ''; return; }
+    if (!ints.length) {
+      el.innerHTML = `<div class="note"><i data-lucide="git-branch"></i><div>Connect GitHub or GitLab to pick repos from a list instead of typing them. ${has('editSettings') ? '<a class="linkacc" href="#settings" data-gotogit id="mrAddConn">Add a Git connection</a>' : 'Ask an admin to add a Git connection.'}</div></div>`;
+      icons();
+      const ac = $('#mrAddConn'); if (ac) ac.onclick = () => { S.gotoGit = true; MODAL_CLOSE = null; closeModal(); };
+      return;
+    }
     if (!pickOpen) {
       el.innerHTML = picked
         ? `<div class="picked"><i data-lucide="${gitMeta((ints.find(c => sameId(c.id, connId)) || {}).type).icon}"></i><span class="mono">${esc(picked.fullName)}</span><button type="button" class="linkbtn" id="mrPickChange">Change</button><button type="button" class="linkbtn" id="mrPickClear">Remove</button></div>`
         : '<button type="button" class="linkbtn" id="mrPickOpen"><i data-lucide="git-branch"></i>Pick from GitHub/GitLab</button>';
     } else {
       const c = ints.find(x => sameId(x.id, connId)) || ints[0]; connId = c.id;
-      el.innerHTML = `<div class="field">${ints.length > 1 ? `<select class="select select-sm" id="mrConn" aria-label="Connection">${ints.map(x => `<option value="${esc(x.id)}" ${sameId(x.id, c.id) ? 'selected' : ''}>${esc(x.name)} · ${gitMeta(x.type).name}</option>`).join('')}</select>` : ''}${pickerHtml('mr', picked)}<button type="button" class="linkbtn" id="mrPickCancel" style="align-self:flex-start">Close</button></div>`;
+      el.innerHTML = `<div class="field"><span class="lbl">Pick a repo from ${ints.length > 1 ? 'a Git connection' : esc(c.name)}</span>${ints.length > 1 ? `<select class="select select-sm" id="mrConn" aria-label="Git connection">${ints.map(x => `<option value="${esc(x.id)}" ${sameId(x.id, c.id) ? 'selected' : ''}>${esc(x.name)} · ${gitMeta(x.type).name}</option>`).join('')}</select>` : ''}${pickerHtml('mr', picked)}<button type="button" class="linkbtn" id="mrPickCancel" style="align-self:flex-start">Enter the repo manually instead</button></div>`;
     }
     icons();
     const o = $('#mrPickOpen'), ch = $('#mrPickChange'), cl = $('#mrPickClear'), ca = $('#mrPickCancel'), sc = $('#mrConn');
     if (o) o.onclick = () => { pickOpen = true; drawPick(); };
     if (ch) ch.onclick = () => { pickOpen = true; drawPick(); };
-    if (cl) cl.onclick = () => { picked = null; drawPick(); };
-    if (ca) ca.onclick = () => { pickOpen = false; drawPick(); };
+    if (cl) cl.onclick = () => { picked = null; $('#mrG').value = ''; $('#mrGHint').textContent = ''; drawPick(); };
+    if (ca) ca.onclick = () => { pickOpen = false; drawPick(); $('#mrG').focus(); };
     if (sc) sc.onchange = () => { connId = sc.value; picked = null; drawPick(); };
-    if (pickOpen) bindPicker('mr', connId, r => {
-      picked = r; pickOpen = false;
-      $('#mrN').value = slug(r.fullName); if (r.defaultBranch) $('#mrB').value = r.defaultBranch;
-      drawPick();
-    }, picked && picked.fullName);
+    if (pickOpen) bindPicker('mr', connId, r => pickRemote(r, true), picked && picked.fullName, { focus: true });
+  };
+  const pickRemote = (r, explicit) => {
+    picked = r; pickOpen = false;
+    if (explicit) { nameEdited = false; $('#mrG').value = r.cloneUrl || ''; }
+    setName(r.fullName); if (r.defaultBranch) $('#mrB').value = r.defaultBranch;
+    $('#mrGHint').textContent = `${gitMeta((ints.find(c => sameId(c.id, connId)) || {}).type).name} · ${r.fullName}${explicit ? '' : ' · found in your Git connection'}`;
+    drawPick();
+    if (explicit) $('#mrN').focus();
+  };
+  // A pasted URL that matches a repo in a connection selects it, so automatic CI setup is ready next
+  const matchRemote = info => {
+    clearTimeout(matchT); const my = ++matchSeq;
+    if (!info || !ints || !ints.length) return;
+    matchT = setTimeout(async () => {
+      for (const c of ints) {
+        try {
+          const list = await api('GET', `/api/integrations/${enc(c.id)}/repos?q=${enc(info.name)}`);
+          if (my !== matchSeq) return;
+          const hit = (list || []).find(r => r.fullName.toLowerCase() === info.path.toLowerCase());
+          if (hit) { connId = c.id; pickRemote(hit, false); return; }
+        } catch (e) { if (my !== matchSeq) return; }
+      }
+    }, 400);
+  };
+  const onUrl = () => {
+    const g = $('#mrG'), info = parseGitUrl(g.value);
+    if (picked && (!info || info.path.toLowerCase() !== picked.fullName.toLowerCase())) { picked = null; drawPick(); }
+    $('#mrGHint').textContent = info ? `Detected ${info.kind} · ${info.path}` : g.value.trim() ? 'Not a Git URL yet, e.g. https://github.com/acme/api or git@gitlab.com:group/api.git' : '';
+    if (info) setName(info.name);
+    matchRemote(info);
   };
   modal('Add repo', `
     <div id="mrRemote"></div>
+    <div class="field"><label for="mrG">Git URL <span class="t3">(optional, paste it to fill the rest)</span></label><input class="input mono" id="mrG" placeholder="https://github.com/acme/payment-gateway" autocomplete="off" spellcheck="false"><span class="hint" id="mrGHint" aria-live="polite"></span></div>
     <div class="field"><label for="mrP">Project</label><select class="select" id="mrP">${ps.map(p => `<option value="${esc(p.id)}" ${String(p.id) === String(pid) ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div>
-    <div class="field"><label for="mrN">Repo name</label><input class="input mono" id="mrN" placeholder="e.g. payment-gateway" autocomplete="off"></div>
-    <div class="grid" style="grid-template-columns:1fr 1fr">
-      <div class="field"><label for="mrL">Main language</label><select class="select" id="mrL">${LANGS.map(x => `<option>${x}</option>`).join('')}</select></div>
+    <div class="grid" style="grid-template-columns:2fr 1fr">
+      <div class="field"><label for="mrN">Repo name</label><input class="input mono" id="mrN" placeholder="e.g. payment-gateway" autocomplete="off" aria-describedby="mrNErr"><span class="hint neg" id="mrNErr" aria-live="polite"></span></div>
       <div class="field"><label for="mrB">Main branch</label><input class="input mono" id="mrB" value="main" autocomplete="off"></div>
     </div>
-    <p class="hint" style="margin:0">Next you will get a token and the code to connect it to CI</p>`, 'Add and connect', async () => {
+    <p class="hint" style="margin:0">Next you connect it to CI. With a Git URL, ScanHub can also scan it on its own</p>`, 'Add and connect', async () => {
     const n = $('#mrN').value.trim();
     if (!/^[a-z0-9._-]{2,60}$/.test(n)) return 'Repo name may only use a-z 0-9 . _ - and be 2 to 60 characters';
-    const body = { projectId: $('#mrP').value, name: n, lang: $('#mrL').value, branch: $('#mrB').value.trim() || 'main' };
-    if (picked && picked.cloneUrl) body.gitUrl = picked.cloneUrl;
+    if (clash()) { checkName(); return 'Choose another repo name; a repo with this name already exists'; }
+    const body = { projectId: $('#mrP').value, name: n, branch: $('#mrB').value.trim() || 'main' };
+    const raw = $('#mrG').value.trim(), info = parseGitUrl(raw);
+    if (raw) body.gitUrl = info && !info.bare ? info.cloneUrl : picked ? picked.cloneUrl : info ? info.cloneUrl : raw;
+    if (picked && picked.language) body.lang = picked.language;
     const r = await api('POST', '/api/repos', body);
+    store.set('lastProject', String(body.projectId));
     S.projects = null;
     S.newToken = { repoId: String(r.repo.id), token: r.token };
     if (picked) S.autoPrefill = { repoId: String(r.repo.id), integrationId: connId, remote: picked };
     setTimeout(() => { go('#connect/' + enc(r.repo.id)); toast(picked ? `Added ${n} · you can set up CI automatically next` : `Added ${n}`); }, 0);
-  }, { bind: () => { if (has('manage')) loadIntegrations().then(l => { ints = l; drawPick(); }).catch(() => {}); } });
+  }, { bind: () => {
+    $('#mrG').oninput = onUrl;
+    $('#mrN').oninput = () => { nameEdited = !!$('#mrN').value.trim(); checkName(); };
+    if (has('manage')) loadIntegrations().then(l => { ints = l || []; pickOpen = ints.length > 0 && !$('#mrG').value.trim(); drawPick(); }).catch(() => {});
+  } });
 }
 function projectNameModal(p) {
   modal(p ? 'Rename project' : 'New project', `<div class="field"><label for="mpN">Project name</label><input class="input" id="mpN" placeholder="e.g. Loan Origination" autocomplete="off" value="${p ? esc(p.name) : ''}"></div>`, p ? 'Save' : 'Create', async () => {
@@ -1227,7 +1395,8 @@ function projectNameModal(p) {
 }
 function bindProjects() {
   const ps = S.projects || [];
-  const nr = $('#newRepo'); if (nr) nr.onclick = () => addRepoModal(ps[0] && ps[0].id);
+  bindOnboard();
+  const nr = $('#newRepo'); if (nr) nr.onclick = () => addRepoModal(null);
   ['#newProj', '#newProj2'].forEach(s => { const b = $(s); if (b) b.onclick = () => projectNameModal(null); });
   $$('[data-addto]').forEach(b => b.onclick = () => addRepoModal(b.dataset.addto));
   $$('[data-paccess]').forEach(b => b.onclick = () => { closePops(); projectAccessModal(ps.find(p => String(p.id) === b.dataset.paccess)); });
@@ -1281,7 +1450,7 @@ function repoHead(repo, scans, sub, reportScan) {
   const busy = scans && scans.some(isActive);
   return `<div class="crumb small"><a href="#projects">${esc(repo.projectName || 'Projects')}</a>${sub ? ` <span class="sep">/</span> <a href="#repo/${enc(repo.id)}">${esc(repo.name)}</a>` : ''}</div>
     <div class="head"><div><h1>${sub ? esc(sub) : esc(repo.name)}</h1><div class="meta t2">${repo.lang ? `<span>${esc(repo.lang)}</span><span class="sep">·</span>` : ''}<span class="mono small"><i data-lucide="git-branch"></i>${esc(repo.branch || 'main')}</span>${pill ? `<span class="sep">·</span>${pill}` : ''}${!sub && repo.gate ? `<span class="sep">·</span><a class="gate-tag" href="#connect/${enc(repo.id)}" title="Change it on the Connect CI page"><i data-lucide="${normGate(repo.gate).mode === 'report' ? 'message-square-text' : 'octagon-x'}"></i>CI: ${esc(gateLabel(repo.gate))}</a>` : ''}</div></div>
-    ${sub ? '' : `<div class="actions">${reportScan ? `<button class="btn" id="repReport" title="Report for scan #${reportScan.num}"><i data-lucide="file-text"></i>Report</button>` : ''}<a class="btn" href="#connect/${enc(repo.id)}"><i data-lucide="plug"></i>Connect CI</a>${has('scan') ? `<span title="${noGit ? 'Set a Git URL first on the Connect CI page' : busy ? 'A scan is already running' : ''}"><button class="btn btn-primary" id="scanNow" ${noGit || busy ? 'disabled' : ''}><i data-lucide="${busy ? 'loader' : 'play'}" class="${busy ? 'spin' : ''}"></i>${busy ? 'Scanning' : 'Scan now'}</button></span>` : ''}${has('manage') ? `<div class="pop-wrap"><button class="btn btn-icon" data-pop="repoMenu" aria-haspopup="true" aria-expanded="false" aria-label="More options" title="More options"><i data-lucide="ellipsis"></i></button><div class="pop pop-r pop-menu" id="repoMenu" hidden><button class="pop-row" id="repoSet"><span>Repo settings</span><i data-lucide="settings-2"></i></button></div></div>` : ''}</div>`}</div>`;
+    ${sub ? '' : `<div class="actions">${reportScan ? `<button class="btn" id="repReport" title="Report for scan #${reportScan.num}"><i data-lucide="file-text"></i>Report</button>` : ''}<a class="btn" href="#connect/${enc(repo.id)}"><i data-lucide="plug"></i>Connect CI</a>${has('scan') ? `<span title="${noGit ? 'Set a Git URL first in Repo settings' : busy ? 'A scan is already running' : ''}"><button class="btn btn-primary" id="scanNow" ${noGit || busy ? 'disabled' : ''}><i data-lucide="${busy ? 'loader' : 'play'}" class="${busy ? 'spin' : ''}"></i>${busy ? 'Scanning' : 'Scan now'}</button></span>` : ''}${has('manage') ? '<button class="btn btn-icon" id="repoSet" aria-label="Repo settings" title="Repo settings: name, Git URL, branch, schedule, scanners"><i data-lucide="settings-2"></i></button>' : ''}</div>`}</div>`;
 }
 function spark(scans, cur, repoId) {
   const n = scans.length, W = 320, H = 64, p = 6;
@@ -1329,7 +1498,7 @@ function viewRepo(ctx) {
   const head = repoHead(repo, scans);
   const active = scans.find(isActive);
   const banner = active && active !== scan ? `<div class="card banner"><i data-lucide="loader" class="spin"></i><span>${active.status === 'queued' ? 'Queued' : 'Scanning'} #${active.num} · ${esc(trigL(active.trigger))}${active.startedAt ? ' · started ' + rel(active.startedAt) : ''}</span><span class="small t3" style="margin-left:auto">this page updates itself when done</span></div>` : '';
-  if (!scan) return shell(head + `<div class="card empty-big"><i data-lucide="scan-line"></i><h2>No scan results yet</h2><p class="t2">Connect this repo to CI and every push will be scanned with results sent here${repo.gitUrl && has('scan') ? ' or click Scan now' : ''}</p><div class="actions" style="justify-content:center"><a class="btn btn-primary" href="#connect/${enc(repo.id)}"><i data-lucide="plug"></i>Connect CI</a></div></div>`);
+  if (!scan) return shell(head + `<div class="card empty-big"><i data-lucide="scan-line"></i><div class="step-tag">Step 3 · last step</div><h2>No scan results yet</h2><p class="t2">Connect this repo to CI and every push will be scanned with results sent here${repo.gitUrl && has('scan') ? ', or click Scan now' : has('manage') ? ', or add a Git URL in repo settings to scan without CI' : ''}</p><div class="actions" style="justify-content:center"><a class="btn btn-primary" href="#connect/${enc(repo.id)}"><i data-lucide="plug"></i>Connect CI</a></div></div>`);
   if (isActive(scan)) return shell(head + banner + scanbar(repo, scans, scan, ctx.refs) + `<div class="card empty-big"><i data-lucide="loader" class="spin"></i><h2>${scan.status === 'queued' ? 'Queued' : 'Scanning'} #${scan.num}</h2><p class="t2">Results appear here when every scanner finishes. This page updates itself</p></div>`);
   if (scan.status === 'failed') return shell(head + banner + scanbar(repo, scans, scan, ctx.refs) + `<section class="card sum"><div class="failhead"><i data-lucide="circle-alert" class="neg"></i><div><div style="font-weight:500">Scan #${scan.num} failed</div><div class="t2" style="margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(scan.error || (detail && detail.error) || 'Unknown reason')}</div></div></div>${detail && detail.runs && detail.runs.length ? runLine(detail.runs) : ''}</section>`);
   const findings = (detail && detail.findings) || [];
@@ -1492,7 +1661,7 @@ function bindRepo(ctx, id) {
     try { await api('POST', `/api/repos/${enc(repo.id)}/scan`, { branch: repo.branch }); toast('Scan queued · results will appear on this page when done'); S.projects = null; go('#repo/' + enc(repo.id)); }
     catch (e) { toastErr(e); sn.disabled = false; }
   };
-  const rs = $('#repoSet'); if (rs) rs.onclick = () => { closePops(); repoSettingsModal(repo); };
+  const rs = $('#repoSet'); if (rs) rs.onclick = () => repoSettingsModal(repo);
   const rp = $('#repReport'); if (rp) rp.onclick = () => reportModal(repo, scan);
   // keep polling while any scan is queued or running, re-render once it finishes
   const active = scans.find(isActive);
@@ -1531,10 +1700,12 @@ async function repoSettingsModal(repo) {
     <div class="grid" style="grid-template-columns:1fr 1fr">
       <div class="field"><label for="rsN">Repo name</label><input class="input mono" id="rsN" value="${esc(repo.name)}" autocomplete="off"></div>
       <div class="field"><label for="rsP">Project</label><select class="select" id="rsP">${ps.map(p => `<option value="${esc(p.id)}" ${String(p.id) === String(repo.projectId) ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></div>
-      <div class="field"><label for="rsL">Main language</label><select class="select" id="rsL">${[...new Set([repo.lang, ...LANGS].filter(Boolean))].map(x => `<option ${x === repo.lang ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div>
+    </div>
+    <div class="grid" style="grid-template-columns:2fr 1fr">
+      <div class="field"><label for="rsG">Git URL <span class="t3">(optional, needed for Scan now and daily scans)</span></label><input class="input mono" id="rsG" value="${esc(repo.gitUrl || '')}" placeholder="https://gitlab.example.com/group/repo.git" autocomplete="off"></div>
       <div class="field"><label for="rsB">Main branch</label><input class="input mono" id="rsB" value="${esc(repo.branch || 'main')}" autocomplete="off"></div>
     </div>
-    <div class="field"><label for="rsG">Git URL <span class="t3">(optional, used for scans run by the server)</span></label><input class="input mono" id="rsG" value="${esc(repo.gitUrl || '')}" placeholder="https://gitlab.example.com/group/repo.git" autocomplete="off"></div>
+    <p class="hint" style="margin:-8px 0 0">For a private repo, put a read-only access token in the URL, e.g. <code>https://oauth2:&lt;token&gt;@gitlab.example.com/group/repo.git</code></p>
     <div class="field"><label for="rsS">Automatic scan</label><select class="select" id="rsS"><option value="none" ${repo.schedule !== 'daily' ? 'selected' : ''}>None (scan from CI or manually)</option><option value="daily" ${repo.schedule === 'daily' ? 'selected' : ''}>Daily, at the time set in Settings (requires Git URL)</option></select></div>
     <div class="field"><span class="lbl">Scanners</span>
       <div class="seg" id="rsMode" style="align-self:flex-start"><button type="button" data-mode="all" class="${all ? 'on' : ''}">All installed</button><button type="button" data-mode="pick" class="${all ? '' : 'on'}">Choose</button></div>
@@ -1544,7 +1715,7 @@ async function repoSettingsModal(repo) {
     const g = $('#rsG').value.trim(), sch = $('#rsS').value;
     if (sch === 'daily' && !g) return 'Daily automatic scans need a Git URL';
     if (!all && !sel.size) return 'Choose at least 1 scanner';
-    await api('PATCH', `/api/repos/${enc(repo.id)}`, { name: n, projectId: $('#rsP').value, lang: $('#rsL').value, branch: $('#rsB').value.trim() || 'main', gitUrl: g || null, schedule: sch, tools: all ? null : [...sel] });
+    await api('PATCH', `/api/repos/${enc(repo.id)}`, { name: n, projectId: $('#rsP').value, branch: $('#rsB').value.trim() || 'main', gitUrl: g || null, schedule: sch, tools: all ? null : [...sel] });
     S.projects = null;
     setTimeout(() => { render(); toast('Repo settings saved'); }, 0);
   }, {
@@ -1751,20 +1922,29 @@ function pickerHtml(prefix, sel) {
     ${sel ? `<div class="picker-sel small">Selected <span class="mono">${esc(sel.fullName)}</span></div>` : ''}
   </div>`;
 }
-function bindPicker(prefix, integrationId, onPick, selName) {
+function bindPicker(prefix, integrationId, onPick, selName, opts = {}) {
   const list = $('#' + prefix + 'List'), q = $('#' + prefix + 'Q'); if (!list || !q) return;
-  let t = null, seq = 0, items = [];
+  let t = null, seq = 0, items = [], hi = 0;
+  const mark = () => $$('[data-pi]', list).forEach(b => { const on = +b.dataset.pi === hi; b.classList.toggle('hi', on); if (on) { q.setAttribute('aria-activedescendant', b.id); b.scrollIntoView({ block: 'nearest' }); } });
+  q.setAttribute('role', 'combobox'); q.setAttribute('aria-controls', prefix + 'List'); q.setAttribute('aria-expanded', 'true');
+  q.onkeydown = e => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!items.length) return; hi = (hi + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length; mark(); }
+    else if (e.key === 'Enter') { e.preventDefault(); const r = items[hi]; if (r) { selName = r.fullName; onPick(r); } }
+  };
   const show = () => {
-    list.innerHTML = items.length ? items.map((r, i) => `<button type="button" class="picker-item ${r.fullName === selName ? 'on' : ''}" data-pi="${i}" role="option" aria-selected="${r.fullName === selName}"><span class="mono">${esc(r.fullName)}</span><span class="small t3">${r.private ? '<i data-lucide="lock"></i>' : ''}${esc(r.defaultBranch || '')}</span></button>`).join('') : '<div class="picker-msg small t3">No repos found</div>';
+    if (hi >= items.length) hi = 0;
+    list.innerHTML = items.length ? items.map((r, i) => `<button type="button" id="${prefix}Opt${i}" tabindex="-1" class="picker-item ${r.fullName === selName ? 'on' : ''}" data-pi="${i}" role="option" aria-selected="${r.fullName === selName}"><span class="mono">${esc(r.fullName)}</span><span class="small t3">${r.private ? '<i data-lucide="lock"></i>' : ''}${esc(r.defaultBranch || '')}</span></button>`).join('') : '<div class="picker-msg small t3">No repos found</div>';
     icons();
     $$('[data-pi]', list).forEach(b => b.onclick = () => { const r = items[+b.dataset.pi]; selName = r.fullName; show(); onPick(r); });
+    mark();
   };
   const run = async () => {
     const my = ++seq; list.innerHTML = '<div class="picker-msg small t3"><i data-lucide="loader" class="spin"></i> Searching</div>'; icons();
     try { const r = await api('GET', `/api/integrations/${enc(integrationId)}/repos?q=${enc(q.value.trim())}`); if (my !== seq) return; items = r || []; show(); }
     catch (e) { if (my !== seq || e.handled) return; list.innerHTML = `<div class="picker-msg small neg">${esc(e.message)}</div>`; }
   };
-  q.oninput = () => { clearTimeout(t); t = setTimeout(run, 300); };
+  q.oninput = () => { clearTimeout(t); hi = 0; t = setTimeout(run, 300); };
+  if (opts.focus) q.focus();
   if (selName && !q.value) q.value = String(selName).split('/').pop();
   run();
 }
@@ -1827,7 +2007,7 @@ function bindAuto(ctx) {
     if (!A.remote) return;
     A.running = true; A.result = null; render();
     try {
-      A.result = await api('POST', `/api/repos/${enc(repo.id)}/auto-setup`, { integrationId: conn.id, remoteRepo: A.remote.fullName, branch: A.remote.defaultBranch || undefined, gate: normGate(repo.gate), tools: S.ci.tools ? [...S.ci.tools] : null, mode: A.mode });
+      A.result = await api('POST', `/api/repos/${enc(repo.id)}/auto-setup`, { integrationId: conn.id, remoteRepo: A.remote.fullName, branch: A.remote.defaultBranch || undefined, gate: normGate(repo.gate), mode: A.mode });
     } catch (e) {
       if (e.handled) return;
       A.result = (e.data && e.data.steps) ? { ok: false, ...e.data } : { ok: false, steps: [{ key: 'token', ok: false, message: e.message }] };
@@ -1911,6 +2091,33 @@ function bindRefsPicker(repo) {
   };
 }
 
+/* ---------- scanners a repo runs (stored in ScanHub, used when the pipeline does not set SCANHUB_TOOLS) ---------- */
+function scannerIds(repo, installed) {
+  const ids = installed ? installed.map(t => t.id) : [];
+  for (const t of repo.tools || []) if (!ids.includes(t)) ids.push(t);
+  return ids;
+}
+function scannerPicker(repo, installed) {
+  const ids = scannerIds(repo, installed), m = has('manage');
+  if (!ids.length) return '<p class="hint" style="margin:0">Scans with every scanner that is enabled in Settings</p>';
+  const on = t => (repo.tools ? repo.tools.includes(t) : true);
+  return `<div class="toolchips" id="ciTools">${ids.map(t => `<button type="button" class="tchip ${on(t) ? 'is-on' : ''}" data-ct="${esc(t)}" aria-pressed="${on(t)}" ${m ? '' : 'disabled'}><span class="check"><i data-lucide="check"></i></span>${esc(toolName(t))}</button>`).join('')}</div>
+    <p class="hint" style="margin:8px 0 0;max-width:720px">${m ? 'Saved in ScanHub as soon as you click and applies to the next scan, without editing the pipeline' : 'An admin or maintainer can change this on this page'} · ${repo.tools ? 'only the selected scanners run' : 'every enabled scanner runs, including ones enabled later'} · to override in a pipeline, set <code>SCANHUB_TOOLS=trivy,gitleaks</code></p>`;
+}
+function bindScannerPicker(repo, installed) {
+  if (!has('manage')) return;
+  const ids = scannerIds(repo, installed);
+  $$('[data-ct]').forEach(b => b.onclick = async () => {
+    const s = new Set(repo.tools || ids), t = b.dataset.ct;
+    s.has(t) ? s.delete(t) : s.add(t);
+    if (!s.size) return toast('Keep at least one scanner');
+    const tools = ids.every(x => s.has(x)) ? null : ids.filter(x => s.has(x));
+    $$('[data-ct]').forEach(x => x.disabled = true);
+    try { const r = await api('PATCH', `/api/repos/${enc(repo.id)}`, { tools }); S.projects = null; toast('Saved · scanning with ' + (r.tools ? r.tools.map(toolShort).join(', ') : 'every enabled scanner')); render(); }
+    catch (e) { toastErr(e); $$('[data-ct]').forEach(x => x.disabled = false); }
+  });
+}
+
 /* ---------- connect ---------- */
 const CI = [
   ['github', 'GitHub Actions', '.github/workflows/scanhub.yml', 'github'],
@@ -1928,7 +2135,8 @@ const CI_SECRET = {
   bitbucket: 'Repository settings › Repository variables (tick Secured)',
   cli: 'export locally, or store it in a password manager'
 };
-const ciTools = () => (S.ci.tools ? `&tools=${[...S.ci.tools].join(',')}` : '');
+// Scanners come from the repo settings in ScanHub; a pipeline may override them with SCANHUB_TOOLS
+const CI_TOOLS = '${SCANHUB_TOOLS:+&tools=$SCANHUB_TOOLS}';
 // Each CI sets KIND (branch | tag | pr), REF and BASE (target branch of a PR).
 const DETECT = {
   github: [
@@ -1963,10 +2171,11 @@ const curlCmd = (ind, kind, sha) => [
   'case "$D" in skip*) echo "$D"; exit 0;; esac',
   '# The summary always shows in the log; pass or fail follows the setting in ScanHub',
   'rc=0',
+  '# Scanners are chosen in ScanHub. To override here, set SCANHUB_TOOLS=trivy,gitleaks',
   `tar --exclude=.git -czf - . | curl --fail-with-body -sS -X POST -T - \\`,
   `  -H "Authorization: Bearer $SCANHUB_TOKEN" \\`,
   `  -H "Content-Type: application/gzip" -H "Accept: text/plain" \\`,
-  `  -o scanhub.txt "$SCANHUB_URL/api/v1/scan?$Q&commit=${sha}&wait=1${ciTools()}" || rc=$?`,
+  `  -o scanhub.txt "$SCANHUB_URL/api/v1/scan?$Q&commit=${sha}&wait=1${CI_TOOLS}" || rc=$?`,
   'cat scanhub.txt 2>/dev/null || true',
   'exit $rc'
 ].map(l => ind + l).join('\n');
@@ -2101,7 +2310,7 @@ async function loadConnect(id) {
   const repo = await api('GET', `/api/repos/${enc(id)}`);
   let installed = null;
   if (has('viewSettings')) { try { installed = (await api('GET', '/api/tools')).filter(t => t.installed); } catch (e) { if (e.handled) throw e; } }
-  if (S.ci.repo !== String(repo.id)) { S.ci.repo = String(repo.id); S.ci.tools = null; S.ci.toolsOpen = false; S.alt = { reports: false, git: !!repo.gitUrl }; S.auto = { integrationId: null, remote: null, mode: 'pr', running: false, result: null, redo: false }; }
+  if (S.ci.repo !== String(repo.id)) { S.ci.repo = String(repo.id); S.alt = { reports: false }; S.auto = { integrationId: null, remote: null, mode: 'pr', running: false, result: null, redo: false }; }
   const pf = S.autoPrefill; if (pf && pf.repoId === String(repo.id)) { S.auto.integrationId = pf.integrationId; S.auto.remote = pf.remote; S.autoPrefill = null; }
   const integrations = has('manage') ? await loadIntegrations() : null;
   return { repo, installed, integrations };
@@ -2111,17 +2320,12 @@ function viewConnect(ctx) {
   const cur = CI.find(c => c[0] === S.ci.tab) || CI[0];
   const fresh = S.newToken && S.newToken.repoId === String(repo.id) ? S.newToken.token : null;
   const m = has('manage');
-  const defTools = repo.tools || (installed ? installed.map(t => t.id) : null);
   const step = (n, t, inner) => `<section class="step"><div class="step-n">${n}</div><div class="step-b"><h2>${t}</h2>${inner}</div></section>`;
   const tokBox = fresh
     ? `<div class="tokrow"><input class="input mono" readonly value="${esc(fresh)}" aria-label="Repo token" id="tokVal"><button class="btn btn-primary" id="tokCopy"><i data-lucide="copy"></i>Copy</button></div>
        <div class="note tok-once" style="margin-top:8px"><i data-lucide="triangle-alert"></i><div>Copy it now. It is shown only once; ScanHub stores only a hash. If you lose it, create a new token</div></div>`
     : `<div class="tokrow"><input class="input mono" readonly value="${esc(repo.tokenHint || 'shr_…')}" aria-label="Repo token (hidden)">${m ? '<button class="btn" id="tokNew"><i data-lucide="refresh-cw"></i>New token</button>' : ''}</div>
-       <p class="hint" style="margin:8px 0 0;max-width:720px">token shown in full only once, at creation${m ? ' If you did not keep it, create a new one; the old token stops working immediately' : ' Ask an admin or maintainer for the token'}</p>`;
-  const toolsLine = defTools
-    ? `<p class="small t3" style="margin:12px 0 0">Scan with ${S.ci.tools ? (S.ci.tools.size ? esc([...S.ci.tools].map(toolShort).join(', ')) : '<span class="neg">no scanners selected</span>') : `the repo scanners${defTools.length ? ' (' + esc(defTools.map(toolShort).join(', ')) + ')' : ''}`} · <button class="linkbtn" id="toolsTog">${S.ci.toolsOpen ? 'Hide' : 'Choose specific ones'}</button>${S.ci.tools ? ' · <button class="linkbtn" id="toolsReset">Use repo default</button>' : ''}</p>
-       <div class="toolchips" ${S.ci.toolsOpen ? '' : 'hidden'}>${defTools.map(t => { const on = S.ci.tools ? S.ci.tools.has(t) : true; return `<button class="tchip ${on ? 'is-on' : ''}" data-ct="${esc(t)}" aria-pressed="${on}"><span class="check"><i data-lucide="check"></i></span>${esc(toolName(t))}</button>`; }).join('')}</div>`
-    : '<p class="small t3" style="margin:12px 0 0">Scans with the scanners configured for the repo</p>';
+       <p class="hint" style="margin:8px 0 0;max-width:720px">The token is shown in full only once, when it is created.${m ? ' If you did not keep it, create a new one; the old token stops working immediately' : ' Ask an admin or maintainer for the token'}</p>`;
   return shell(`${repoHead(repo, null, 'Connect CI')}
     <p class="t2" style="margin:-8px 0 32px;max-width:720px">Set this up once. After that, every push sends code to ScanHub to scan with the installed scanners, and results are stored under repo <b>${esc(repo.name)}</b>. No need to install scanners in CI yourself</p>
     ${(() => { const a = autoCard(ctx); return a ? a + '<h2 class="manual-h">Or set up manually</h2>' : ''; })()}
@@ -2131,31 +2335,23 @@ function viewConnect(ctx) {
       ${step(3, S.ci.tab === 'cli' ? 'Run this command' : 'Add this code to your pipeline', `
         <div class="field" style="margin-bottom:16px"><span class="lbl">Branch and tags to scan</span>${refsPicker(repo)}</div>
         <div class="field" style="margin-bottom:16px"><span class="lbl">Effect on pipeline</span>${gatePicker(repo.gate)}</div>
+        <div class="field" style="margin-bottom:16px"><span class="lbl">Scanners</span>${scannerPicker(repo, installed)}</div>
         <div class="code"><div class="code-bar"><span>${esc(cur[2])}</span><button class="btn btn-sm btn-ghost" id="copySnip"><i data-lucide="copy"></i>Copy</button></div><pre id="snip">${hlCode(snippet(S.ci.tab, repo))}</pre></div>
-        ${toolsLine}`)}
+`)}
     </div>
     <div class="alt"><button class="linkbtn" data-alt="reports"><i data-lucide="${S.alt.reports ? 'chevron-down' : 'chevron-right'}"></i>Upload results from scanners already running in CI</button></div>
     <section class="card card-pad gitbox" ${S.alt.reports ? '' : 'hidden'}>
       <p class="t2" style="margin:0 0 16px">If your pipeline already runs scanners, upload the JSON file from each and they are merged into one scan. Supported: <code>trivy</code> <code>semgrep</code> <code>gitleaks</code> <code>grype</code> <code>checkov</code> <code>dependency-check</code> <code>sonarqube-issues</code> and <code>sarif</code></p>
       <div class="code wide"><div class="code-bar"><span>POST /api/v1/reports</span><button class="btn btn-sm btn-ghost" id="copyRep"><i data-lucide="copy"></i>Copy</button></div><pre>${hlCode(reportsSnippet())}</pre></div>
     </section>
-    <div class="alt"><button class="linkbtn" data-alt="git"><i data-lucide="${S.alt.git ? 'chevron-down' : 'chevron-right'}"></i>Or let ScanHub pull from a Git URL</button></div>
-    <section class="card card-pad gitbox" ${S.alt.git ? '' : 'hidden'}>
-      <p class="t2" style="margin:0 0 16px">No pipeline changes. Good for repos without CI: ScanHub clones the latest branch and scans it on schedule or when you click Scan now</p>
-      <div class="grid" style="grid-template-columns:2fr 1fr">
-        <div class="field"><label for="gu">Git URL</label><input class="input mono" id="gu" value="${esc(repo.gitUrl || '')}" placeholder="https://gitlab.example.com/group/${esc(repo.name)}.git" ${m ? '' : 'readonly'}></div>
-        <div class="field"><label for="gb">Branch</label><input class="input mono" id="gb" value="${esc(repo.branch || 'main')}" ${m ? '' : 'readonly'}></div>
-        <div class="field"><label for="gs">Automatic scan</label><select class="select" id="gs" ${m ? '' : 'disabled'}><option value="daily" ${repo.schedule === 'daily' ? 'selected' : ''}>Daily, at the time set in Settings</option><option value="none" ${repo.schedule !== 'daily' ? 'selected' : ''}>Manual only</option></select></div>
-      </div>
-      <p class="hint" style="margin:12px 0 0">For private repos, put a read-only access token in the URL, e.g. <code>https://oauth2:&lt;token&gt;@gitlab.example.com/group/repo.git</code></p>
-      ${m || has('scan') ? `<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">${has('scan') ? `<button class="btn" id="gScan" ${repo.gitUrl ? '' : 'disabled'}><i data-lucide="play"></i>Scan now</button>` : ''}${m ? '<button class="btn btn-primary" id="gSave">Save</button>' : ''}</div>` : ''}
-    </section>`);
+    <p class="small t3 alt" style="margin-top:16px">${repo.gitUrl ? `Without CI, ScanHub can also scan this repo from its Git URL${repo.schedule === 'daily' ? ' (daily)' : ''}. Git URL, branch, schedule and scanners live in repo settings.` : 'No CI? Add a Git URL in repo settings and ScanHub can scan the repo itself, on demand or daily.'} ${m ? '<button class="linkbtn" id="ciRepoSet">Open repo settings</button>' : ''}</p>`);
 }
 function bindConnect(ctx) {
   const { repo } = ctx;
   bindAuto(ctx);
   bindGatePickers(repo);
   bindRefsPicker(repo);
+  bindScannerPicker(repo, ctx.installed);
   const reSnip = () => { $('#snip').innerHTML = hlCode(snippet(S.ci.tab, repo)); };
   $$('[data-ci]').forEach(b => b.onclick = () => { S.ci.tab = b.dataset.ci; store.set('ciTab', S.ci.tab); render(); });
   const tc = $('#tokCopy'); if (tc) tc.onclick = () => copy(S.newToken.token);
@@ -2166,28 +2362,8 @@ function bindConnect(ctx) {
   };
   $('#copySnip').onclick = () => copy(snippet(S.ci.tab, repo));
   const cr = $('#copyRep'); if (cr) cr.onclick = () => copy(reportsSnippet());
-  const tt = $('#toolsTog'); if (tt) tt.onclick = () => { S.ci.toolsOpen = !S.ci.toolsOpen; render(); };
-  const tr = $('#toolsReset'); if (tr) tr.onclick = () => { S.ci.tools = null; render(); };
-  const defTools = repo.tools || (ctx.installed ? ctx.installed.map(t => t.id) : []);
-  $$('[data-ct]').forEach(b => b.onclick = () => {
-    const t = b.dataset.ct; const s = S.ci.tools ? new Set(S.ci.tools) : new Set(defTools);
-    s.has(t) ? s.delete(t) : s.add(t);
-    S.ci.tools = defTools.length === s.size && defTools.every(x => s.has(x)) ? null : new Set(defTools.filter(x => s.has(x)));
-    render();
-  });
   $$('[data-alt]').forEach(b => b.onclick = () => { S.alt[b.dataset.alt] = !S.alt[b.dataset.alt]; render(); });
-  const gs = $('#gSave'); if (gs) gs.onclick = async () => {
-    const g = $('#gu').value.trim(), sch = $('#gs').value;
-    if (sch === 'daily' && !g) return toast('Daily automatic scans need a Git URL', 'err');
-    gs.disabled = true;
-    try { await api('PATCH', `/api/repos/${enc(repo.id)}`, { gitUrl: g || null, branch: $('#gb').value.trim() || 'main', schedule: sch }); S.projects = null; toast('Saved'); render(); }
-    catch (e) { toastErr(e); gs.disabled = false; }
-  };
-  const gsc = $('#gScan'); if (gsc) gsc.onclick = async () => {
-    gsc.disabled = true;
-    try { await api('POST', `/api/repos/${enc(repo.id)}/scan`, { branch: repo.branch }); toast('Scan queued'); S.projects = null; go('#repo/' + enc(repo.id)); }
-    catch (e) { toastErr(e); gsc.disabled = false; }
-  };
+  const crs = $('#ciRepoSet'); if (crs) crs.onclick = () => repoSettingsModal(repo);
 }
 
 /* ---------- settings ---------- */
@@ -2260,7 +2436,7 @@ function viewSettings(ctx) {
       <div class="card card-pad">
         <div id="secSonar" class="conn-h"><div class="lbl2">SonarQube server</div>${sEnv ? ENV_LOCK : '<span class="hint">or set <code>SONAR_URL</code> and <code>SONAR_TOKEN</code> in docker-compose.yml</span>'}</div>
         <div class="grid" style="grid-template-columns:1fr 1fr">
-          <div class="field"><label for="cSu">URL</label><input class="input mono" id="cSu" value="${esc(so.url || '')}" placeholder="https://sonarqube.example.com" ${sEnv ? 'readonly' : dis}><span class="hint">server you already have. ScanHub runs sonar-scanner and pulls results from it</span></div>
+          <div class="field"><label for="cSu">URL</label><input class="input mono" id="cSu" value="${esc(so.url || '')}" placeholder="https://sonarqube.example.com" ${sEnv ? 'readonly' : dis}><span class="hint" id="sonarStatus">${so.auto && so.status && so.status.message ? `<span class="${so.status.state === 'ready' || so.status.state === 'connected' ? 'pos' : so.status.state === 'error' ? 'neg' : 't2'}">${esc(so.status.message)}</span>` : 'A server you already have. ScanHub runs sonar-scanner and pulls results from it'}</span></div>
           <div class="field"><label for="cSt">Token</label><input class="input mono" id="cSt" type="password" autocomplete="new-password" placeholder="${sEnv ? 'Set from env' : so.tokenSet ? 'Set · leave blank to keep' : 'squ_…'}" ${sEnv ? 'readonly' : dis}><span class="hint">Use a token that can create projects and submit analyses${so.tokenSet && e && !sEnv ? ' · <button class="linkbtn" data-clear="sonar">Clear token</button>' : ''}</span></div>
         </div>
         <div class="conn-h" style="margin-top:24px;padding-top:20px;border-top:1px solid var(--line)"><div class="lbl2">NVD API key</div>${nEnv ? ENV_LOCK : '<span class="hint">Optional · or set <code>NVD_API_KEY</code> in docker-compose.yml</span>'}</div>
@@ -2388,6 +2564,7 @@ function bindSettings(ctx) {
   bindToolActions(ctx);
   if (ctx.integrations) bindGit(ctx);
   if (S.gotoGit) { S.gotoGit = false; const g = $('#secGit'); if (g) setTimeout(() => g.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); }
+  if (S.gotoSec) { const g = $('#' + S.gotoSec); S.gotoSec = null; if (g) setTimeout(() => g.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50); }
   if (ctx.tools.some(busyTool)) poll(() => refreshTools(ctx), 2000);
   if (!has('editSettings')) return;
   bindSemgrep(ctx);
