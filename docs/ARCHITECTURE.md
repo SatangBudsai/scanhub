@@ -39,6 +39,8 @@ Dockerfile (single image: server + PostgreSQL + scanners), docker/entrypoint.sh,
 | `GITHUB_TOKEN` | | optional, avoids GitHub API rate limit when installing tools |
 | `NVD_API_KEY` | | optional, makes OWASP Dependency-Check DB download usable |
 | `SONAR_URL`, `SONAR_TOKEN` | | optional defaults for the existing SonarQube server (settings page can override) |
+| `SEMGREP_RULES` | | optional Semgrep `--config` value (registry id, URL or path). Set = read-only in settings |
+| `SEMGREP_RULES_LICENSE_ACCEPTED` | | `true` accepts the Semgrep Rules License; required when `SEMGREP_RULES` is a registry id (`p/…`, `r/…`, `auto`) |
 
 On every start the server upserts the env admin: username from env, password hash from env, role `ADMIN`, active, `from_env=1`, `must_change=0`. If the env username changed, the previous env admin row gets `from_env=0` and is disabled. The env admin cannot be edited, disabled or have its password changed from the UI.
 
@@ -104,8 +106,14 @@ All JSON. Errors: `{ "error": "message" }` with 4xx/5xx. Session cookie `sh_sess
 - `GET /api/tools/log` -> `[{at, tool, action, ok, message}]` newest first, max 100
 
 ### Settings (GET: ADMIN+SA, PUT: ADMIN)
-- `GET /api/settings` -> `{serverUrl, retentionDays, schedule:{enabled, time, updateDb}, scanTime, sonar:{url, tokenSet}, nvdKeySet, lastUpdateRun:{at, ok, summary} | null, timezone}`
-- `PUT /api/settings` partial of `{serverUrl, retentionDays, schedule, scanTime, sonar:{url, token}, nvdApiKey}` -> same shape as GET. Empty string token keeps the old one; `null` clears it.
+- `GET /api/settings` -> `{serverUrl, retentionDays, schedule:{enabled, time, updateDb}, scanTime, sonar:{url, tokenSet}, nvdKeySet, semgrep, lastUpdateRun:{at, ok, summary} | null, timezone}`
+- `PUT /api/settings` partial of `{serverUrl, retentionDays, schedule, scanTime, sonar:{url, token}, nvdApiKey, semgrep:{mode, custom, acceptLicense}}` -> same shape as GET. Empty string token keeps the old one; `null` clears it.
+- `semgrep` = `{mode: "registry"|"custom"|null, custom, rules: <--config value> | null, note, licenseAccepted, acceptedBy, acceptedAt, fromEnv, envRules}`. Registry mode (`p/default`) needs the Semgrep Rules License accepted (`acceptLicense: true` stores who and when in the `semgrepLicense` setting; `false` withdraws it). Custom mode needs a non-empty value; a registry id there (`p/…`, `r/…`, `auto`) also needs the license. While `rules` is null, scans record Semgrep as `skipped` with `note` ("Semgrep skipped: choose a rules source in Settings") and `GET /api/tools` reports semgrep `configured=false`. Nothing is accepted automatically, including on upgrade. `SEMGREP_RULES` (+ `SEMGREP_RULES_LICENSE_ACCEPTED`) from env wins and makes this read-only.
+- `POST /api/setup` also takes optional `semgrep` (same shape) from the first-run wizard's license checkbox.
+
+### About (ADMIN+SA)
+- `GET /api/about` -> `{name, version, license | null, scanners:[{id, name, desc, component, spdx, url, licenseUrl, note?, noteUrl?}], runtime:[{name, version, license, url, licenseUrl}], notices, trademark}`. Scanner licenses come from `license` on each catalog item; npm licenses are read from `node_modules/<pkg>/package.json` at runtime.
+- `GET /api/about/notices` -> `THIRD_PARTY_NOTICES.md` as text (copied to `/app/THIRD_PARTY_NOTICES.md` in the image).
 
 ### Projects and repos
 - `GET /api/projects` -> `[{id, name, repos:[repoSummary]}]`
@@ -194,7 +202,7 @@ Scanners: the setup wizard and settings *enable / disable* tools (instant, works
 
 ### One-file setup
 
-`docker-compose.yml` is the only file a user edits. It has a single `scanhub` service (`image: ghcr.io/satangbudsai/scanhub:latest`, built and pushed by `.github/workflows/image.yml` for linux/amd64 and linux/arm64; `docker-compose.build.yml` builds it locally as `scanhub:latest` instead), one named volume for `/data`, port 8080, `restart: unless-stopped`, and every setting written inline under `environment:` with a short English comment each. Required lines are at the top (`SCANHUB_ADMIN_USER`, `SCANHUB_ADMIN_PASSWORD`, `SCANHUB_URL`); every optional one is present but commented out (`DATABASE_URL`, `SONAR_URL`, `SONAR_TOKEN`, `NVD_API_KEY`, `GITHUB_TOKEN`, `GITHUB_API_URL`, `GITLAB_URL`, `GITLAB_TOKEN`, `TZ`, `SCAN_CONCURRENCY`, `MAX_UPLOAD_MB`). No `.env` file is needed (a `.env` still works through normal compose variable substitution). `docker compose up -d` is the whole install. Running without compose: `docker run -d -p 8080:8080 -e SCANHUB_ADMIN_PASSWORD=... -e SCANHUB_URL=... -v scanhub-data:/data scanhub`.
+`docker-compose.yml` is the only file a user edits. It has a single `scanhub` service (`image: ghcr.io/satangbudsai/scanhub:latest`, built and pushed by `.github/workflows/image.yml` for linux/amd64 and linux/arm64; `docker-compose.build.yml` builds it locally as `scanhub:latest` instead), one named volume for `/data`, port 8080, `restart: unless-stopped`, and every setting written inline under `environment:` with a short English comment each. Required lines are at the top (`SCANHUB_ADMIN_USER`, `SCANHUB_ADMIN_PASSWORD`, `SCANHUB_URL`); every optional one is present but commented out (`DATABASE_URL`, `SONAR_URL`, `SONAR_TOKEN`, `SEMGREP_RULES`, `SEMGREP_RULES_LICENSE_ACCEPTED`, `NVD_API_KEY`, `GITHUB_TOKEN`, `GITHUB_API_URL`, `GITLAB_URL`, `GITLAB_TOKEN`, `TZ`, `SCAN_CONCURRENCY`, `MAX_UPLOAD_MB`). No `.env` file is needed (a `.env` still works through normal compose variable substitution). `docker compose up -d` is the whole install. Running without compose: `docker run -d -p 8080:8080 -e SCANHUB_ADMIN_PASSWORD=... -e SCANHUB_URL=... -v scanhub-data:/data scanhub`.
 
 ## Git providers and one-click CI setup
 
@@ -226,7 +234,7 @@ Connections to GitHub (github.com or Enterprise) and GitLab (gitlab.com or self-
 
 ### Tool commands (inside the container)
 - trivy: `trivy fs --scanners vuln,secret,misconfig --format json --output out.json --cache-dir $DATA/cache/trivy <src>`
-- semgrep: `semgrep scan --config p/default --json --output out.json --metrics off <src>` (venv)
+- semgrep: `semgrep scan --config <rules> --json --output out.json --metrics off <src>` (venv)
 - gitleaks: `gitleaks dir <src> --report-format json --report-path out.json --exit-code 0`
 - grype: `grype dir:<src> -o json --file out.json` (`GRYPE_DB_CACHE_DIR=$DATA/cache/grype`)
 - checkov: `checkov -d <src> -o json --quiet --compact --soft-fail` (stdout, venv)

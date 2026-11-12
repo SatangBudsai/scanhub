@@ -580,6 +580,14 @@ details.perm[open] summary svg{transform:rotate(90deg)}
 .tool-row.is-off .nm,.tool-row.is-off .small.t2{color:var(--t3)}
 .sec-note{margin:-4px 0 12px 4px;max-width:720px}
 .conn-h{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.chk{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:20px;cursor:pointer}
+.chk input{width:16px;height:16px;margin:2px 0 0;accent-color:var(--acc);flex:none}
+.chk.is-dis{color:var(--t3);cursor:not-allowed}
+.sg-modes{display:grid;gap:10px;margin:16px 0 0}
+.sg-lic{padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--sunk)}
+.lic-table td{vertical-align:top}
+.lic-table td.mono{white-space:nowrap}
+.lic-table .ds{color:var(--t2);font-size:13px}
 .setup-h{font-size:20px;line-height:28px;font-weight:500;margin:0}
 .done-row{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:12px;align-items:center;min-height:48px;padding:8px 20px}
 .done-row+.done-row{border-top:1px solid var(--line)}
@@ -1044,7 +1052,7 @@ function bindWaiting() {
 
 /* ---------- setup ---------- */
 // Scanners ship inside the image, so setup only picks which ones are enabled
-const W = { step: 1, pick: null, sched: { enabled: true, time: '03:00', updateDb: true }, posted: false, catalog: null, tools: null };
+const W = { step: 1, pick: null, sched: { enabled: true, time: '03:00', updateDb: true }, posted: false, catalog: null, tools: null, sgAccept: false };
 async function loadSetup() {
   if (!W.catalog) {
     const r = await api('GET', '/api/setup');
@@ -1060,7 +1068,9 @@ function viewSetup() {
   if (W.step === 1) body = `
     <h2 class="setup-h">Choose scanners to enable</h2>
     <p class="t2" style="margin:4px 0 20px">All scanners ship with the image, so they work right away with no download. Results from every scanner are merged into one list per scan. You can turn them on or off later in Settings</p>
-    <div class="toolpick">${W.catalog.map(t => `<button class="tp ${W.pick.has(t.id) ? 'is-on' : ''}" data-pick="${esc(t.id)}" aria-pressed="${W.pick.has(t.id)}"><span class="check"><i data-lucide="check"></i></span><span><span class="nm">${esc(t.name)}</span><div class="ds">${esc(t.desc)}</div>${t.needsConfig ? '<div class="small t3" style="margin-top:4px">Needs a SonarQube server. Set its URL and token in Settings or in .env</div>' : ''}</span></button>`).join('')}</div>`;
+    <div class="toolpick">${W.catalog.map(t => `<button class="tp ${W.pick.has(t.id) ? 'is-on' : ''}" data-pick="${esc(t.id)}" aria-pressed="${W.pick.has(t.id)}"><span class="check"><i data-lucide="check"></i></span><span><span class="nm">${esc(t.name)}</span><div class="ds">${esc(t.desc)}</div>${t.needsConfig ? '<div class="small t3" style="margin-top:4px">Needs a SonarQube server. Set its URL and token in Settings or in docker-compose.yml</div>' : ''}</span></button>`).join('')}</div>
+    ${W.pick.has('semgrep') ? `<div class="sg-lic" id="wSg" style="margin-top:16px"><label class="chk"><input type="checkbox" id="wSgAcc" ${W.sgAccept ? 'checked' : ''}><span>I accept the ${sgLicLink()} (internal use only) and want Semgrep to use the Semgrep Registry rules (<code>p/default</code>)</span></label>
+      <div class="small t3" style="margin:6px 0 0 26px">Semgrep rules from the registry may be used only for your own internal business purposes. Leave this unticked to choose later: Semgrep stays on but is skipped in scans until you accept the license or set custom rules in Settings</div></div>` : ''}`;
   if (W.step === 2) body = `
     <h2 class="setup-h">Auto-update scanners</h2>
     <p class="t2" style="margin:4px 0 20px">ScanHub installs the latest scanner versions and updates vulnerability databases daily, so scans always use the latest CVE data</p>
@@ -1092,6 +1102,7 @@ function doneRows() {
     const t = (W.tools || []).find(x => x.id === id) || { id, name: toolName(id) };
     const st = busyTool(t) ? `<span class="t2"><i data-lucide="loader" class="spin" style="width:12px;height:12px;vertical-align:-2px"></i> ${TSTAT[t.status]}</span>`
       : t.status === 'error' ? `<span class="neg">${esc(t.error || 'Error')}</span>`
+      : t.id === 'semgrep' && !t.configured ? '<span class="t3">Skipped until you choose a rules source in Settings</span>'
       : t.needsConfig && !t.configured ? '<span class="t3">Set the SonarQube server URL and token in Settings</span>'
       : '<span class="pos">Ready</span>';
     return `<div class="done-row"><i data-lucide="check" class="pos"></i><span>${esc(t.name || toolName(id))} ${t.version ? `<span class="mono small t3">${esc(t.version)}</span>` : ''}</span><span class="small">${st}</span></div>`;
@@ -1099,6 +1110,7 @@ function doneRows() {
 }
 function bindSetup() {
   $$('[data-pick]').forEach(b => b.onclick = () => { const id = b.dataset.pick; W.pick.has(id) ? W.pick.delete(id) : W.pick.add(id); render(); });
+  const sga = $('#wSgAcc'); if (sga) sga.onchange = () => { W.sgAccept = sga.checked; };
   const on = $('#wOn'); if (on) on.onclick = () => { W.sched.enabled = !W.sched.enabled; on.setAttribute('aria-checked', W.sched.enabled); };
   const db = $('#wDb'); if (db) db.onclick = () => { W.sched.updateDb = !W.sched.updateDb; db.setAttribute('aria-checked', W.sched.updateDb); };
   const tm = $('#wTime'); if (tm) tm.onchange = () => W.sched.time = tm.value || '03:00';
@@ -1107,7 +1119,9 @@ function bindSetup() {
     if (W.step === 1) { W.step = 2; return render(); }
     nx.disabled = true;
     try {
-      await api('POST', '/api/setup', { tools: [...W.pick], schedule: { ...W.sched } });
+      const body = { tools: [...W.pick], schedule: { ...W.sched } };
+      if (W.pick.has('semgrep') && W.sgAccept) body.semgrep = { mode: 'registry', acceptLicense: true };
+      await api('POST', '/api/setup', body);
       W.posted = true; S.setupDone = true; W.step = 3; render();
     } catch (e) { errMsg('#werr', e.message); nx.disabled = false; }
   };
@@ -2182,9 +2196,9 @@ const busyTool = t => !!TSTAT[t.status];
 const toolOn = t => t.enabled !== false;
 async function loadSettings() {
   await ensureProjects();
-  const [settings, tools, log] = await Promise.all([api('GET', '/api/settings'), api('GET', '/api/tools'), api('GET', '/api/tools/log').catch(e => { if (e.handled) throw e; return []; })]);
+  const [settings, tools, log, about] = await Promise.all([api('GET', '/api/settings'), api('GET', '/api/tools'), api('GET', '/api/tools/log').catch(e => { if (e.handled) throw e; return []; }), api('GET', '/api/about').catch(e => { if (e.handled) throw e; return null; })]);
   const integrations = has('editSettings') ? (await loadIntegrations()) || [] : null;
-  return { settings, tools, log, integrations };
+  return { settings, tools, log, integrations, about };
 }
 const enabledText = tools => `${tools.filter(toolOn).length} of ${tools.length} enabled`;
 // Every scanner ships inside the image: rows enable / disable, "update" installs a newer override
@@ -2196,6 +2210,7 @@ function toolsCard(tools) {
     if (busy) st = `<span class="t2"><i data-lucide="loader" class="spin" style="width:12px;height:12px;vertical-align:-2px"></i> ${TSTAT[t.status]}</span>`;
     else if (t.status === 'error') st = `<span class="neg" title="${esc(t.error || '')}">Update failed</span>`;
     else if (!on) st = '<span class="t3">off</span>';
+    else if (t.id === 'semgrep' && !t.configured) st = '<a class="linkacc" href="#settings" data-goto="secSemgrep">Choose a rules source</a>';
     else if (t.needsConfig && !t.configured) st = '<a class="linkacc" href="#settings" data-goto="secSonar">Set the SonarQube server URL and token</a>';
     else st = '<span class="pos">Ready</span>';
     const src = t.source === 'updated'
@@ -2229,6 +2244,7 @@ function viewSettings(ctx) {
       <div class="sec-h"><h2>Scanners</h2><span class="small t3"><span id="instCnt">${enabledText(tools)}</span>${e ? ' · <button class="linkbtn" id="updAll">Update all now</button>' : ''}</span></div>
       <p class="hint sec-note">All scanners ship with the image and can be turned on or off instantly, with no download. Click Update to install a newer version over the bundled one</p>
       ${toolsCard(tools)}
+      ${semgrepCard(st.semgrep || {}, e)}
     </section>
     <section class="sec">
       <div class="sec-h"><h2>Auto-update</h2><span class="small t3">${sc.enabled ? `daily at ${esc(sc.time)}` : 'off'}</span></div>
@@ -2242,12 +2258,12 @@ function viewSettings(ctx) {
     <section class="sec" id="secConn">
       <div class="sec-h"><h2>SonarQube and NVD</h2></div>
       <div class="card card-pad">
-        <div id="secSonar" class="conn-h"><div class="lbl2">SonarQube server</div>${sEnv ? ENV_LOCK : '<span class="hint">or set <code>SONAR_URL</code> and <code>SONAR_TOKEN</code> in .env</span>'}</div>
+        <div id="secSonar" class="conn-h"><div class="lbl2">SonarQube server</div>${sEnv ? ENV_LOCK : '<span class="hint">or set <code>SONAR_URL</code> and <code>SONAR_TOKEN</code> in docker-compose.yml</span>'}</div>
         <div class="grid" style="grid-template-columns:1fr 1fr">
           <div class="field"><label for="cSu">URL</label><input class="input mono" id="cSu" value="${esc(so.url || '')}" placeholder="https://sonarqube.example.com" ${sEnv ? 'readonly' : dis}><span class="hint">server you already have. ScanHub runs sonar-scanner and pulls results from it</span></div>
           <div class="field"><label for="cSt">Token</label><input class="input mono" id="cSt" type="password" autocomplete="new-password" placeholder="${sEnv ? 'Set from env' : so.tokenSet ? 'Set · leave blank to keep' : 'squ_…'}" ${sEnv ? 'readonly' : dis}><span class="hint">Use a token that can create projects and submit analyses${so.tokenSet && e && !sEnv ? ' · <button class="linkbtn" data-clear="sonar">Clear token</button>' : ''}</span></div>
         </div>
-        <div class="conn-h" style="margin-top:24px;padding-top:20px;border-top:1px solid var(--line)"><div class="lbl2">NVD API key</div>${nEnv ? ENV_LOCK : '<span class="hint">Optional · or set <code>NVD_API_KEY</code> in .env</span>'}</div>
+        <div class="conn-h" style="margin-top:24px;padding-top:20px;border-top:1px solid var(--line)"><div class="lbl2">NVD API key</div>${nEnv ? ENV_LOCK : '<span class="hint">Optional · or set <code>NVD_API_KEY</code> in docker-compose.yml</span>'}</div>
         <div class="grid" style="grid-template-columns:1fr 1fr">
           <div class="field"><label for="cNv" class="sr">NVD API key</label><input class="input mono" id="cNv" type="password" autocomplete="new-password" placeholder="${nEnv ? 'Set from env' : st.nvdKeySet ? 'Set · leave blank to keep' : 'Optional'}" ${nEnv ? 'readonly' : dis}><span class="hint">Makes Dependency-Check database downloads much faster. Get one free at nvd.nist.gov${st.nvdKeySet && e && !nEnv ? ' · <button class="linkbtn" data-clear="nvd">Clear key</button>' : ''}</span></div>
         </div>
@@ -2270,10 +2286,77 @@ function viewSettings(ctx) {
         </div>
         ${e ? '<div style="display:flex;justify-content:flex-end;margin-top:20px"><button class="btn btn-primary" id="saveGen">Save</button></div>' : ''}
       </div>
-    </section>`);
+    </section>
+    ${aboutSection(ctx.about)}`);
+}
+const SG_LICENSE_URL = 'https://semgrep.dev/legal/rules-license';
+const sgLicLink = () => `<a class="linkacc" href="${SG_LICENSE_URL}" target="_blank" rel="noopener">Semgrep Rules License</a>`;
+// Semgrep rules source: registry rules need the installer to accept the Semgrep Rules License
+function semgrepCard(sg, e) {
+  const env = !!sg.fromEnv, dis = e && !env ? '' : 'disabled';
+  const status = sg.rules
+    ? `<span class="pos">Scans use <code>${esc(sg.rules)}</code></span>`
+    : `<span class="neg">${esc(sg.note || 'Semgrep skipped: choose a rules source in Settings')}</span>`;
+  const accepted = sg.licenseAccepted && !env ? `<div class="small t3" id="sgAccBy" style="margin:4px 0 0 26px">Accepted${sg.acceptedBy ? ' by ' + esc(sg.acceptedBy) : ''}${sg.acceptedAt ? ' on ' + esc(fmt(sg.acceptedAt)) : ''}</div>` : '';
+  const body = env ? `
+      <div class="field"><label for="sgEnv">SEMGREP_RULES</label><input class="input mono" id="sgEnv" value="${esc(sg.envRules || '')}" readonly><span class="hint">${sg.mode === 'registry' ? (sg.licenseAccepted ? 'Registry ruleset · ' + sgLicLink() + ' accepted with SEMGREP_RULES_LICENSE_ACCEPTED' : 'Registry ruleset · set SEMGREP_RULES_LICENSE_ACCEPTED=true to accept the ' + sgLicLink()) : 'Custom rules'}</span></div>`
+    : `
+      <div class="sg-lic"><label class="chk ${dis ? 'is-dis' : ''}"><input type="checkbox" id="sgAcc" ${sg.licenseAccepted ? 'checked' : ''} ${dis}><span>I accept the ${sgLicLink()} (internal use only)</span></label>${accepted}
+        <div class="small t3" style="margin:6px 0 0 26px">The Semgrep engine is LGPL-2.1. Rules from the Semgrep Registry may be used only for your own internal business purposes and may not be offered to others as a service</div></div>
+      <div class="sg-modes" role="radiogroup" aria-label="Semgrep rules source">
+        <label class="chk ${dis || !sg.licenseAccepted ? 'is-dis' : ''}" id="sgRegL"><input type="radio" name="sgMode" value="registry" ${sg.mode === 'registry' ? 'checked' : ''} ${dis || (sg.licenseAccepted ? '' : 'disabled')}><span>Semgrep Registry rules (<code>p/default</code>)<span class="small t3"> · needs the license above</span></span></label>
+        <label class="chk ${dis ? 'is-dis' : ''}"><input type="radio" name="sgMode" value="custom" ${sg.mode === 'custom' ? 'checked' : ''} ${dis}><span>Custom rules</span></label>
+        <div class="field" style="margin-left:26px"><label for="sgCustom" class="sr">Custom rules</label><input class="input mono" id="sgCustom" value="${esc(sg.custom || '')}" placeholder="/data/rules/semgrep.yml or https://…" ${dis}><span class="hint">Anything <code>semgrep --config</code> accepts: a path inside the container, a URL or a ruleset id</span></div>
+      </div>`;
+  return `<div class="card card-pad" id="secSemgrep" style="margin-top:16px">
+      <div class="conn-h"><div class="lbl2">Semgrep rules</div>${env ? ENV_LOCK : '<span class="hint">or set <code>SEMGREP_RULES</code> in docker-compose.yml</span>'}</div>
+      ${body}
+      <div class="small" id="sgStatus" style="margin-top:12px">${status}</div>
+      ${e && !env ? '<div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-primary" id="saveSg">Save rules</button></div>' : ''}
+    </div>`;
+}
+function bindSemgrep(ctx) {
+  const acc = $('#sgAcc'), save = $('#saveSg'); if (!acc || !save) return;
+  const reg = $('input[name="sgMode"][value="registry"]'), cus = $('input[name="sgMode"][value="custom"]');
+  acc.onchange = () => {
+    reg.disabled = !acc.checked; $('#sgRegL').classList.toggle('is-dis', !acc.checked);
+    if (!acc.checked && reg.checked) reg.checked = false;
+  };
+  $('#sgCustom').oninput = () => { if (!cus.checked) cus.checked = true; };
+  save.onclick = async () => {
+    const m = $('input[name="sgMode"]:checked'), mode = m ? m.value : null, custom = $('#sgCustom').value.trim();
+    if (mode === 'custom' && !custom) return toast('Enter the custom rules for Semgrep', 'err');
+    save.disabled = true;
+    try { ctx.settings = await api('PUT', '/api/settings', { semgrep: { mode, custom, acceptLicense: acc.checked } }); toast('Semgrep rules saved'); render(); }
+    catch (e) { toastErr(e); save.disabled = false; }
+  };
+}
+// About: ScanHub version and license, plus every bundled scanner and runtime component
+function aboutSection(ab) {
+  if (!ab) return '';
+  const lk = (u, t) => u ? `<a class="linkacc" href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>` : esc(t);
+  const short = u => String(u || '').replace(/^https?:\/\//, '').replace(/^github\.com\//, '').replace(/\/$/, '');
+  return `<section class="sec" id="secAbout">
+      <div class="sec-h"><h2>About and licenses</h2></div>
+      <div class="card card-pad">
+        <div class="grid" style="grid-template-columns:1fr 1fr">
+          <div><div class="small t3">Version</div><div class="mono" id="abVer">ScanHub ${esc(ab.version || '')}</div></div>
+          <div><div class="small t3">ScanHub license</div><div id="abLic">${ab.license ? esc(ab.license) : 'No license chosen yet'}</div></div>
+        </div>
+      </div>
+      <h3 class="lbl2" style="margin:24px 0 8px">Bundled scanners</h3>
+      <div class="card table-wrap"><table class="table lic-table" id="licScanners"><thead><tr><th>Scanner</th><th>What it does</th><th>License</th><th>Project</th></tr></thead><tbody>
+        ${(ab.scanners || []).map(t => `<tr><td>${esc(t.component || t.name)}</td><td class="ds">${esc(t.desc || '')}${t.note ? `<div class="small t3" style="margin-top:4px">${t.noteUrl ? lk(t.noteUrl, t.note) : esc(t.note)}</div>` : ''}</td><td class="mono">${lk(t.licenseUrl, t.spdx || '')}</td><td>${lk(t.url, short(t.url))}</td></tr>`).join('')}
+      </tbody></table></div>
+      <h3 class="lbl2" style="margin:24px 0 8px">Runtime components</h3>
+      <div class="card table-wrap"><table class="table lic-table" id="licRuntime"><thead><tr><th>Component</th><th>Version</th><th>License</th><th>Project</th></tr></thead><tbody>
+        ${(ab.runtime || []).map(c => `<tr><td>${esc(c.name)}</td><td class="mono small">${esc(c.version || '')}</td><td class="mono">${c.license ? lk(c.licenseUrl, c.license) : '<span class="t3">unknown</span>'}</td><td>${lk(c.url, short(c.url))}</td></tr>`).join('')}
+      </tbody></table></div>
+      <p class="hint" style="margin-top:12px">Full list in ${lk(ab.notices, 'THIRD_PARTY_NOTICES.md')} (also at <code>/app/THIRD_PARTY_NOTICES.md</code> in the image). ${esc(ab.trademark || '')}</p>
+    </section>`;
 }
 function bindToolActions(ctx) {
-  $$('[data-goto]').forEach(a => a.onclick = ev => { ev.preventDefault(); const t = $('#' + a.dataset.goto); if (t) { t.scrollIntoView({ behavior: 'smooth', block: 'center' }); const i = $('#cSu'); if (i && !i.readOnly) setTimeout(() => i.focus({ preventScroll: true }), 300); } });
+  $$('[data-goto]').forEach(a => a.onclick = ev => { ev.preventDefault(); const t = $('#' + a.dataset.goto); if (t) { t.scrollIntoView({ behavior: 'smooth', block: 'center' }); const i = a.dataset.goto === 'secSonar' ? $('#cSu') : null; if (i && !i.readOnly) setTimeout(() => i.focus({ preventScroll: true }), 300); } });
   const act = async (method, id, path, msg) => { try { await api(method, `/api/tools/${enc(id)}${path}`); toast(msg); refreshTools(ctx, true); } catch (e) { toastErr(e); refreshTools(ctx); } };
   $$('[data-upd]').forEach(b => b.onclick = () => { b.disabled = true; act('POST', b.dataset.upd, '/update', `Started updating ${toolName(b.dataset.upd)}`); });
   $$('[data-ttog]').forEach(b => b.onclick = () => {
@@ -2307,6 +2390,7 @@ function bindSettings(ctx) {
   if (S.gotoGit) { S.gotoGit = false; const g = $('#secGit'); if (g) setTimeout(() => g.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); }
   if (ctx.tools.some(busyTool)) poll(() => refreshTools(ctx), 2000);
   if (!has('editSettings')) return;
+  bindSemgrep(ctx);
   const so = ctx.settings.sonar || {}, sEnv = !!so.fromEnv, nEnv = !!ctx.settings.nvdFromEnv;
   const ua = $('#updAll'); if (ua) ua.onclick = async () => { try { await api('POST', '/api/tools/update-all'); toast('Started updating scanners and vulnerability databases'); refreshTools(ctx, true); } catch (e) { toastErr(e); } };
   const sc = () => ({ ...(ctx.settings.schedule || {}) });

@@ -6,6 +6,8 @@ import { ensureDir, findFile, readJsonFile, runCmd, tail } from '../util.js';
 const HOUR = 3600 * 1000;
 const RUN_TIMEOUT = 30 * 60 * 1000;
 
+export const spdxUrl = (id) => `https://spdx.org/licenses/${id}.html`;
+
 export const linuxArch = () => (process.arch === 'arm64' ? 'arm64' : 'x64');
 
 /*
@@ -15,15 +17,18 @@ export const linuxArch = () => (process.arch === 'arm64' ? 'arm64' : 'x64');
  *   versionArgs: args printing the version
  *   run({ bin, src, out, ctx }): runs the scan, returns { data } or { skip: note }
  *   updateDb({ bin, ctx }): optional vulnerability DB update
+ *   license: { component, spdx, url, licenseUrl, note?, noteUrl? } shown on the About page and in THIRD_PARTY_NOTICES.md
  */
 export const CATALOG = [
   {
     id: 'sonarqube', name: 'SonarQube', needsConfig: true,
+    license: { component: 'SonarQube Scanner CLI', spdx: 'LGPL-3.0', url: 'https://github.com/SonarSource/sonar-scanner-cli', licenseUrl: spdxUrl('LGPL-3.0'), note: 'The SonarQube server is your own and is not bundled' },
     desc: 'Code quality and SAST: bugs, code smells, security hotspots (uses your existing SonarQube server)',
     source: 'sonar', binName: 'sonar-scanner', versionArgs: ['--version'],
   },
   {
     id: 'trivy', name: 'Trivy',
+    license: { component: 'Trivy', spdx: 'Apache-2.0', url: 'https://github.com/aquasecurity/trivy', licenseUrl: spdxUrl('Apache-2.0') },
     desc: 'Vulnerabilities in dependencies, secrets, and IaC/Dockerfile misconfigurations',
     source: 'github', repo: 'aquasecurity/trivy', binName: 'trivy', versionArgs: ['--version'],
     asset: (v) => `trivy_${v}_Linux-${linuxArch() === 'arm64' ? 'ARM64' : '64bit'}.tar.gz`,
@@ -39,17 +44,20 @@ export const CATALOG = [
   },
   {
     id: 'semgrep', name: 'Semgrep',
+    license: { component: 'Semgrep (engine)', spdx: 'LGPL-2.1', url: 'https://github.com/semgrep/semgrep', licenseUrl: spdxUrl('LGPL-2.1'), note: 'Registry rules (p/default and other registry rulesets) are under the Semgrep Rules License v1.0 (internal use only)', noteUrl: 'https://semgrep.dev/legal/rules-license' },
     desc: 'SAST with customizable rules, 30+ languages',
     source: 'pip', pkg: 'semgrep', binName: 'semgrep', versionArgs: ['--version'],
-    async run({ bin, src, out }) {
+    async run({ bin, src, out, ctx }) {
       const file = path.join(out, 'semgrep.json');
-      const r = await runCmd(bin, ['scan', '--config', 'p/default', '--json', '--output', file, '--metrics', 'off', '--quiet', src],
+      if (!ctx?.semgrepRules) return { skip: 'Semgrep skipped: choose a rules source in Settings' };
+      const r = await runCmd(bin, ['scan', '--config', ctx.semgrepRules, '--json', '--output', file, '--metrics', 'off', '--quiet', src],
         { timeoutMs: RUN_TIMEOUT, env: { SEMGREP_SEND_METRICS: 'off', SEMGREP_ENABLE_VERSION_CHECK: '0' } });
       return reportOrFail(r, file);
     },
   },
   {
     id: 'gitleaks', name: 'Gitleaks',
+    license: { component: 'Gitleaks', spdx: 'MIT', url: 'https://github.com/gitleaks/gitleaks', licenseUrl: spdxUrl('MIT') },
     desc: 'Finds secrets and credentials leaked in code',
     source: 'github', repo: 'gitleaks/gitleaks', binName: 'gitleaks', versionArgs: ['version'],
     asset: (v) => `gitleaks_${v}_linux_${linuxArch()}.tar.gz`,
@@ -62,6 +70,7 @@ export const CATALOG = [
   },
   {
     id: 'dependency-check', name: 'OWASP Dependency-Check',
+    license: { component: 'OWASP Dependency-Check', spdx: 'Apache-2.0', url: 'https://github.com/jeremylong/DependencyCheck', licenseUrl: spdxUrl('Apache-2.0') },
     desc: 'Matches dependencies against CVEs from NVD (the first run downloads the database; an NVD API key is recommended)',
     source: 'github', repo: 'jeremylong/DependencyCheck', binName: 'dependency-check.sh', versionArgs: ['--version'],
     asset: (v) => `dependency-check-${v}-release.zip`,
@@ -83,6 +92,7 @@ export const CATALOG = [
   },
   {
     id: 'checkov', name: 'Checkov',
+    license: { component: 'Checkov', spdx: 'Apache-2.0', url: 'https://github.com/bridgecrewio/checkov', licenseUrl: spdxUrl('Apache-2.0') },
     desc: 'Misconfigurations in Terraform, Kubernetes, Dockerfile and CI config',
     source: 'pip', pkg: 'checkov', binName: 'checkov', versionArgs: ['--version'],
     async run({ bin, src, out }) {
@@ -93,6 +103,7 @@ export const CATALOG = [
   },
   {
     id: 'grype', name: 'Grype',
+    license: { component: 'Grype', spdx: 'Apache-2.0', url: 'https://github.com/anchore/grype', licenseUrl: spdxUrl('Apache-2.0') },
     desc: 'Vulnerabilities in dependencies and the filesystem, from the Anchore database',
     source: 'github', repo: 'anchore/grype', binName: 'grype', versionArgs: ['version'],
     asset: (v) => `grype_${v}_linux_${linuxArch() === 'arm64' ? 'arm64' : 'amd64'}.tar.gz`,

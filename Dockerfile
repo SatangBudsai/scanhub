@@ -46,6 +46,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev --no-audit --no-fund || npm install --omit=dev --no-audit --no-fund
 COPY server ./server
 COPY public ./public
+COPY THIRD_PARTY_NOTICES.md ./THIRD_PARTY_NOTICES.md
 COPY docker/entrypoint.sh ./docker/entrypoint.sh
 
 RUN sed -i 's/\r$//' /app/docker/entrypoint.sh && chmod +x /app/docker/entrypoint.sh \

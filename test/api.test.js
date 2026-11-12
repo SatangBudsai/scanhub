@@ -41,7 +41,10 @@ before(async () => {
   imageTools = path.join(dataDir, 'image-tools');
   fs.mkdirSync(path.join(imageTools, 'trivy'), { recursive: true });
   fs.writeFileSync(path.join(imageTools, 'trivy', 'trivy'), '');
-  fs.writeFileSync(path.join(imageTools, 'versions.json'), JSON.stringify({ trivy: '0.99.1' }));
+  // and a fake semgrep (venv layout), to check it is skipped until a rules source is chosen
+  fs.mkdirSync(path.join(imageTools, 'semgrep', 'venv', 'bin'), { recursive: true });
+  fs.writeFileSync(path.join(imageTools, 'semgrep', 'venv', 'bin', 'semgrep'), '');
+  fs.writeFileSync(path.join(imageTools, 'versions.json'), JSON.stringify({ trivy: '0.99.1', semgrep: '1.99.0' }));
   pgdb = await testDatabase();
   ({ p: proc, base } = await startServer());
 }, { timeout: 180000 });
@@ -133,6 +136,109 @@ test('setup, scanners and settings', async () => {
   assert.equal((await a('PUT', '/api/settings', { sonar: { token: '' } })).data.sonar.tokenSet, true);
   assert.equal((await a('PUT', '/api/settings', { sonar: { token: null } })).data.sonar.tokenSet, false);
   assert.ok(Array.isArray((await a('GET', '/api/tools/log')).data));
+});
+
+test('semgrep rules source: license acceptance, custom rules, settings validation', async () => {
+  const a = state.admin;
+  let sg = (await a('GET', '/api/settings')).data.semgrep;
+  // nothing is accepted for the installer
+  assert.deepEqual([sg.mode, sg.rules, sg.licenseAccepted, sg.fromEnv], [null, null, false, false]);
+  assert.equal(sg.note, 'Semgrep skipped: choose a rules source in Settings');
+  let tool = (await a('GET', '/api/tools')).data.find((t) => t.id === 'semgrep');
+  assert.deepEqual([tool.installed, tool.configured], [true, false]);
+
+  // registry rules without the license are rejected, and nothing is saved
+  let r = await a('PUT', '/api/settings', { semgrep: { mode: 'registry' }, retentionDays: 7 });
+  assert.equal(r.status, 400);
+  assert.match(r.data.error, /Semgrep Rules License/);
+  assert.equal((await a('GET', '/api/settings')).data.retentionDays, 30);
+  assert.equal((await a('PUT', '/api/settings', { semgrep: { mode: 'registry', acceptLicense: false } })).status, 400);
+  assert.equal((await a('PUT', '/api/settings', { semgrep: { mode: 'custom', custom: ' ' } })).status, 400);
+  assert.equal((await a('PUT', '/api/settings', { semgrep: { mode: 'custom', custom: 'p/ci' } })).status, 400);
+
+  // custom rules need no license
+  r = await a('PUT', '/api/settings', { semgrep: { mode: 'custom', custom: ' /data/rules/semgrep.yml ' } });
+  assert.equal(r.status, 200);
+  assert.deepEqual([r.data.semgrep.mode, r.data.semgrep.rules, r.data.semgrep.licenseAccepted], ['custom', '/data/rules/semgrep.yml', false]);
+  assert.equal((await a('GET', '/api/tools')).data.find((t) => t.id === 'semgrep').configured, true);
+
+  // accept + registry: who and when are stored
+  r = await a('PUT', '/api/settings', { semgrep: { mode: 'registry', acceptLicense: true } });
+  assert.equal(r.status, 200);
+  sg = r.data.semgrep;
+  assert.deepEqual([sg.mode, sg.rules, sg.licenseAccepted, sg.acceptedBy], ['registry', 'p/default', true, 'admin']);
+  assert.ok(Date.parse(sg.acceptedAt) > Date.now() - 60000);
+  assert.equal(sg.custom, '/data/rules/semgrep.yml', 'custom value kept for later');
+
+  // withdrawing the license while registry is selected is rejected; switching away first works
+  assert.equal((await a('PUT', '/api/settings', { semgrep: { acceptLicense: false } })).status, 400);
+  r = await a('PUT', '/api/settings', { semgrep: { mode: null, acceptLicense: false } });
+  assert.equal(r.status, 200);
+  assert.deepEqual([r.data.semgrep.rules, r.data.semgrep.licenseAccepted], [null, false]);
+});
+
+// A one-file tar.gz (ustar), so the test needs no tar binary
+function tarGz(name, content) {
+  const body = Buffer.from(content);
+  const h = Buffer.alloc(512);
+  h.write(name, 0); h.write('0000644\0', 100); h.write('0000000\0', 108); h.write('0000000\0', 116);
+  h.write(body.length.toString(8).padStart(11, '0') + '\0', 124); h.write('00000000000\0', 136);
+  h.write('        ', 148); h.write('0', 156); h.write('ustar\0', 257); h.write('00', 263);
+  let sum = 0; for (const b of h) sum += b;
+  h.write(sum.toString(8).padStart(6, '0') + '\0 ', 148);
+  const pad = Buffer.alloc((512 - (body.length % 512)) % 512);
+  return zlib.gzipSync(Buffer.concat([h, body, pad, Buffer.alloc(1024)]));
+}
+
+test('semgrep is skipped (not failed) with a note until a rules source is chosen', async (t) => {
+  const a = state.admin;
+  assert.equal((await a('POST', '/api/tools/semgrep/enable')).status, 200);
+  const p = await a('POST', '/api/projects', { name: 'Semgrep Skip' });
+  const r = await a('POST', '/api/repos', { projectId: p.data.id, name: 'semgrep-skip', lang: 'Go', branch: 'main', tools: ['semgrep'] });
+  try {
+    const up = await ci(r.data.token, '/api/v1/scan?branch=main&commit=sg1&wait=1', tarGz('main.go', 'package main\n'));
+    // Git for Windows' GNU tar cannot open C:\ paths; the upload path is covered on Linux (CI) and in E2E
+    if (process.platform === 'win32' && /Could not extract/.test(up.data.error || '')) return t.skip('tar cannot extract on this Windows setup');
+    // the only scanner here is semgrep, so the scan itself fails with "No scanner finished successfully";
+    // what matters is that semgrep is recorded as skipped with the note, not as failed
+    const detail = (await a('GET', `/api/scans/${up.data.scanId}`)).data;
+    assert.deepEqual(detail.runs.map((x) => [x.tool, x.status, x.note]), [['semgrep', 'skipped', 'Semgrep skipped: choose a rules source in Settings']]);
+  } finally {
+    await a('POST', '/api/tools/semgrep/disable');
+    await a('DELETE', `/api/repos/${r.data.repo.id}`);
+    await a('DELETE', `/api/projects/${p.data.id}`);
+  }
+});
+
+test('about: versions and licenses for settings viewers', async () => {
+  const a = state.admin;
+  const r = await a('GET', '/api/about');
+  assert.equal(r.status, 200);
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  assert.equal(r.data.version, pkg.version);
+  assert.equal(r.data.license, pkg.license || null);
+  assert.equal(r.data.scanners.length, 7);
+  const lic = Object.fromEntries(r.data.scanners.map((t) => [t.id, t.spdx]));
+  assert.deepEqual(lic, { sonarqube: 'LGPL-3.0', trivy: 'Apache-2.0', semgrep: 'LGPL-2.1', gitleaks: 'MIT', 'dependency-check': 'Apache-2.0', checkov: 'Apache-2.0', grype: 'Apache-2.0' });
+  for (const t of r.data.scanners) {
+    assert.match(t.url, /^https:\/\/github\.com\//);
+    assert.match(t.licenseUrl, /^https:\/\//);
+    assert.ok(t.name && t.desc && t.component);
+  }
+  assert.equal(r.data.scanners.find((t) => t.id === 'semgrep').noteUrl, 'https://semgrep.dev/legal/rules-license');
+  const rt = Object.fromEntries(r.data.runtime.map((c) => [c.name, c]));
+  assert.equal(rt.PostgreSQL.license, 'PostgreSQL');
+  assert.equal(rt['Node.js'].license, 'MIT');
+  for (const dep of Object.keys(pkg.dependencies)) {
+    const installed = JSON.parse(fs.readFileSync(path.join(root, 'node_modules', dep, 'package.json'), 'utf8'));
+    assert.equal(rt[dep].license, installed.license, dep);
+    assert.equal(rt[dep].version, installed.version, dep);
+  }
+  assert.match(r.data.trademark, /not affiliated with or endorsed by them/);
+  const notes = await a('GET', '/api/about/notices');
+  assert.equal(notes.status, 200);
+  assert.match(notes.data, /Semgrep Rules License/);
+  assert.equal((await client()('GET', '/api/about')).status, 401);
 });
 
 test('projects and repos', async () => {
@@ -530,6 +636,7 @@ test('users: temp password gate, roles, disable and reset', async () => {
   assert.equal((await qa('POST', '/api/projects', { name: 'Nope' })).status, 403);
   assert.equal((await qa('GET', '/api/users')).status, 403);
   assert.equal((await qa('GET', '/api/settings')).status, 403);
+  assert.equal((await qa('GET', '/api/about')).status, 403);
   assert.equal((await qa('POST', `/api/repos/${state.repoId}/scan`, {})).status, 400, 'allowed, but repo has no git url');
 
   // VIEWER cannot trigger scans; MAINTAINER can manage repos but not settings
@@ -537,7 +644,9 @@ test('users: temp password gate, roles, disable and reset', async () => {
   assert.equal((await qa('POST', `/api/repos/${state.repoId}/scan`, {})).status, 403);
   await a('PATCH', `/api/users/${u.data.id}`, { role: 'MAINTAINER' });
   assert.equal((await qa('GET', '/api/settings')).status, 200);
+  assert.equal((await qa('GET', '/api/about')).status, 200);
   assert.equal((await qa('PUT', '/api/settings', { retentionDays: 1 })).status, 403);
+  assert.equal((await qa('PUT', '/api/settings', { semgrep: { mode: 'registry', acceptLicense: true } })).status, 403);
   assert.equal((await qa('POST', '/api/projects', { name: 'Mobile Banking' })).status, 201);
 
   // disable logs them out and blocks login
@@ -718,7 +827,7 @@ test('git connections: CRUD, encrypted token, test, repo search, one-click setup
 test('restart re-applies the admin from env', async () => {
   proc.kill();
   await new Promise((r) => setTimeout(r, 500));
-  ({ p: proc, base } = await startServer({ SCANHUB_ADMIN_PASSWORD: 'changed-in-env-2', SONAR_URL: 'https://sonar.env.example', SONAR_TOKEN: 'squ_env', NVD_API_KEY: 'nvd-env-key' }));
+  ({ p: proc, base } = await startServer({ SCANHUB_ADMIN_PASSWORD: 'changed-in-env-2', SONAR_URL: 'https://sonar.env.example', SONAR_TOKEN: 'squ_env', NVD_API_KEY: 'nvd-env-key', SEMGREP_RULES: 'p/default' }));
   const c = client();
   assert.equal((await c('POST', '/api/auth/login', { username: 'admin', password: ADMIN_PW })).status, 401);
   assert.equal((await c('POST', '/api/auth/login', { username: 'admin', password: 'changed-in-env-2' })).status, 200);
@@ -739,4 +848,12 @@ test('restart re-applies the admin from env', async () => {
   assert.equal(put.data.nvdKeySet, true);
   assert.equal(put.data.retentionDays, 45);
   assert.equal((await c('GET', '/api/tools')).data.find((t) => t.id === 'sonarqube').configured, true);
+
+  // SEMGREP_RULES from env wins and is read-only; a registry id without SEMGREP_RULES_LICENSE_ACCEPTED is skipped
+  assert.deepEqual([st.semgrep.fromEnv, st.semgrep.envRules, st.semgrep.rules], [true, 'p/default', null]);
+  assert.match(st.semgrep.note, /SEMGREP_RULES_LICENSE_ACCEPTED=true/);
+  const sgPut = await c('PUT', '/api/settings', { semgrep: { mode: 'custom', custom: '/x.yml' } });
+  assert.equal(sgPut.status, 200);
+  assert.equal(sgPut.data.semgrep.rules, null);
+  assert.equal((await c('GET', '/api/tools')).data.find((t) => t.id === 'semgrep').configured, false);
 });

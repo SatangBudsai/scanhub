@@ -13,6 +13,7 @@ import { startScheduler } from './scheduler.js';
 import { authRoutes } from './routes/auth.js';
 import { userRoutes } from './routes/users.js';
 import { settingsRoutes, setupRoutes, toolRoutes } from './routes/admin.js';
+import { aboutRoutes } from './routes/about.js';
 import { projectRoutes } from './routes/projects.js';
 import { publicShareRoutes, reportRoutes } from './routes/reports.js';
 import { ciRoutes } from './routes/ci.js';
@@ -63,6 +64,7 @@ async function main() {
   app.use('/api/setup', authed, setupRoutes(ctx));
   app.use('/api/tools', authed, toolRoutes(ctx));
   app.use('/api/settings', authed, settingsRoutes(ctx));
+  app.use('/api/about', authed, aboutRoutes());
   app.use('/api', authed, groupRoutes(ctx));
   app.use('/api', authed, integrationRoutes(ctx));
   app.use('/api', authed, reportRoutes(ctx));

@@ -7,7 +7,7 @@ import { PARSERS } from './parsers/index.js';
 import { mergeFindings } from './merge.js';
 import { failScan, saveResults } from './store.js';
 import { runSonar } from './sonar.js';
-import { effectiveNvdKey, effectiveSonar } from '../settings.js';
+import { effectiveNvdKey, effectiveSemgrep, effectiveSonar } from '../settings.js';
 import { decrypt } from '../secrets.js';
 import { cloneAuthHeader } from '../git/providers.js';
 
@@ -36,6 +36,12 @@ export function createRunner(db, tools, lock) {
         const { url, token } = await effectiveSonar(db);
         if (!url || !token) return { skip: 'SonarQube URL and token are not set' };
         return { ...(await runSonar({ bin, src, out, repo, url, token })), ctx: { sonarUrl: url } };
+      }
+      if (id === 'semgrep') {
+        // Registry rules need the installer to accept their license; skip (not fail) until a source is chosen
+        const sg = await effectiveSemgrep(db);
+        if (!sg.rules) return { skip: sg.note };
+        return await item.run.call(item, { bin, src, out, ctx: { semgrepRules: sg.rules } });
       }
       const nvdApiKey = await effectiveNvdKey(db);
       return await item.run.call(item, { bin, src, out, ctx: { nvdApiKey } });

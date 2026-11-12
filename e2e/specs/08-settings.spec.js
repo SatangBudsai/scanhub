@@ -1,5 +1,5 @@
 import { test, expect, login } from '../lib/test.js';
-import { projectWithRepo, uid } from '../lib/api.js';
+import { ensureSemgrepRules, projectWithRepo, uid } from '../lib/api.js';
 import { fakeGitFromApp } from '../lib/env.js';
 
 test.describe('Settings', () => {
@@ -28,6 +28,82 @@ test.describe('Settings', () => {
       await page.getByRole('switch', { name: 'Enable Checkov' }).click();
       await expect(toolRow('Checkov')).toContainText('Ready');
       expect((await admin.get('/api/tools')).find((t) => t.id === 'checkov').enabled).toBe(true);
+    });
+  });
+
+  test('Semgrep rules: accept the license or use custom rules', async ({ page, step, admin }) => {
+    const st = await admin.get('/api/settings');
+    test.skip(st.semgrep.fromEnv, 'Semgrep rules come from env on this instance');
+    const card = page.locator('#secSemgrep');
+    const semgrepRow = page.locator('.tool-row', { has: page.locator('.nm', { hasText: /^Semgrep$/ }) });
+    try {
+      await step(page, 'Without the license, Semgrep has no rules and is skipped', async () => {
+        await admin.put('/api/settings', { semgrep: { mode: null, acceptLicense: false } });
+        await page.goto('/#login');
+        await login(page);
+        await page.goto('/#settings');
+        await expect(semgrepRow).toContainText('Choose a rules source');
+        await expect(card.locator('#sgStatus')).toContainText('Semgrep skipped: choose a rules source in Settings');
+        await expect(card.locator('input[value="registry"]')).toBeDisabled();
+      });
+      await step(page, 'Accept the license and pick the registry rules', async () => {
+        await semgrepRow.getByRole('link', { name: 'Choose a rules source' }).click();
+        await expect(card.getByRole('link', { name: 'Semgrep Rules License' })).toHaveAttribute('href', 'https://semgrep.dev/legal/rules-license');
+        await card.locator('#sgAcc').check();
+        await card.locator('input[value="registry"]').check();
+        await card.getByRole('button', { name: 'Save rules' }).click();
+        await expect(page.locator('#toast')).toContainText('Semgrep rules saved');
+        await expect(card.locator('#sgStatus')).toContainText('Scans use p/default');
+        await expect(card.locator('#sgAccBy')).toContainText('Accepted by');
+        await expect(semgrepRow).toContainText('Ready');
+      });
+      await step(page, 'Custom rules cannot be empty', async () => {
+        await card.locator('input[value="custom"]').check();
+        await card.locator('#sgCustom').fill('');
+        await card.getByRole('button', { name: 'Save rules' }).click();
+        await expect(page.locator('#toast')).toContainText('Enter the custom rules for Semgrep');
+      });
+      await step(page, 'Switch to custom rules from a URL', async () => {
+        await card.locator('#sgCustom').fill('https://rules.e2e.example/semgrep.yml');
+        await card.getByRole('button', { name: 'Save rules' }).click();
+        await expect(page.locator('#toast')).toContainText('Semgrep rules saved');
+        await expect(card.locator('#sgStatus')).toContainText('Scans use https://rules.e2e.example/semgrep.yml');
+        expect((await admin.get('/api/settings')).semgrep).toMatchObject({ mode: 'custom', rules: 'https://rules.e2e.example/semgrep.yml' });
+      });
+    } finally {
+      await ensureSemgrepRules(admin);
+    }
+  });
+
+  test('About and licenses lists every scanner and its license', async ({ page, step, admin }) => {
+    const about = await admin.get('/api/about');
+    await step(page, 'Settings shows the ScanHub version and license', async () => {
+      await page.goto('/#login');
+      await login(page);
+      await page.goto('/#settings');
+      const sec = page.locator('#secAbout');
+      await sec.scrollIntoViewIfNeeded();
+      await expect(sec.getByRole('heading', { name: 'About and licenses' })).toBeVisible();
+      await expect(sec.locator('#abVer')).toHaveText(`ScanHub ${about.version}`);
+      await expect(sec.locator('#abLic')).toHaveText(about.license || 'No license chosen yet');
+    });
+    await step(page, 'The scanner table shows each license', async () => {
+      const rows = page.locator('#licScanners tbody tr');
+      await expect(rows).toHaveCount(7);
+      for (const [name, lic] of [['Trivy', 'Apache-2.0'], ['Grype', 'Apache-2.0'], ['Gitleaks', 'MIT'], ['Checkov', 'Apache-2.0'], ['OWASP Dependency-Check', 'Apache-2.0'], ['Semgrep (engine)', 'LGPL-2.1'], ['SonarQube Scanner CLI', 'LGPL-3.0']]) {
+        await expect(rows.filter({ hasText: name })).toContainText(lic);
+      }
+      await expect(rows.filter({ hasText: 'Semgrep' })).toContainText('Semgrep Rules License v1.0');
+    });
+    await step(page, 'Runtime components and the notices file', async () => {
+      const rt = page.locator('#licRuntime');
+      await rt.scrollIntoViewIfNeeded();
+      await expect(rt.locator('tbody tr').filter({ hasText: 'PostgreSQL' })).toContainText('PostgreSQL');
+      await expect(rt.locator('tbody tr').filter({ hasText: 'express' })).toContainText('MIT');
+      await expect(page.locator('#secAbout')).toContainText('not affiliated with or endorsed by them');
+      const res = await admin.raw('GET', '/api/about/notices');
+      expect(res.status()).toBe(200);
+      expect(await res.text()).toContain('Semgrep Rules License');
     });
   });
 

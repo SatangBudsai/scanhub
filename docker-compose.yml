@@ -31,6 +31,11 @@ services:
       # SONAR_URL: https://sonarqube.example.com
       # SONAR_TOKEN: squ_xxxxxxxxxxxxxxxx
 
+      # Semgrep rules (passed to semgrep --config). Registry rules such as p/default are under the
+      # Semgrep Rules License (internal use only, https://semgrep.dev/legal/rules-license): set the second line to accept it.
+      # SEMGREP_RULES: p/default
+      # SEMGREP_RULES_LICENSE_ACCEPTED: "true"
+
       # NVD API key for OWASP Dependency-Check (much faster first database download)
       # NVD_API_KEY: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 

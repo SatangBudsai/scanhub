@@ -21,6 +21,9 @@ export const config = {
   nvdApiKey: env.NVD_API_KEY || '',
   sonarUrl: (env.SONAR_URL || '').replace(/\/+$/, ''),
   sonarToken: env.SONAR_TOKEN || '',
+  // Semgrep --config value; registry rulesets also need SEMGREP_RULES_LICENSE_ACCEPTED=true
+  semgrepRules: (env.SEMGREP_RULES || '').trim(),
+  semgrepLicenseAccepted: String(env.SEMGREP_RULES_LICENSE_ACCEPTED || '').trim().toLowerCase() === 'true',
   publicDir: path.resolve(import.meta.dirname, '..', 'public'),
   // Scanners built into the image
   imageToolsDir: path.resolve(env.SCANHUB_IMAGE_TOOLS || '/opt/scanhub/tools'),
@@ -29,6 +32,7 @@ export const config = {
 // Values given in env configure the tool and are read-only in the settings page
 config.sonarFromEnv = !!(config.sonarUrl && config.sonarToken);
 config.nvdFromEnv = !!config.nvdApiKey;
+config.semgrepFromEnv = !!config.semgrepRules;
 
 export const dirs = {
   tools: path.join(config.dataDir, 'tools'),

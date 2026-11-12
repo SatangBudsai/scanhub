@@ -4,3 +4,4 @@ services:
     volumes:
       - ../server:/app/server:ro
       - ../public:/app/public:ro
+      - ../THIRD_PARTY_NOTICES.md:/app/THIRD_PARTY_NOTICES.md:ro

@@ -4,7 +4,7 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { config, dirs } from '../config.js';
 import { ensureDir, rmrf, runCmd, tail } from '../util.js';
-import { effectiveNvdKey, effectiveSonar } from '../settings.js';
+import { effectiveNvdKey, effectiveSemgrep, effectiveSonar } from '../settings.js';
 import { CATALOG, linuxArch, toolBinIn, toolById, versionFrom } from './catalog.js';
 
 /**
@@ -52,6 +52,7 @@ export async function createToolManager(db, lock) {
   async function list() {
     const rows = new Map((await db.all('SELECT * FROM tools')).map((r) => [r.id, r]));
     const sonarOk = await sonarConfigured();
+    const semgrepOk = !!(await effectiveSemgrep(db)).rules;
     return CATALOG.map((t) => {
       const r = rows.get(t.id) || {};
       const ov = overrideBin(r);
@@ -64,7 +65,8 @@ export async function createToolManager(db, lock) {
         imageVersion: img ? (r.image_version || null) : null,
         updatedAt: r.updated_at || null,
         status: r.status || 'idle', error: r.error || null,
-        needsConfig: !!t.needsConfig, configured: t.id === 'sonarqube' ? sonarOk : true,
+        needsConfig: !!t.needsConfig || t.id === 'semgrep',
+        configured: t.id === 'sonarqube' ? sonarOk : t.id === 'semgrep' ? semgrepOk : true,
       };
     });
   }

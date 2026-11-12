@@ -32,12 +32,20 @@ export async function apiAs(username, password) {
 }
 export const adminApi = () => apiAs(ADMIN.username, ADMIN.password);
 
-/** Finish first-run setup through the API if a spec runs on its own */
+/** Finish first-run setup through the API if a spec runs on its own. The suite accepts the
+ *  Semgrep Rules License and uses the registry rules, since specs expect Semgrep findings. */
 export async function ensureSetup(api) {
   const s = await api.get('/api/setup');
   if (!s.done) {
-    await api.post('/api/setup', { tools: ['trivy', 'semgrep', 'gitleaks', 'grype', 'checkov', 'dependency-check'], schedule: { enabled: true, time: '03:00', updateDb: true } });
+    await api.post('/api/setup', { tools: ['trivy', 'semgrep', 'gitleaks', 'grype', 'checkov', 'dependency-check'], schedule: { enabled: true, time: '03:00', updateDb: true }, semgrep: { mode: 'registry', acceptLicense: true } });
   }
+  await ensureSemgrepRules(api);
+}
+
+/** Semgrep registry rules with the license accepted (unless rules come from env) */
+export async function ensureSemgrepRules(api) {
+  const sg = (await api.get('/api/settings')).semgrep;
+  if (!sg.fromEnv && (sg.mode !== 'registry' || !sg.rules)) await api.put('/api/settings', { semgrep: { mode: 'registry', acceptLicense: true } });
 }
 
 export async function createProject(api, name = uid('proj')) {

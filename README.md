@@ -71,7 +71,9 @@ docker compose pull
 docker compose up -d
 ```
 
-Data in the `scanhub-data` volume is kept, and the database schema migrates itself on start. To pin a version, replace `:latest` in `docker-compose.yml` with a version number such as `:1.1.0`; rolling back works the same way. All versions are listed on [GitHub Packages](https://github.com/SatangBudsai/scanhub/pkgs/container/scanhub).
+Data in the `scanhub-data` volume is kept, and the database schema migrates itself on start.
+
+Upgrading from 1.1.0 or earlier: Semgrep no longer uses the Semgrep Registry rules (`p/default`) on its own, because those rules are under the [Semgrep Rules License](https://semgrep.dev/legal/rules-license) and only you can accept it. After the update Semgrep is skipped in scans until an admin accepts the license or sets custom rules in Settings → Scanners → Semgrep rules (or sets `SEMGREP_RULES`). To pin a version, replace `:latest` in `docker-compose.yml` with a version number such as `:1.1.0`; rolling back works the same way. All versions are listed on [GitHub Packages](https://github.com/SatangBudsai/scanhub/pkgs/container/scanhub).
 
 ### Offline servers
 
@@ -98,6 +100,7 @@ Everything lives in `docker-compose.yml`. Remove the `#` at the start of a line 
 | --- | --- |
 | `DATABASE_URL` | Use an existing PostgreSQL. When set, the bundled PostgreSQL is not started |
 | `SONAR_URL`, `SONAR_TOKEN` | An existing SonarQube server. ScanHub sends code for analysis and pulls the results back |
+| `SEMGREP_RULES`, `SEMGREP_RULES_LICENSE_ACCEPTED` | Rules for Semgrep (`--config`: a registry id such as `p/default`, a URL or a path). Registry rules need `SEMGREP_RULES_LICENSE_ACCEPTED=true`, which accepts the [Semgrep Rules License](https://semgrep.dev/legal/rules-license) |
 | `NVD_API_KEY` | Speeds up OWASP Dependency-Check's first database download (free at nvd.nist.gov) |
 | `GITHUB_TOKEN`, `GITHUB_API_URL` | Connect GitHub / GitHub Enterprise for automatic CI setup |
 | `GITLAB_URL`, `GITLAB_TOKEN` | Connect GitLab (gitlab.com or self-hosted) for automatic CI setup |
@@ -260,12 +263,18 @@ Every page adapts to the screen size: the top menu collapses into one button and
 
 ---
 
+## Licenses
+
+ScanHub has no license chosen yet. Every bundled scanner and runtime component keeps its own license: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (also in the image at `/app/THIRD_PARTY_NOTICES.md`) or Settings → About and licenses in the app. Semgrep Registry rules are under the [Semgrep Rules License](https://semgrep.dev/legal/rules-license) and are used only after you accept it. Product names and logos belong to their owners; ScanHub is not affiliated with or endorsed by them.
+
+---
+
 ## For developers
 
 ```sh
 npm install
-npm test          # 37 unit + API tests (uses a temporary PostgreSQL in Docker)
-npm run e2e       # 35 Playwright E2E tests, each records a GIF
+npm test          # 45 unit + API tests (uses a temporary PostgreSQL in Docker)
+npm run e2e       # 37 Playwright E2E tests, each records a GIF
 npm run e2e:report
 
 # Build the image from local code instead of pulling (E2E uses this image)
