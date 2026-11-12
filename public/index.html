@@ -497,6 +497,9 @@ details.perm[open] summary svg{transform:rotate(90deg)}
 .gh-act{margin-left:auto;display:flex;gap:2px;align-self:center}
 .banner{display:flex;align-items:center;gap:10px;padding:12px 20px;margin-bottom:16px;font-size:13px;color:var(--t2)}
 .banner svg.spin{color:var(--acc-text)}
+.banner-fail{align-items:flex-start;flex-wrap:wrap;color:var(--t1)}
+.banner-fail>svg{flex:none;margin-top:2px}
+.banner-fail>span{flex:1 1 240px;min-width:0;overflow-wrap:anywhere}
 .loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:64px 0}
 .failhead{display:flex;gap:12px;align-items:flex-start}
 .failhead svg{margin-top:2px}
@@ -1241,10 +1244,14 @@ function viewProjects(admin) {
   const withCrit = done.filter(l => l.counts && l.counts[0] > 0).length, clean = done.filter(l => l.counts && !l.counts[0] && !l.counts[1]).length;
   const totalNew = done.reduce((a, l) => a + (l.newCount || 0), 0);
   const m = has('manage');
+  // the totals only count repos whose latest scan finished: name the ones left out
+  const nFail = repos.filter(r => r.lastScan && r.lastScan.status === 'failed').length, nNone = repos.filter(r => !r.lastScan).length;
+  const left = [nFail ? `${nFail} failed ${nFail === 1 ? 'its' : 'their'} last scan` : '', nNone ? `${nNone} never scanned` : ''].filter(Boolean).join(' · ');
+  const cover = done.length === repos.length ? '' : `In ${done.length} of ${repos.length} repos${left ? ' · ' + left : ''}`;
   const overview = done.length ? `<section class="card overview">
       <div class="ov-top">
-        <div><div class="k">Total open</div><div class="v">${sum(c)}</div></div>
-        <div><div class="k">Repos with Critical</div><div class="v">${withCrit}<span class="of"> / ${done.length}</span></div></div>
+        <div><div class="k">Total open</div><div class="v">${sum(c)}</div>${cover ? `<div class="d">${cover}</div>` : ''}</div>
+        <div><div class="k">Repos with Critical</div><div class="v">${withCrit}<span class="of"> / ${done.length}</span></div>${cover ? '<div class="d">of repos with results</div>' : ''}</div>
         <div><div class="k">Repos passing</div><div class="v">${clean}<span class="of"> / ${done.length}</span></div><div class="d">No Critical or High</div></div>
       </div>
       <div class="sevblock">${sevBreak(c, false)}</div>
@@ -1450,7 +1457,7 @@ function repoHead(repo, scans, sub, reportScan) {
   const busy = scans && scans.some(isActive);
   return `<div class="crumb small"><a href="#projects">${esc(repo.projectName || 'Projects')}</a>${sub ? ` <span class="sep">/</span> <a href="#repo/${enc(repo.id)}">${esc(repo.name)}</a>` : ''}</div>
     <div class="head"><div><h1>${sub ? esc(sub) : esc(repo.name)}</h1><div class="meta t2">${repo.lang ? `<span>${esc(repo.lang)}</span><span class="sep">·</span>` : ''}<span class="mono small"><i data-lucide="git-branch"></i>${esc(repo.branch || 'main')}</span>${pill ? `<span class="sep">·</span>${pill}` : ''}${!sub && repo.gate ? `<span class="sep">·</span><a class="gate-tag" href="#connect/${enc(repo.id)}" title="Change it on the Connect CI page"><i data-lucide="${normGate(repo.gate).mode === 'report' ? 'message-square-text' : 'octagon-x'}"></i>CI: ${esc(gateLabel(repo.gate))}</a>` : ''}</div></div>
-    ${sub ? '' : `<div class="actions">${reportScan ? `<button class="btn" id="repReport" title="Report for scan #${reportScan.num}"><i data-lucide="file-text"></i>Report</button>` : ''}<a class="btn" href="#connect/${enc(repo.id)}"><i data-lucide="plug"></i>Connect CI</a>${has('scan') ? `<span title="${noGit ? 'Set a Git URL first in Repo settings' : busy ? 'A scan is already running' : ''}"><button class="btn btn-primary" id="scanNow" ${noGit || busy ? 'disabled' : ''}><i data-lucide="${busy ? 'loader' : 'play'}" class="${busy ? 'spin' : ''}"></i>${busy ? 'Scanning' : 'Scan now'}</button></span>` : ''}${has('manage') ? '<button class="btn btn-icon" id="repoSet" aria-label="Repo settings" title="Repo settings: name, Git URL, branch, schedule, scanners"><i data-lucide="settings-2"></i></button>' : ''}</div>`}</div>`;
+    ${sub ? '' : `<div class="actions">${reportScan ? `<button class="btn" id="repReport" title="Report for scan #${reportScan.num}"><i data-lucide="file-text"></i>Report</button>` : ''}<a class="btn" href="#connect/${enc(repo.id)}"><i data-lucide="plug"></i>Connect CI</a>${has('scan') && noGit && has('manage') ? '<button class="btn" id="scanNeedsGit" title="Scan now needs a Git URL. CI uploads work without it"><i data-lucide="link"></i>Add Git URL to scan</button>' : has('scan') ? `<span title="${noGit ? 'Scan now needs a Git URL: ask someone who manages this repo to add it' : busy ? 'A scan is already running' : ''}"><button class="btn btn-primary" id="scanNow" ${noGit || busy ? 'disabled' : ''}><i data-lucide="${busy ? 'loader' : 'play'}" class="${busy ? 'spin' : ''}"></i>${busy ? 'Scanning' : 'Scan now'}</button></span>` : ''}${has('manage') ? '<button class="btn btn-icon" id="repoSet" aria-label="Repo settings" title="Repo settings: name, Git URL, branch, schedule, scanners"><i data-lucide="settings-2"></i></button>' : ''}</div>`}</div>`;
 }
 function spark(scans, cur, repoId) {
   const n = scans.length, W = 320, H = 64, p = 6;
@@ -1481,7 +1488,7 @@ function scanbar(repo, scans, scan, refs) {
   const refInfo = scan.refType === 'pr' ? ` <span class="sep">·</span> <span class="mono">${esc(scan.branch)} → ${esc(scan.baseBranch || repo.branch)}</span>`
     : scan.refType === 'tag' && scan.branch !== line.ref ? ` <span class="sep">·</span> <span class="mono">${esc(scan.branch)}</span>` : '';
   return `<div class="card scanbar">
-      <div class="sb-main">${refSwitch(repo, refs, scan)}<span class="ttl">Scan #${scan.num}</span>${isLatest ? '<span class="small t3">latest</span>' : `<a class="small linkacc" href="#repo/${enc(repo.id)}/${(latestDone || scans[0]).num}">Go to latest scan</a>`}
+      <div class="sb-main">${refSwitch(repo, refs, scan)}<span class="ttl">Scan #${scan.num}</span>${isLatest ? `<span class="small t3">${scan === scans[0] ? 'latest' : 'last successful'}</span>` : `<a class="small linkacc" href="#repo/${enc(repo.id)}/${(latestDone || scans[0]).num}">Go to latest scan</a>`}
         <span class="sb-meta small">${fmt(scan.finishedAt || scan.startedAt)}${scan.commit ? ` <span class="kc" title="${esc(scan.commit)}">${esc(sha7(scan.commit))}</span>` : ''} ${esc(trigL(scan.trigger))}${refInfo}${scan.durationMs != null ? ` <span class="sep">·</span> ${dur(scan.durationMs)}` : ''}</span></div>
       <div class="pop-wrap"><button class="btn btn-sm" data-pop="histPop" aria-haspopup="true" aria-expanded="false"><i data-lucide="history"></i>History <span class="mono t3">${scans.length}</span></button>
         <div class="pop pop-r pop-hist" id="histPop" hidden><div class="pop-label">History of <span class="mono">${esc(line.ref)}</span></div>${scans.map(s => `<a class="hist-row ${s.id === scan.id ? 'on' : ''}" href="#repo/${enc(repo.id)}/${s.num}"><span class="mono small t3">#${s.num}</span><span class="hr-when">${rel(s.finishedAt || s.startedAt)}${line.kind === 'tag' && s.branch !== line.ref ? ` <span class="mono small t3">${esc(s.branch)}</span>` : ''}</span><span>${s.commit ? `<span class="kc">${esc(sha7(s.commit))}</span>` : ''}</span><span class="mono small hd">${scanStat(s)}</span></a>`).join('')}</div></div>
@@ -1490,7 +1497,7 @@ function scanbar(repo, scans, scan, refs) {
 function runLine(runs) {
   runs = runs || [];
   const ok = runs.filter(r => r.status === 'ok'), other = runs.filter(r => r.status !== 'ok'), bad = other.some(r => r.status === 'failed');
-  return `<button class="runline" id="runBtn" aria-expanded="${S.fs.runs}"><i data-lucide="${bad ? 'circle-alert' : 'circle-check'}" class="${bad ? 'neg' : 'pos'}"></i><span>${ok.length} scanner succeeded${other.map(r => ` · ${esc(toolShort(r.tool))} ${r.status === 'failed' ? '<span class="neg">Failed</span>' : 'skipped'}`).join('')}</span><i data-lucide="chevron-down" class="chev"></i></button>
+  return `<button class="runline" id="runBtn" aria-expanded="${S.fs.runs}"><i data-lucide="${bad ? 'circle-alert' : 'circle-check'}" class="${bad ? 'neg' : 'pos'}"></i><span>${ok.length} ${ok.length === 1 ? 'scanner' : 'scanners'} succeeded${other.map(r => ` · ${esc(toolShort(r.tool))} ${r.status === 'failed' ? '<span class="neg">Failed</span>' : 'skipped'}`).join('')}</span><i data-lucide="chevron-down" class="chev"></i></button>
       <div class="runs" ${S.fs.runs ? '' : 'hidden'}>${runs.map(r => `<div class="run ${esc(r.status)}"><i data-lucide="${r.status === 'ok' ? 'check' : r.status === 'failed' ? 'x' : 'minus'}"></i><span>${esc(toolName(r.tool))}${r.status === 'ok' && r.count != null ? ` <span class="t3 small">· ${r.count} ${r.count === 1 ? 'finding' : 'findings'}</span>` : ''}</span><span class="mono">${r.status === 'skipped' ? 'skipped' : dur(r.durationMs)}</span>${r.note ? `<span class="run-note">${esc(r.note)}</span>` : ''}</div>`).join('')}</div>`;
 }
 function viewRepo(ctx) {
@@ -1498,6 +1505,9 @@ function viewRepo(ctx) {
   const head = repoHead(repo, scans);
   const active = scans.find(isActive);
   const banner = active && active !== scan ? `<div class="card banner"><i data-lucide="loader" class="spin"></i><span>${active.status === 'queued' ? 'Queued' : 'Scanning'} #${active.num} · ${esc(trigL(active.trigger))}${active.startedAt ? ' · started ' + rel(active.startedAt) : ''}</span><span class="small t3" style="margin-left:auto">this page updates itself when done</span></div>` : '';
+  // the newest scan failed and the page shows an older one: say so, with the reason
+  const newest = scans[0];
+  const failNote = newest && newest.status === 'failed' && scan && scan !== newest ? `<div class="card banner banner-fail" role="status"><i data-lucide="circle-alert" class="neg"></i><span><strong>Scan #${newest.num} failed</strong> ${rel(newest.finishedAt || newest.startedAt)}${newest.error ? ': ' + esc(String(newest.error).split(String.fromCharCode(10))[0].slice(0, 160)) : ''}. Showing scan #${scan.num}${scan.status === 'done' ? ', the last successful one' : ''}.</span><a class="linkacc small" style="margin-left:auto;white-space:nowrap" href="#repo/${enc(repo.id)}/${newest.num}">View failed scan</a></div>` : '';
   if (!scan) return shell(head + `<div class="card empty-big"><i data-lucide="scan-line"></i><div class="step-tag">Step 3 · last step</div><h2>No scan results yet</h2><p class="t2">Connect this repo to CI and every push will be scanned with results sent here${repo.gitUrl && has('scan') ? ', or click Scan now' : has('manage') ? ', or add a Git URL in repo settings to scan without CI' : ''}</p><div class="actions" style="justify-content:center"><a class="btn btn-primary" href="#connect/${enc(repo.id)}"><i data-lucide="plug"></i>Connect CI</a></div></div>`);
   if (isActive(scan)) return shell(head + banner + scanbar(repo, scans, scan, ctx.refs) + `<div class="card empty-big"><i data-lucide="loader" class="spin"></i><h2>${scan.status === 'queued' ? 'Queued' : 'Scanning'} #${scan.num}</h2><p class="t2">Results appear here when every scanner finishes. This page updates itself</p></div>`);
   if (scan.status === 'failed') return shell(head + banner + scanbar(repo, scans, scan, ctx.refs) + `<section class="card sum"><div class="failhead"><i data-lucide="circle-alert" class="neg"></i><div><div style="font-weight:500">Scan #${scan.num} failed</div><div class="t2" style="margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(scan.error || (detail && detail.error) || 'Unknown reason')}</div></div></div>${detail && detail.runs && detail.runs.length ? runLine(detail.runs) : ''}</section>`);
@@ -1508,22 +1518,22 @@ function viewRepo(ctx) {
   const prevNum = detail && detail.prev ? detail.prev.num : null;
   // a PR compares with its target branch: name it, e.g. "Not in main #12"
   const pv = detail && detail.prev, otherLine = pv && (pv.refType !== (scan.refType || 'branch') || pv.branch !== scan.branch) && scan.refType !== 'tag';
-  const prevLbl = pv ? (otherLine ? ` ${pv.branch} #${pv.num}` : `scan #${pv.num}`) : '';
+  const prevLbl = pv ? (otherLine ? ` ${pv.branch} #${pv.num}` : ` scan #${pv.num}`) : '';
   const lineName = scanLine(scan).ref, firstLbl = scan.refType === 'branch' && scan.branch === repo.branch ? 'First scan of the repo' : `First scan of ${lineName}`;
   const openN = scan.openCount != null ? scan.openCount : open.length;
   const openPrev = prevS ? (prevS.openCount != null ? prevS.openCount : sum(prevS.counts)) : null;
   const doneScans = scans.filter(s => s.status === 'done').slice(0, 30).reverse();
   const okRuns = ((detail && detail.runs) || []).filter(r => r.status === 'ok').length;
-  return shell(`${repoHead(repo, scans, null, scan)}${banner}${scanbar(repo, scans, scan, ctx.refs)}
+  return shell(`${repoHead(repo, scans, null, scan)}${banner}${failNote}${scanbar(repo, scans, scan, ctx.refs)}
     <section class="card sum">
       <div class="sum-top">
       <div class="nums">
         <div><div class="k">Open</div><div class="v">${openN}</div><div class="d">${prevNum == null ? esc(firstLbl) : openPrev == null ? `vs${esc(prevLbl)}` : `${openPrev > openN ? 'down ' + (openPrev - openN) : openPrev < openN ? 'up ' + (openN - openPrev) : 'unchanged'} vs${esc(prevLbl)}`}</div></div>
-        <div><div class="k">New</div><div class="v ${scan.newCount ? 'new' : ''}">${scan.newCount ? '+' + scan.newCount : 0}</div><div class="d">${prevNum != null ? 'Not in' + esc(prevLbl) : '—'}</div></div>
-        <div><div class="k">Fixed</div><div class="v ${scan.fixedCount ? 'pos' : ''}">${scan.fixedCount || 0}</div><div class="d">${prevNum != null ? 'In' + esc(prevLbl) + ' but gone now' : '—'}</div></div>
+        <div><div class="k">New</div><div class="v ${scan.newCount ? 'new' : ''}">${scan.newCount ? '+' + scan.newCount : 0}</div><div class="d">${prevNum != null ? 'Not in' + esc(prevLbl) : 'Nothing to compare yet'}</div></div>
+        <div><div class="k">Fixed</div><div class="v ${scan.fixedCount ? 'pos' : ''}">${scan.fixedCount || 0}</div><div class="d">${prevNum != null ? 'In' + esc(prevLbl) + ' but gone now' : 'Nothing to compare yet'}</div></div>
       </div>
       <div class="spark">
-        <div class="spark-head"><span>Trend, ${doneScans.length} scans</span><span class="legend"><span><i style="background:var(--acc)"></i>Critical + High</span><span><i style="background:var(--t3)"></i>All</span></span></div>
+        <div class="spark-head"><span>Trend, ${doneScans.length} ${doneScans.length === 1 ? 'scan' : 'scans'}</span><span class="legend"><span><i style="background:var(--acc)"></i>Critical + High</span><span><i style="background:var(--t3)"></i>All</span></span></div>
         ${spark(doneScans, scan, repo.id)}
         <div class="spark-x"><span>${doneScans.length ? fmtDay(doneScans[0].finishedAt || doneScans[0].startedAt) : ''}</span><span>${doneScans.length ? fmtDay(doneScans[doneScans.length - 1].finishedAt || doneScans[doneScans.length - 1].startedAt) : ''}</span></div>
       </div>
@@ -1662,6 +1672,7 @@ function bindRepo(ctx, id) {
     catch (e) { toastErr(e); sn.disabled = false; }
   };
   const rs = $('#repoSet'); if (rs) rs.onclick = () => repoSettingsModal(repo);
+  const ng = $('#scanNeedsGit'); if (ng) ng.onclick = () => repoSettingsModal(repo);
   const rp = $('#repReport'); if (rp) rp.onclick = () => reportModal(repo, scan);
   // keep polling while any scan is queued or running, re-render once it finishes
   const active = scans.find(isActive);
@@ -2392,7 +2403,7 @@ function toolsCard(tools) {
     const src = t.source === 'updated'
       ? `<div class="small t3">Updated${t.updatedAt ? ' ' + esc(fmt(t.updatedAt)) : ''}${t.imageVersion ? ` · image has ${esc(t.imageVersion)}` : ''}${e && !busy ? ` · <button class="linkbtn" data-treset="${id}">Use the version bundled with the image</button>` : ''}</div>`
       : '';
-    const acts = e && !busy ? `<button class="btn btn-sm btn-ghost" data-upd="${id}"><i data-lucide="refresh-cw"></i>Update</button>` : '';
+    const acts = e && !busy ? `<button class="btn btn-sm btn-ghost btn-icon" data-upd="${id}" aria-label="Update ${name}" title="Update ${name} to its newest version"><i data-lucide="refresh-cw"></i></button>` : '';
     return `<div class="tool-row ${on ? '' : 'is-off'}">
       <div><div><span class="nm">${name}</span> ${t.version ? `<span class="mono small t3">${esc(t.version)}</span>` : ''}</div><div class="small t2">${esc(t.desc || '')}</div>${src}${t.status === 'error' && t.error ? `<div class="small neg" style="margin-top:4px;overflow-wrap:anywhere">${esc(t.error)}</div>` : ''}</div>
       <div class="small">${st}</div>
@@ -2418,7 +2429,7 @@ function viewSettings(ctx) {
     ${e ? '' : '<div class="note" style="margin-bottom:24px"><i data-lucide="eye"></i><div>Read only. Only ADMIN can change settings</div></div>'}
     <section class="sec">
       <div class="sec-h"><h2>Scanners</h2><span class="small t3"><span id="instCnt">${enabledText(tools)}</span>${e ? ' · <button class="linkbtn" id="updAll">Update all now</button>' : ''}</span></div>
-      <p class="hint sec-note">All scanners ship with the image and can be turned on or off instantly, with no download. Click Update to install a newer version over the bundled one</p>
+      <p class="hint sec-note">All scanners ship with the image and can be turned on or off instantly, with no download. Use the refresh button on a row to install a newer version over the bundled one</p>
       ${toolsCard(tools)}
       ${semgrepCard(st.semgrep || {}, e)}
     </section>

@@ -143,7 +143,7 @@ test.describe('CI sends code to scan', () => {
       await login(page);
       await page.goto(`/#repo/${repo.id}`);
       await expect(page.locator('.scanbar')).toContainText('Uploaded from CI');
-      await expect(page.locator('#runBtn')).toContainText('3 scanner succeeded');
+      await expect(page.locator('#runBtn')).toContainText('3 scanners succeeded');
     });
     await step(page, 'Resend with gate=report plus Grype: 200, duplicates merged', async () => {
       const r = await uploadReports(token, [...standardReports(), { tool: 'grype', data: fixture('grype.json') }], { query: 'gate=report', commit: 'e2e0003' });
@@ -153,7 +153,7 @@ test.describe('CI sends code to scan', () => {
       expect(d.findings.some((f) => f.tools.length > 1)).toBe(true);
       await page.reload();
       await expect(page.locator('.scanbar .ttl')).toHaveText('Scan #2');
-      await expect(page.locator('#runBtn')).toContainText('4 scanner succeeded');
+      await expect(page.locator('#runBtn')).toContainText('4 scanners succeeded');
     });
     await step(page, 'An unknown report format gets 400', async () => {
       const r = await uploadReports(token, [{ tool: 'nope', data: {} }]);
