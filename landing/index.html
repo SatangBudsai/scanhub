@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ScanHub · Self-hosted security scanning dashboard</title>
 <meta name="description" content="Free, self-hosted dashboard that runs Trivy, Grype, Gitleaks, Checkov, OWASP Dependency-Check, Semgrep and SonarQube on code from your CI, merges the findings and gates your pipeline. One Docker container.">
-<meta name="theme-color" content="#0b0f17">
+<meta name="theme-color" content="#f3f2ee">
 <meta property="og:title" content="ScanHub · Self-hosted security scanning dashboard">
 <meta property="og:description" content="Seven security scanners, one merged list of findings, a quality gate for CI. Free and self-hosted in one Docker container.">
 <meta property="og:type" content="website">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -20,245 +20,383 @@
 
 <header class="nav">
   <div class="wrap nav-in">
-    <a href="#top" class="brand" aria-label="ScanHub home"><img src="assets/logo-dark.svg" alt="ScanHub" width="140" height="32"></a>
+    <a href="#top" class="brand" aria-label="ScanHub home"><img src="assets/logo.svg" alt="ScanHub" width="140" height="32"></a>
     <nav aria-label="Primary">
       <ul class="nav-links">
         <li><a href="#how">How it works</a></li>
         <li><a href="#features">Features</a></li>
         <li><a href="#scanners">Scanners</a></li>
-        <li><a href="#install">Install</a></li>
+        <li><a href="#tour">Tour</a></li>
         <li><a href="#faq">FAQ</a></li>
       </ul>
     </nav>
-    <a class="btn btn-ghost btn-sm" href="https://github.com/SatangBudsai/scanhub">GitHub</a>
+    <div class="nav-cta">
+      <a class="btn btn-ghost btn-sm" href="https://github.com/SatangBudsai/scanhub">GitHub</a>
+      <a class="btn btn-primary btn-sm" href="#install">Install</a>
+    </div>
   </div>
 </header>
 
 <main id="main">
-<!-- HERO -->
-<section class="hero" id="top">
-  <div class="wrap hero-grid">
-    <div class="hero-copy">
-      <p class="eyebrow">Free · Self-hosted · One Docker container</p>
-      <h1>Seven security scanners.<br><span class="grad">One dashboard.</span></h1>
-      <p class="lead">ScanHub runs Trivy, Grype, Gitleaks, Checkov, OWASP Dependency-Check, Semgrep and SonarQube on the code your CI uploads. It merges duplicate findings, shows what is new or fixed since the last scan, and can fail the pipeline when it matters.</p>
-      <div class="cta">
-        <a class="btn btn-primary" href="#install">Get started</a>
-        <a class="btn btn-ghost" href="https://github.com/SatangBudsai/scanhub">
-          <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 0-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6 0-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8 0 3.2.9.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.5.4.9 1.1.9 2.2v3.3c0 .3.1.7.8.6A12 12 0 0 0 12 .3"/></svg>
-          View on GitHub</a>
+
+<!-- HERO: a report cover, then figure 1 -->
+<section class="hero" id="top" aria-labelledby="hero-h">
+  <div class="wrap">
+    <dl class="meta" aria-label="At a glance">
+      <div><dt>Product</dt><dd>ScanHub</dd></div>
+      <div><dt>Runs as</dt><dd>1 Docker container · amd64 / arm64</dd></div>
+      <div><dt>Hosting</dt><dd>Your server. Code never leaves it.</dd></div>
+      <div><dt>Price</dt><dd>Free · Apache-2.0 · no seat limit</dd></div>
+    </dl>
+
+    <div class="hero-grid">
+      <h1 id="hero-h">Seven security scanners. <span class="h-quiet">One list of findings you can act on.</span></h1>
+      <div class="hero-side">
+        <p class="lead">ScanHub runs Trivy, Grype, Gitleaks, Checkov, OWASP Dependency-Check, Semgrep and SonarQube on the code your CI uploads. It merges duplicate findings, shows what is new or fixed since the last scan, and can fail the pipeline when it matters.</p>
+        <div class="cta">
+          <a class="btn btn-primary" href="#install">Install in 3 commands</a>
+          <a class="btn btn-ghost" href="https://github.com/SatangBudsai/scanhub">
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 0-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6 0-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8 0 3.2.9.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.5.4.9 1.1.9 2.2v3.3c0 .3.1.7.8.6A12 12 0 0 0 12 .3"/></svg>
+            Source on GitHub</a>
+        </div>
       </div>
-      <p class="hero-note"><code>docker compose up -d</code> · amd64 &amp; arm64 · your code never leaves your server</p>
     </div>
-    <figure class="hero-shot frame">
-      <img src="assets/media/results-overview.gif" width="1280" height="800" alt="ScanHub repo page: severity summary, new and fixed counts, and the merged findings list across scanners" fetchpriority="high">
+
+    <!-- FIG. 1: three raw outputs converge into one stored finding -->
+    <figure class="fig1" aria-labelledby="fig1-cap">
+      <div class="fig1-in">
+        <div class="raw">
+          <p class="raw-h"><img src="assets/logos/trivy.svg" alt="" width="16" height="16">Trivy <span>table</span></p>
+<pre><span class="d">Library | Vulnerability  | Severity</span>
+lodash  | CVE-2021-23337 | <b class="s-high">HIGH</b></pre>
+        </div>
+        <div class="raw">
+          <p class="raw-h"><img src="assets/logos/grype.png" alt="" width="16" height="16">Grype <span>table</span></p>
+<pre><span class="d">NAME    VULNERABILITY        SEVERITY</span>
+lodash  GHSA-35jh-r3h4-6jhm  <b class="s-high">High</b></pre>
+        </div>
+        <div class="raw">
+          <p class="raw-h"><img src="assets/logos/owasp.svg" alt="" width="16" height="16">Dependency-Check <span>json</span></p>
+<pre><span class="d">"fileName":</span> "lodash:4.17.20",
+<span class="d">"name":</span> "CVE-2021-23337", <span class="d">"baseScore":</span> <b class="s-high">7.2</b></pre>
+        </div>
+      </div>
+      <p class="fig1-m" aria-hidden="true">3 reports → 1 finding</p>
+      <svg class="fig1-lines" viewBox="0 0 300 48" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M50 0 V16 Q50 24 60 24 H140 Q150 24 150 34 V48"/><path d="M150 0 V48"/><path d="M250 0 V16 Q250 24 240 24 H160 Q150 24 150 34 V48"/>
+      </svg>
+      <div class="merged">
+        <span class="sev sev-high">High</span>
+        <div class="merged-main">
+          <p class="merged-t">lodash 4.17.20 · command injection <code>CVE-2021-23337</code></p>
+          <p class="merged-m">package-lock.json · fixed in 4.17.21 · <span class="src">Trivy</span><span class="src">Grype</span><span class="src">Dependency-Check</span></p>
+        </div>
+        <span class="tag-new">New</span>
+      </div>
+      <figcaption id="fig1-cap"><span class="fig-n">Fig. 1</span> One vulnerable package as three scanners report it (different IDs, different severity scales) and as ScanHub stores it: one row, one severity, every source listed. Example data.</figcaption>
     </figure>
   </div>
 </section>
 
-<!-- PROBLEM -->
-<section class="section" id="why" aria-labelledby="why-h">
-  <div class="wrap">
-    <p class="eyebrow">Why ScanHub</p>
-    <h2 id="why-h">Open-source scanners are great. Living with seven of them is not.</h2>
-    <div class="grid3">
-      <article class="card">
-        <h3>Scattered output</h3>
-        <p>Each tool has its own CLI, its own report format and its own idea of severity. Results end up buried in CI logs nobody reads.</p>
-      </article>
-      <article class="card">
-        <h3>Duplicate noise</h3>
-        <p>The same CVE shows up from Trivy, Grype and Dependency-Check. Without merging, your team triages it three times.</p>
-      </article>
-      <article class="card">
-        <h3>No memory</h3>
-        <p>A one-off scan can't tell you what this commit introduced or what last sprint fixed. That is the question reviewers actually ask.</p>
-      </article>
+<!-- 01 PROBLEM -->
+<section class="sec" id="why" aria-labelledby="why-h">
+  <div class="wrap sec-grid">
+    <p class="sec-k"><span>01</span>Why</p>
+    <div class="sec-body">
+      <h2 id="why-h">Open-source scanners are great. Living with seven of them is not.</h2>
+      <ol class="cols3">
+        <li><h3>Scattered output</h3><p>Each tool has its own CLI, its own report format and its own idea of severity. Results end up buried in CI logs nobody reads.</p></li>
+        <li><h3>Duplicate noise</h3><p>The same CVE shows up from Trivy, Grype and Dependency-Check. Without merging, your team triages it three times.</p></li>
+        <li><h3>No memory</h3><p>A one-off scan can't tell you what this commit introduced or what last sprint fixed. That is the question reviewers actually ask.</p></li>
+      </ol>
+      <p class="note">Hosted platforms with this workflow are usually paid per seat or per repo. ScanHub is free and runs on your own machine.</p>
     </div>
-    <p class="why-sum">ScanHub puts every scanner behind one upload endpoint, keeps the history, and gives you one de-duplicated list per repo. Hosted platforms with the same workflow are usually paid per seat or per repo; ScanHub is free and runs on your own machine.</p>
   </div>
 </section>
 
-<!-- HOW -->
-<section class="section alt" id="how" aria-labelledby="how-h">
-  <div class="wrap">
-    <p class="eyebrow">How it works</p>
-    <h2 id="how-h">From pipeline to dashboard in four steps</h2>
-    <div class="how-grid">
-      <ol class="steps">
-        <li><span class="num">1</span><div><h3>Install once</h3><p>Download <code>docker-compose.yml</code>, set an admin password and URL, run <code>docker compose up -d</code>. The image ships with PostgreSQL and every scanner.</p></div></li>
-        <li><span class="num">2</span><div><h3>Connect CI</h3><p>Add a repo and copy the generated snippet for GitHub Actions, GitLab CI, Jenkins, Bitbucket, Azure Pipelines or plain shell. Or connect GitHub/GitLab and let ScanHub open the setup for you.</p></div></li>
-        <li><span class="num">3</span><div><h3>Scan every push</h3><p>CI uploads the source. ScanHub runs the enabled scanners, normalizes severities and merges duplicate findings.</p></div></li>
-        <li><span class="num">4</span><div><h3>Gate and report</h3><p>See new vs. fixed against the previous scan, fail the build on your threshold, export PDF/HTML reports or share a protected link.</p></div></li>
+<!-- 02 HOW -->
+<section class="sec" id="how" aria-labelledby="how-h">
+  <div class="wrap sec-grid">
+    <p class="sec-k"><span>02</span>How it works</p>
+    <div class="sec-body">
+      <h2 id="how-h">From pipeline to dashboard in four steps</h2>
+      <ol class="rows">
+        <li><span class="rn">1</span><h3>Install once</h3><p>Download <code>docker-compose.yml</code>, set an admin password and URL, run <code>docker compose up -d</code>. The image ships with PostgreSQL and every scanner.</p></li>
+        <li><span class="rn">2</span><h3>Connect CI</h3><p>Add a repo and copy the generated snippet, or connect GitHub/GitLab and let ScanHub open the setup for you.</p></li>
+        <li><span class="rn">3</span><h3>Scan every push</h3><p>CI uploads the source. ScanHub runs the enabled scanners, normalizes severities and merges duplicates.</p></li>
+        <li><span class="rn">4</span><h3>Gate and report</h3><p>The CI job gets a short summary and passes or fails on your threshold. Everything else lives in the dashboard.</p></li>
       </ol>
-      <figure class="frame">
-        <img src="assets/media/architecture.gif" width="1100" height="619" loading="lazy" decoding="async" alt="Architecture diagram: CI systems upload code to ScanHub, which runs Trivy, Grype, Gitleaks, Checkov, Dependency-Check, Semgrep and SonarQube and stores results in PostgreSQL">
+      <p class="ci-line"><span class="ci-k">Works with</span> GitHub Actions <i>/</i> GitLab CI <i>/</i> Jenkins <i>/</i> Bitbucket Pipelines <i>/</i> Azure Pipelines <i>/</i> anything that runs <code>curl</code></p>
+      <figure class="arch" aria-labelledby="fig2-cap">
+        <div class="arch-in" role="img" aria-label="Architecture: your CI uploads source or scanner reports to the ScanHub container. Inside it, the web app and API pass the upload to a scan queue, the enabled scanners run on the same source, and results are merged, compared with the previous scan and stored in PostgreSQL. Out of it come the dashboard, the gate result for CI, and reports and share links.">
+          <div class="arch-col">
+            <p class="arch-k">In</p>
+            <div class="arch-box"><b>Your CI</b><span>uploads source, or scanner JSON / SARIF</span></div>
+            <div class="arch-box"><b>Scan now / schedule</b><span>clones the repo from its Git URL</span></div>
+          </div>
+          <div class="arch-col arch-main">
+            <p class="arch-k">ScanHub container</p>
+            <div class="arch-box"><b>Web app + API</b><span>takes the upload, answers CI</span></div>
+            <div class="arch-box"><b>Scan queue</b><span>unpacks the source, runs the enabled scanners</span>
+              <ul class="arch-chips"><li>Trivy</li><li>Grype</li><li>Gitleaks</li><li>Checkov</li><li>Dependency-Check</li><li>Semgrep</li><li class="opt">SonarQube*</li></ul></div>
+            <div class="arch-box"><b>Merge + diff</b><span>one row per finding, new and fixed vs. the previous scan</span></div>
+            <div class="arch-box"><b>PostgreSQL</b><span>every scan kept, in a Docker volume</span></div>
+          </div>
+          <div class="arch-col">
+            <p class="arch-k">Out</p>
+            <div class="arch-box"><b>Dashboard</b><span>findings, history, filters</span></div>
+            <div class="arch-box"><b>Gate result</b><span>HTTP 200 or 422 back to CI</span></div>
+            <div class="arch-box"><b>Reports</b><span>PDF, HTML, share links</span></div>
+          </div>
+        </div>
+        <figcaption id="fig2-cap"><span class="fig-n">Fig. 2</span> Architecture: one container with the web app, the scan queue, the scanners and PostgreSQL. * SonarQube analysis runs on a SonarQube server beside it (optional).</figcaption>
       </figure>
     </div>
-    <div class="ci-row" aria-label="Supported CI systems">
-      <span class="ci"><img src="assets/logos/github.svg" alt="" width="20" height="20">GitHub Actions</span>
-      <span class="ci"><img src="assets/logos/gitlab.svg" alt="" width="20" height="20">GitLab CI</span>
-      <span class="ci"><img src="assets/logos/jenkins.svg" alt="" width="20" height="20">Jenkins</span>
-      <span class="ci"><img src="assets/logos/bitbucket.svg" alt="" width="20" height="20">Bitbucket</span>
-      <span class="ci"><img src="assets/logos/azure-pipelines.png" alt="" width="20" height="20">Azure Pipelines</span>
-      <span class="ci"><img src="assets/logos/gnubash.svg" alt="" width="20" height="20">Any shell</span>
-    </div>
   </div>
 </section>
 
-<!-- FEATURES -->
-<section class="section" id="features" aria-labelledby="feat-h">
-  <div class="wrap">
-    <p class="eyebrow">Features</p>
-    <h2 id="feat-h">Everything around the scan, not just the scan</h2>
-    <ul class="feat">
-      <li><h3>Merged findings</h3><p>One list per repo. A finding reported by several tools appears once, with every source listed.</p></li>
-      <li><h3>New vs. fixed</h3><p>Each scan is compared with the previous one, so you see exactly what a commit added or resolved.</p></li>
-      <li><h3>Quality gate</h3><p>Block the pipeline above a severity threshold, or report only. Switch modes without touching the pipeline.</p></li>
-      <li><h3>Reports &amp; export</h3><p>Client-ready PDF and HTML reports for a repo or a scan.</p></li>
-      <li><h3>Share links</h3><p>Share results with signed-in users only, or with a password-protected link.</p></li>
-      <li><h3>Users &amp; groups</h3><p>Give each group access to specific projects, or to all of them.</p></li>
-      <li><h3>One-click CI setup</h3><p>Connect GitHub or GitLab and ScanHub sets up the pipeline for a repo.</p></li>
-      <li><h3>Bring your own reports</h3><p>Already running scanners in CI? Send their JSON or SARIF to <code>/api/v1/reports</code>.</p></li>
-      <li><h3>History &amp; filters</h3><p>Every scan is kept. Search, filter and group findings across scans.</p></li>
-    </ul>
-  </div>
-</section>
+<!-- 03 FEATURES -->
+<section class="sec" id="features" aria-labelledby="feat-h">
+  <div class="wrap sec-grid">
+    <p class="sec-k"><span>03</span>Features</p>
+    <div class="sec-body">
+      <h2 id="feat-h">Everything around the scan, not just the scan</h2>
 
-<!-- SCANNERS -->
-<section class="section alt" id="scanners" aria-labelledby="sc-h">
-  <div class="wrap">
-    <p class="eyebrow">Supported scanners</p>
-    <h2 id="sc-h">Bundled in the image, ready on first start</h2>
-    <ul class="scanners">
-      <li><span class="logo"><img src="assets/logos/trivy.svg" alt="" width="40" height="40" loading="lazy"></span><div><h3>Trivy</h3><p>Dependency CVEs, misconfig</p></div></li>
-      <li><span class="logo"><img src="assets/logos/grype.png" alt="" width="40" height="40" loading="lazy"></span><div><h3>Grype</h3><p>Dependency CVEs</p></div></li>
-      <li><span class="logo"><img src="assets/logos/gitleaks.svg" alt="" width="40" height="40" loading="lazy"></span><div><h3>Gitleaks</h3><p>Leaked secrets &amp; keys</p></div></li>
-      <li><span class="logo"><img src="assets/logos/checkov.svg" alt="" width="40" height="40" loading="lazy"></span><div><h3>Checkov</h3><p>Infrastructure as code</p></div></li>
-      <li><span class="logo"><img src="assets/logos/owasp.svg" alt="" width="40" height="40" loading="lazy"></span><div><h3>OWASP Dependency-Check</h3><p>Known-vulnerable libraries</p></div></li>
-      <li><span class="logo"><img src="assets/logos/semgrep.svg" alt="" width="40" height="40" loading="lazy"></span><div><h3>Semgrep</h3><p>Static analysis (SAST)</p></div></li>
-      <li><span class="logo"><img src="assets/logos/sonarqubeserver.svg" alt="" width="40" height="40" loading="lazy"></span><div><h3>SonarQube</h3><p>Code quality &amp; security hotspots</p></div></li>
-    </ul>
-    <p class="fine">Each scanner keeps its own license; see <a href="https://github.com/SatangBudsai/scanhub/blob/main/THIRD_PARTY_NOTICES.md">THIRD_PARTY_NOTICES.md</a> or Settings → About and licenses in the app. Semgrep Registry rules are under the <a href="https://semgrep.dev/legal/rules-license">Semgrep Rules License</a> and are used only after an admin accepts it (or you supply your own rules). Product names and logos belong to their owners; ScanHub is not affiliated with or endorsed by them.</p>
-  </div>
-</section>
-
-<!-- USE CASES -->
-<section class="section" id="use-cases" aria-labelledby="uc-h">
-  <div class="wrap">
-    <p class="eyebrow">Use cases</p>
-    <h2 id="uc-h">Who it is for</h2>
-    <div class="grid3 uc">
-      <article class="card"><h3>Small teams with no security budget</h3><p>Get SCA, SAST, IaC and secret scanning on every push without buying a platform or hiring a specialist.</p></article>
-      <article class="card"><h3>Agencies with many client repos</h3><p>Organize by project › repo, give each client group its own access, and hand over a PDF report at delivery.</p></article>
-      <article class="card"><h3>A quality gate for pull requests</h3><p>Fail the build when a change introduces a critical or high finding; let existing debt be tracked, not block work.</p></article>
-      <article class="card"><h3>Compliance &amp; audit evidence</h3><p>Scan history and exportable reports show what was checked, when, and what was fixed.</p></article>
-      <article class="card"><h3>Secret leak detection</h3><p>Gitleaks runs on every upload, so a committed API key shows up as a new finding right away.</p></article>
-      <article class="card"><h3>Teams already running scanners</h3><p>Keep your CI jobs and send their JSON/SARIF to ScanHub for history, merging and the gate.</p></article>
-    </div>
-  </div>
-</section>
-
-<!-- INSTALL -->
-<section class="section alt" id="install" aria-labelledby="in-h">
-  <div class="wrap narrow">
-    <p class="eyebrow">Quick install</p>
-    <h2 id="in-h">Running in about five minutes</h2>
-    <p class="muted">You only need Docker: Docker Desktop on Windows 10/11 or macOS, or Docker Engine + Compose on Linux (x86_64 or arm64).</p>
-
-    <ol class="install">
-      <li>
-        <h3>Download the compose file</h3>
-        <div class="tabs" role="tablist" aria-label="Operating system">
-          <button role="tab" id="t-unix" aria-selected="true" aria-controls="p-unix">macOS / Linux</button>
-          <button role="tab" id="t-win" aria-selected="false" aria-controls="p-win" tabindex="-1">Windows (PowerShell)</button>
+      <article class="story">
+        <div class="story-copy">
+          <h3>3.1 &nbsp;One merged list per repo</h3>
+          <p>Findings from every scanner land in one list. A finding reported by several tools appears once, with every source listed and one normalized severity.</p>
+          <div class="sevbar" role="img" aria-label="Example: 79 open findings, Critical 17, High 33, Medium 27, Low 1, Info 1">
+            <div class="sevbar-bar"><i class="b-crit" style="flex:17"></i><i class="b-high" style="flex:33"></i><i class="b-med" style="flex:27"></i><i class="b-low" style="flex:1"></i><i class="b-info" style="flex:1"></i></div>
+            <ul class="sevbar-k" aria-hidden="true"><li><b class="k-crit"></b>Crit 17</li><li><b class="k-high"></b>High 33</li><li><b class="k-med"></b>Med 27</li><li><b class="k-low"></b>Low 1</li><li><b class="k-info"></b>Info 1</li></ul>
+          </div>
+          <ul class="spec"><li>Severity bar and open count at a glance</li><li>“Needs attention” shows what to fix first</li><li>CSV export of any view</li></ul>
         </div>
-        <div class="code" role="tabpanel" id="p-unix" aria-labelledby="t-unix">
+        <figure class="plate media zoom zoom-l" data-anim="assets/media/results-overview.gif">
+          <div class="shot"><img src="assets/media/posters/results-overview.webp" width="1280" height="800" loading="lazy" decoding="async" alt="ScanHub repo page: open, new and fixed counts, the severity bar, and the merged findings list with several scanners per finding"></div>
+          <figcaption><span class="fig-n">Fig. 3</span> A repo after its second scan: 79 open, 2 new, 2 fixed.</figcaption>
+        </figure>
+      </article>
+
+      <article class="story">
+        <div class="story-copy">
+          <h3>3.2 &nbsp;New vs. fixed, on every scan</h3>
+          <p>Each scan is compared with the previous one on the same branch, so you see exactly what a commit added or resolved. Every scan is kept, so you can step back through the history.</p>
+          <ul class="spec"><li>Pull requests compare with their target branch</li><li>Trend of critical and high over time</li></ul>
+        </div>
+        <figure class="plate media zoom zoom-r" data-anim="assets/media/history.gif">
+          <div class="shot"><img src="assets/media/posters/history.webp" width="1280" height="800" loading="lazy" decoding="async" alt="Scan history for a repo, switching between scans with new and fixed counts per scan"></div>
+          <figcaption><span class="fig-n">Fig. 4</span> Switching between scans in the history menu.</figcaption>
+        </figure>
+      </article>
+
+      <article class="story">
+        <div class="story-copy">
+          <h3>3.3 &nbsp;A quality gate your CI understands</h3>
+          <p>The upload call returns <strong>HTTP 422</strong> when the gate fails, so the job fails without extra scripting. By default only <em>new</em> critical and high findings block; existing debt is tracked, not in the way.</p>
+          <ul class="spec"><li>Switch to report-only in the repo settings, no pipeline change</li><li>Choose severities and new-only or all open</li></ul>
+        </div>
+        <figure class="term" data-gate aria-labelledby="fig5-cap">
+          <div class="term-bar">
+            <span class="term-title">ci.log</span>
+            <div class="seg" role="group" aria-label="Gate mode">
+              <button type="button" aria-pressed="true" data-mode="block">Block</button>
+              <button type="button" aria-pressed="false" data-mode="report">Report only</button>
+            </div>
+          </div>
+<pre class="term-body" aria-live="polite"><span class="c-dim">$ curl … /api/v1/scan?branch=main&amp;wait=1</span>
+ScanHub · payments-api · scan #42
+Open:    79 issues (Critical 17 · High 33 · Medium 27 · Low 1 · Info 1)
+Changes: 2 new · 2 fixed since the previous scan
+<span data-out="block">Gate:    <span class="c-bad">FAILED</span> (block · new issues only · critical, high) Found new issues: Critical 1, High 1</span><span data-out="report" hidden>Gate:    <span class="c-ok">PASSED</span> (report only · new issues only · critical, high) Found new issues: Critical 1, High 1 (report-only mode, the pipeline does not fail)</span>
+Results: https://scanhub.company.local/…
+<span data-out="block"><span class="c-bad">HTTP 422 · job failed</span></span><span data-out="report" hidden><span class="c-ok">HTTP 200 · job passed</span></span></pre>
+          <figcaption id="fig5-cap"><span class="fig-n">Fig. 5</span> What the CI log shows, in the exact format ScanHub returns. Example values.</figcaption>
+        </figure>
+      </article>
+
+      <details class="more" open>
+      <summary><h3 class="more-h">3.4 &nbsp;Also included</h3><span class="more-n">6 more</span></summary>
+      <ul class="grid-list">
+        <li><h4>Reports &amp; export</h4><p>Client-ready PDF and HTML reports for a repo or a scan.</p></li>
+        <li><h4>Share links</h4><p>Share with signed-in users only, or with a password-protected link.</p></li>
+        <li><h4>Users &amp; groups</h4><p>Give each group access to specific projects, or to all of them.</p></li>
+        <li><h4>One-click CI setup</h4><p>Connect GitHub or GitLab and ScanHub adds the secret and pipeline file for a repo.</p></li>
+        <li><h4>Bring your own reports</h4><p>Already running scanners? Send their JSON or SARIF to <code>/api/v1/reports</code>.</p></li>
+        <li><h4>Search, filter, group</h4><p>Find a finding by text, severity, scanner or file, across any scan.</p></li>
+      </ul>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- 04 SCANNERS: a spec table, like the notices it comes from -->
+<section class="sec" id="scanners" aria-labelledby="sc-h">
+  <div class="wrap sec-grid">
+    <p class="sec-k"><span>04</span>Scanners</p>
+    <div class="sec-body">
+      <h2 id="sc-h">Bundled in the image, ready on first start</h2>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th scope="col">Scanner</th><th scope="col">Finds</th><th scope="col">License</th></tr></thead>
+          <tbody>
+            <tr><th scope="row"><span class="tool"><img src="assets/logos/trivy.svg" alt="" width="20" height="20" loading="lazy">Trivy</span></th><td>Vulnerable dependencies, secrets, IaC and Dockerfile misconfigurations</td><td>Apache-2.0</td></tr>
+            <tr><th scope="row"><span class="tool"><img src="assets/logos/grype.png" alt="" width="20" height="20" loading="lazy">Grype</span></th><td>Vulnerable dependencies and filesystem packages</td><td>Apache-2.0</td></tr>
+            <tr><th scope="row"><span class="tool"><img src="assets/logos/gitleaks.svg" alt="" width="20" height="20" loading="lazy">Gitleaks</span></th><td>Secrets and credentials committed to code</td><td>MIT</td></tr>
+            <tr><th scope="row"><span class="tool"><img src="assets/logos/checkov.svg" alt="" width="20" height="20" loading="lazy">Checkov</span></th><td>Terraform, Kubernetes, Dockerfile and CI misconfigurations</td><td>Apache-2.0</td></tr>
+            <tr><th scope="row"><span class="tool"><img src="assets/logos/owasp.svg" alt="" width="20" height="20" loading="lazy">Dependency-Check</span></th><td>Dependencies matched against CVEs from the NVD</td><td>Apache-2.0</td></tr>
+            <tr><th scope="row"><span class="tool"><img src="assets/logos/semgrep.svg" alt="" width="20" height="20" loading="lazy">Semgrep</span></th><td>Static analysis (SAST) with rules you choose</td><td>LGPL-2.1 engine*</td></tr>
+            <tr><th scope="row"><span class="tool"><img src="assets/logos/sonarqubeserver.svg" alt="" width="20" height="20" loading="lazy">SonarQube</span></th><td>Code quality and security hotspots, on your own SonarQube server</td><td>LGPL-3.0</td></tr>
+            <tr class="own"><th scope="row"><span class="tool"><span class="own-ic" aria-hidden="true">{ }</span>Your own</span></th><td>Any scanner’s JSON or SARIF, sent to <code>/api/v1/reports</code></td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="fine">* Semgrep Registry rules are under the <a href="https://semgrep.dev/legal/rules-license">Semgrep Rules License</a> and are used only after an admin accepts it (or you supply your own rules). Each scanner keeps its own license; see <a href="https://github.com/SatangBudsai/scanhub/blob/main/THIRD_PARTY_NOTICES.md">THIRD_PARTY_NOTICES.md</a> or Settings → About and licenses in the app. Product names and logos belong to their owners; ScanHub is not affiliated with or endorsed by them.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 05 USE CASES -->
+<section class="sec" id="use-cases" aria-labelledby="uc-h">
+  <div class="wrap sec-grid">
+    <p class="sec-k"><span>05</span>Use cases</p>
+    <div class="sec-body">
+      <h2 id="uc-h">Who it is for</h2>
+      <dl class="uc">
+        <div><dt>Small teams with no security budget</dt><dd>SCA, SAST, IaC and secret scanning on every push, without buying a platform or hiring a specialist.</dd></div>
+        <div><dt>Agencies with many client repos</dt><dd>Organize by project › repo, give each client group its own access, and hand over a PDF report at delivery.</dd></div>
+        <div><dt>Pull request review</dt><dd>Fail the build when a change introduces a critical or high finding, while existing debt is tracked instead of blocking work.</dd></div>
+        <div><dt>Compliance &amp; audit evidence</dt><dd>Scan history and exportable reports show what was checked, when, and what was fixed.</dd></div>
+        <div><dt>Catching leaked secrets</dt><dd>Gitleaks runs on every upload, so a committed API key shows up as a new finding right away.</dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<!-- 06 INSTALL -->
+<section class="sec sec-tint" id="install" aria-labelledby="in-h">
+  <div class="wrap sec-grid">
+    <p class="sec-k"><span>06</span>Install</p>
+    <div class="sec-body">
+      <h2 id="in-h">Running in about five minutes</h2>
+      <p class="muted">You only need Docker: Docker Desktop on Windows 10/11 or macOS, or Docker Engine + Compose on Linux (x86_64 or arm64).</p>
+
+      <h3 class="reqs-h">Before you start</h3>
+      <dl class="reqs">
+        <div><dt>RAM</dt><dd>About 8 GB recommended with SonarQube enabled</dd></div>
+        <div><dt>Disk</dt><dd>The image is about 2 GB, plus scan data and vulnerability databases</dd></div>
+        <div><dt>Network</dt><dd>Outbound access to GitHub, PyPI, SonarSource and NVD for scanner databases (an offline image transfer is documented)</dd></div>
+        <div><dt>First scan</dt><dd>3–4 minutes longer while Trivy and Grype download their databases</dd></div>
+        <div><dt>Image</dt><dd><code>ghcr.io/satangbudsai/scanhub</code> · <a href="https://github.com/SatangBudsai/scanhub#readme">Full install guide</a></dd></div>
+      </dl>
+
+      <ol class="install">
+        <li>
+          <h3>Download the compose file</h3>
+          <div class="tabs" role="tablist" aria-label="Operating system">
+            <button role="tab" id="t-unix" aria-selected="true" aria-controls="p-unix">macOS / Linux</button>
+            <button role="tab" id="t-win" aria-selected="false" aria-controls="p-win" tabindex="-1">Windows (PowerShell)</button>
+          </div>
+          <div class="code" role="tabpanel" id="p-unix" aria-labelledby="t-unix">
 <pre><code>mkdir scanhub &amp;&amp; cd scanhub
 curl -fsSLO https://raw.githubusercontent.com/SatangBudsai/scanhub/main/docker-compose.yml</code></pre>
-          <button class="copy" type="button">Copy</button>
-        </div>
-        <div class="code" role="tabpanel" id="p-win" aria-labelledby="t-win" hidden>
+            <button class="copy" type="button">Copy</button>
+          </div>
+          <div class="code" role="tabpanel" id="p-win" aria-labelledby="t-win" hidden>
 <pre><code>mkdir scanhub; cd scanhub
-Invoke-WebRequest https://raw.githubusercontent.com/SatangBudsai/scanhub/main/docker-compose.yml -OutFile docker-compose.yml</code></pre>
-          <button class="copy" type="button">Copy</button>
-        </div>
-      </li>
-      <li>
-        <h3>Edit three lines in <code>docker-compose.yml</code></h3>
-        <div class="code">
+Invoke-WebRequest `
+  https://raw.githubusercontent.com/SatangBudsai/scanhub/main/docker-compose.yml `
+  -OutFile docker-compose.yml</code></pre>
+            <button class="copy" type="button">Copy</button>
+          </div>
+        </li>
+        <li>
+          <h3>Edit three lines in <code>docker-compose.yml</code></h3>
+          <p class="muted step-note">These keys are already in the file. Change their values.</p>
+          <div class="code">
 <pre><code>SCANHUB_ADMIN_USER: admin
 SCANHUB_ADMIN_PASSWORD: your-strong-password   # at least 8 characters
 SCANHUB_URL: https://scanhub.company.local     # URL people and CI use</code></pre>
-          <button class="copy" type="button">Copy</button>
-        </div>
-      </li>
-      <li>
-        <h3>Start it</h3>
-        <div class="code">
+          </div>
+        </li>
+        <li>
+          <h3>Start it</h3>
+          <div class="code">
 <pre><code>docker compose up -d</code></pre>
-          <button class="copy" type="button">Copy</button>
+            <button class="copy" type="button">Copy</button>
+          </div>
+          <p class="muted">Open your <code>SCANHUB_URL</code>, sign in as admin, and pick scanners in the setup wizard. Update later with <code>docker compose pull &amp;&amp; docker compose up -d</code>; data is kept.</p>
+        </li>
+      </ol>
+      <p class="next"><span class="ci-k">Next</span> Add your first repo and connect CI: see <a href="#tour">the setup wizard and GitHub auto-setup in the tour</a>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 07 TOUR -->
+<section class="sec" id="tour" aria-labelledby="tour-h">
+  <div class="wrap sec-grid">
+    <p class="sec-k"><span>07</span>Tour</p>
+    <div class="sec-body">
+      <h2 id="tour-h">See it in action</h2>
+      <div class="tour">
+        <div class="tour-tabs" role="tablist" aria-label="Product tour">
+          <button role="tab" id="tt-1" aria-selected="true" aria-controls="tp-1">Search &amp; filter</button>
+          <button role="tab" id="tt-2" aria-selected="false" aria-controls="tp-2" tabindex="-1">Reports</button>
+          <button role="tab" id="tt-3" aria-selected="false" aria-controls="tp-3" tabindex="-1">Share links</button>
+          <button role="tab" id="tt-4" aria-selected="false" aria-controls="tp-4" tabindex="-1">GitHub auto-setup</button>
+          <button role="tab" id="tt-5" aria-selected="false" aria-controls="tp-5" tabindex="-1">Setup wizard</button>
         </div>
-        <p class="muted">Open your <code>SCANHUB_URL</code>, sign in as admin, and pick scanners in the setup wizard. Update later with <code>docker compose pull &amp;&amp; docker compose up -d</code>; data is kept.</p>
-      </li>
-    </ol>
-
-    <div class="reqs">
-      <h3>Requirements</h3>
-      <ul>
-        <li><strong>RAM:</strong> about 8 GB recommended with SonarQube enabled</li>
-        <li><strong>Disk:</strong> the image is about 2 GB, plus space for scan data and vulnerability databases</li>
-        <li><strong>Network:</strong> outbound access to GitHub, PyPI, SonarSource and NVD for scanner databases (an offline image transfer is documented)</li>
-        <li><strong>First scan:</strong> takes 3–4 minutes longer while Trivy and Grype download their databases</li>
-      </ul>
-      <p class="muted">Image: <code>ghcr.io/satangbudsai/scanhub</code> · <a href="https://github.com/SatangBudsai/scanhub#readme">Full install guide</a></p>
+        <div role="tabpanel" id="tp-1" aria-labelledby="tt-1">
+          <figure class="plate media" data-anim="assets/media/findings-filter.gif"><img src="assets/media/posters/findings-filter.webp" width="1280" height="800" loading="lazy" decoding="async" alt="Searching, filtering and grouping findings, and opening a finding reported by several scanners"><figcaption><span class="fig-n">Fig. 6</span> Search by text, filter by severity, tool or status, group by severity, file or scanner, and open a finding to see every scanner that reported it.</figcaption></figure>
+        </div>
+        <div role="tabpanel" id="tp-2" aria-labelledby="tt-2" hidden>
+          <figure class="plate media" data-anim="assets/media/report-export.gif"><img src="assets/media/posters/report-export.webp" width="1280" height="800" loading="lazy" decoding="async" alt="Exporting a client report as PDF and HTML"><figcaption><span class="fig-n">Fig. 7</span> Export a client-ready report for a repo or a single scan, as PDF or HTML.</figcaption></figure>
+        </div>
+        <div role="tabpanel" id="tp-3" aria-labelledby="tt-3" hidden>
+          <figure class="plate media" data-anim="assets/media/share-password.gif"><img src="assets/media/posters/share-password.webp" width="1280" height="800" loading="lazy" decoding="async" alt="Creating a password-protected share link and opening it"><figcaption><span class="fig-n">Fig. 8</span> A password-protected link for people outside ScanHub; revoke it or let it expire.</figcaption></figure>
+        </div>
+        <div role="tabpanel" id="tp-4" aria-labelledby="tt-4" hidden>
+          <figure class="plate media" data-anim="assets/media/auto-setup-github.gif"><img src="assets/media/posters/auto-setup-github.webp" width="1280" height="800" loading="lazy" decoding="async" alt="Connecting GitHub and setting up the CI workflow for a repo in one click"><figcaption><span class="fig-n">Fig. 9</span> Connect GitHub or GitLab once; ScanHub adds the secret and the pipeline file to a repo for you.</figcaption></figure>
+        </div>
+        <div role="tabpanel" id="tp-5" aria-labelledby="tt-5" hidden>
+          <figure class="plate media" data-anim="assets/media/setup.gif"><img src="assets/media/posters/setup.webp" width="1280" height="800" loading="lazy" decoding="async" alt="First-time setup wizard: choosing scanners and the daily update time"><figcaption><span class="fig-n">Fig. 10</span> On first start, pick the scanners you want and when their databases update.</figcaption></figure>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- GALLERY -->
-<section class="section" id="tour" aria-labelledby="tour-h">
-  <div class="wrap">
-    <p class="eyebrow">Product tour</p>
-    <h2 id="tour-h">See it in action</h2>
-    <div class="gallery">
-      <figure class="frame"><img src="assets/media/ci-gate.gif" width="1280" height="800" loading="lazy" decoding="async" alt="CI upload in block mode returns HTTP 422 and fails the job; report mode returns 200"><figcaption>Quality gate: block or report only</figcaption></figure>
-      <figure class="frame"><img src="assets/media/findings-filter.gif" width="1280" height="800" loading="lazy" decoding="async" alt="Searching, filtering and grouping findings, and opening a finding reported by several scanners"><figcaption>Search, filter and group findings</figcaption></figure>
-      <figure class="frame"><img src="assets/media/history.gif" width="1280" height="800" loading="lazy" decoding="async" alt="Scan history for a repo with new and fixed counts per scan"><figcaption>Scan history with new / fixed</figcaption></figure>
-      <figure class="frame"><img src="assets/media/report-export.gif" width="1280" height="800" loading="lazy" decoding="async" alt="Exporting a client report as PDF and HTML"><figcaption>PDF and HTML reports</figcaption></figure>
-      <figure class="frame"><img src="assets/media/share-password.gif" width="1280" height="800" loading="lazy" decoding="async" alt="Creating a password-protected share link and opening it"><figcaption>Password-protected share links</figcaption></figure>
-      <figure class="frame"><img src="assets/media/auto-setup-github.gif" width="1280" height="800" loading="lazy" decoding="async" alt="Connecting GitHub and setting up the CI workflow for a repo in one click"><figcaption>One-click CI setup via GitHub</figcaption></figure>
-      <figure class="frame"><img src="assets/media/setup.gif" width="1280" height="800" loading="lazy" decoding="async" alt="First-time setup wizard: choosing scanners and the daily update time"><figcaption>First-run setup wizard</figcaption></figure>
+<!-- 08 FAQ -->
+<section class="sec" id="faq" aria-labelledby="faq-h">
+  <div class="wrap sec-grid">
+    <p class="sec-k"><span>08</span>FAQ</p>
+    <div class="sec-body">
+      <h2 id="faq-h">Questions</h2>
+      <div class="faq">
+        <details><summary>Is ScanHub free?</summary><p>Yes. There is no paid tier and no seat limit. You pay only for the machine you run it on.</p></details>
+        <details><summary>Where does my code go?</summary><p>To your own server. ScanHub is self-hosted: uploaded code, findings and the PostgreSQL database stay in a Docker volume you control. The container only reaches out to download scanner updates and vulnerability databases.</p></details>
+        <details><summary>What license is ScanHub under?</summary><p>ScanHub is open source under the <a href="https://github.com/SatangBudsai/scanhub/blob/main/LICENSE">Apache License 2.0</a>. Every bundled scanner keeps its own license, listed in <a href="https://github.com/SatangBudsai/scanhub/blob/main/THIRD_PARTY_NOTICES.md">THIRD_PARTY_NOTICES.md</a> and under Settings → About and licenses.</p></details>
+        <details><summary>Why is Semgrep skipped until I change a setting?</summary><p>The Semgrep Registry rules (such as <code>p/default</code>) are under the Semgrep Rules License, which only you can accept. An admin accepts it in Settings → Scanners → Semgrep rules, or you point Semgrep at your own rules with <code>SEMGREP_RULES</code>.</p></details>
+        <details><summary>Which CI systems work?</summary><p>GitHub Actions, GitLab CI, Jenkins, Bitbucket Pipelines, Azure Pipelines, or anything that can run <code>curl</code>. ScanHub generates the snippet for each.</p></details>
+        <details><summary>Can I keep my existing scanner jobs?</summary><p>Yes. Send their JSON or SARIF output to <code>/api/v1/reports</code> and ScanHub handles merging, history and the gate.</p></details>
+        <details><summary>How much hardware do I need?</summary><p>Any machine that runs Docker on amd64 or arm64. About 8 GB of RAM is recommended when SonarQube is enabled.</p></details>
+        <details><summary>Can it run without internet access?</summary><p>Yes, with an image transfer via <code>docker save</code> / <code>docker load</code>. Vulnerability databases will be as fresh as the image unless you update them.</p></details>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- FAQ -->
-<section class="section alt" id="faq" aria-labelledby="faq-h">
-  <div class="wrap narrow">
-    <p class="eyebrow">FAQ</p>
-    <h2 id="faq-h">Questions</h2>
-    <div class="faq">
-      <details><summary>Is ScanHub free?</summary><p>Yes. There is no paid tier and no seat limit. You pay only for the machine you run it on.</p></details>
-      <details><summary>Where does my code go?</summary><p>To your own server. ScanHub is self-hosted: uploaded code, findings and the PostgreSQL database stay in a Docker volume you control. The container only reaches out to download scanner updates and vulnerability databases.</p></details>
-      <details><summary>What license is ScanHub under?</summary><p>No license has been chosen for ScanHub itself yet; check the repository for updates. Every bundled scanner keeps its own license, listed in <a href="https://github.com/SatangBudsai/scanhub/blob/main/THIRD_PARTY_NOTICES.md">THIRD_PARTY_NOTICES.md</a> and under Settings → About and licenses.</p></details>
-      <details><summary>Why is Semgrep skipped until I change a setting?</summary><p>The Semgrep Registry rules (such as <code>p/default</code>) are under the Semgrep Rules License, which only you can accept. An admin accepts it in Settings → Scanners → Semgrep rules, or you point Semgrep at your own rules with <code>SEMGREP_RULES</code>.</p></details>
-      <details><summary>Which CI systems work?</summary><p>GitHub Actions, GitLab CI, Jenkins, Bitbucket Pipelines, Azure Pipelines, or anything that can run <code>curl</code>. ScanHub generates the snippet for each.</p></details>
-      <details><summary>Can I keep my existing scanner jobs?</summary><p>Yes. Send their JSON or SARIF output to <code>/api/v1/reports</code> and ScanHub handles merging, history and the gate.</p></details>
-      <details><summary>How much hardware do I need?</summary><p>Any machine that runs Docker on amd64 or arm64. About 8 GB of RAM is recommended when SonarQube is enabled.</p></details>
-      <details><summary>Can it run without internet access?</summary><p>Yes, with an image transfer via <code>docker save</code> / <code>docker load</code>. Vulnerability databases will be as fresh as the image unless you update them.</p></details>
-    </div>
-  </div>
-</section>
-
-<!-- FINAL CTA -->
-<section class="section final">
-  <div class="wrap narrow center">
-    <h2>Put every scanner behind one dashboard</h2>
-    <p class="lead">Free, self-hosted, one container.</p>
-    <div class="cta center-cta">
-      <a class="btn btn-primary" href="#install">Get started</a>
-      <a class="btn btn-ghost" href="https://github.com/SatangBudsai/scanhub">View on GitHub</a>
+<!-- CLOSING: inverted band -->
+<section class="final" aria-labelledby="final-h">
+  <div class="wrap final-in">
+    <h2 id="final-h">Put every scanner behind one dashboard.</h2>
+    <div>
+      <p>Free, self-hosted, one container. Three commands to install.</p>
+      <div class="cta">
+        <a class="btn btn-invert" href="#install">Install ScanHub</a>
+        <a class="btn btn-line" href="https://github.com/SatangBudsai/scanhub">Source on GitHub</a>
+      </div>
     </div>
   </div>
 </section>
@@ -266,10 +404,11 @@ SCANHUB_URL: https://scanhub.company.local     # URL people and CI use</code></p
 
 <footer class="foot">
   <div class="wrap foot-in">
-    <img src="assets/logo-dark.svg" alt="ScanHub" width="120" height="28" loading="lazy">
+    <img src="assets/logo.svg" alt="ScanHub" width="120" height="28" loading="lazy">
     <ul>
       <li><a href="https://github.com/SatangBudsai/scanhub">GitHub</a></li>
       <li><a href="https://github.com/SatangBudsai/scanhub/pkgs/container/scanhub">Container image</a></li>
+      <li><a href="https://github.com/SatangBudsai/scanhub/blob/main/LICENSE">License (Apache-2.0)</a></li>
       <li><a href="https://github.com/SatangBudsai/scanhub/blob/main/THIRD_PARTY_NOTICES.md">Third-party notices</a></li>
       <li><a href="https://github.com/SatangBudsai/scanhub/issues">Issues</a></li>
     </ul>
