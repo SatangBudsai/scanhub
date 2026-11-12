@@ -11,7 +11,7 @@
 
 services:
   scanhub:
-    # :latest follows every release. Pin a version (e.g. :1.1.0) to update only when you choose.
+    # :latest follows every release. Pin a version (e.g. :1.2.0) to update only when you choose.
     image: ghcr.io/satangbudsai/scanhub:latest
     ports:
       - "8080:8080"            # change the left number to use another port

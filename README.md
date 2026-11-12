@@ -93,7 +93,7 @@ docker compose up -d
 
 Data in the `scanhub-data` volume is kept, and the database schema migrates itself on start.
 
-Upgrading from 1.1.0 or earlier: Semgrep no longer uses the Semgrep Registry rules (`p/default`) on its own, because those rules are under the [Semgrep Rules License](https://semgrep.dev/legal/rules-license) and only you can accept it. After the update Semgrep is skipped in scans until an admin accepts the license or sets custom rules in Settings → Scanners → Semgrep rules (or sets `SEMGREP_RULES`). To pin a version, replace `:latest` in `docker-compose.yml` with a version number such as `:1.1.0`; rolling back works the same way. All versions are listed on [GitHub Packages](https://github.com/SatangBudsai/scanhub/pkgs/container/scanhub).
+Upgrading from 1.1.0 or earlier: Semgrep no longer uses the Semgrep Registry rules (`p/default`) on its own, because those rules are under the [Semgrep Rules License](https://semgrep.dev/legal/rules-license) and only you can accept it. After the update Semgrep is skipped in scans until an admin accepts the license or sets custom rules in Settings → Scanners → Semgrep rules (or sets `SEMGREP_RULES`). To pin a version, replace `:latest` in `docker-compose.yml` with a version number such as `:1.2.0`; rolling back works the same way. All versions are listed on [GitHub Packages](https://github.com/SatangBudsai/scanhub/pkgs/container/scanhub).
 
 ### Offline servers
 
