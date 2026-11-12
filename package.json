@@ -2,6 +2,7 @@
   "name": "scanhub",
   "version": "1.1.0",
   "private": true,
+  "license": "Apache-2.0",
   "description": "Run SonarQube, Trivy, Semgrep, Gitleaks and more on every repo and keep all results in one place",
   "type": "module",
   "engines": {

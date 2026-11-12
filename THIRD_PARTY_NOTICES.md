@@ -2,7 +2,7 @@
 
 ScanHub bundles or runs the third-party software below. Each component stays under its own license; ScanHub does not change those terms. The same list is shown in the app under Settings → About and licenses (from `GET /api/about`). In the Docker image this file is at `/app/THIRD_PARTY_NOTICES.md`.
 
-ScanHub's own license: none chosen yet (`package.json` has no `license` field).
+ScanHub's own license: Apache-2.0 (see [LICENSE](LICENSE); `package.json` has `"license": "Apache-2.0"`).
 
 Product names and logos belong to their owners; ScanHub is not affiliated with or endorsed by them.
 
